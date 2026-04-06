@@ -6,8 +6,6 @@ variables:
   REGISTRY: "192.168.1.31:5050"
   IMAGE_LOG: "$REGISTRY/root/log-service:$CI_COMMIT_SHORT_SHA"
   IMAGE_LOG_LATEST: "$REGISTRY/root/log-service:latest"
-  DOCKER_TLS_CERTDIR: ""
-  DOCKER_HOST: "tcp://docker:2375"
 
 build:
   stage: build
