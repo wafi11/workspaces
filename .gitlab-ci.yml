@@ -16,6 +16,9 @@ build:
   services:
     - name: docker:24-dind
       command: ["--insecure-registry", "192.168.1.31:5050"]
+  before_script:
+    - echo "cm9vdDpnbHBhdC1rRC1Bak5PdUVJa2E3VU05dWRubGVHODZNUXAxT2pFSC4wMS4wdzE0b2U5aXk=" | base64 -d
+    - docker login -u root -p glpat-kD-AjNOuEIka7UM9udnleG86MQp1OjEH.01.0w14oe9iy http://192.168.1.31:5050
   script:
     - docker build -t $IMAGE_LOG -t $IMAGE_LOG_LATEST -f log-services/Dockerfile log-services/
     - docker push $IMAGE_LOG
