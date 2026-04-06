@@ -4,11 +4,10 @@ stages:
 
 variables:
   REGISTRY: "192.168.1.31:5050"
-  IMAGE_LOG: "$REGISTRY/root/workspaces/log-service:$CI_COMMIT_SHORT_SHA"
-  IMAGE_LOG_LATEST: "$REGISTRY/root/workspaces/log-service:latest"
-  DOCKER_HOST: "tcp://docker:2375"
+  IMAGE: "$REGISTRY/root/workspaces/log-service:$CI_COMMIT_SHORT_SHA"
+  IMAGE_LATEST: "$REGISTRY/root/workspaces/log-service:latest"
   DOCKER_TLS_CERTDIR: ""
-  DOCKER_AUTH_CONFIG: '{"auths":{"192.168.1.31:5050":{"auth":"cm9vdDpnbHBhdC1rRC1Bak5PdUVJa2E3VU05dWRubGVHODZNUXAxT2pFSC4wMS4wdzE0b2U5aXk="}}}'
+  DOCKER_HOST: "tcp://docker:2375"
 
 build:
   stage: build
@@ -17,12 +16,11 @@ build:
     - name: docker:24-dind
       command: ["--insecure-registry", "192.168.1.31:5050"]
   before_script:
-    - echo "cm9vdDpnbHBhdC1rRC1Bak5PdUVJa2E3VU05dWRubGVHODZNUXAxT2pFSC4wMS4wdzE0b2U5aXk=" | base64 -d
-    - docker login -u root -p glpat-kD-AjNOuEIka7UM9udnleG86MQp1OjEH.01.0w14oe9iy http://192.168.1.31:5050
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $REGISTRY
   script:
-    - docker build -t $IMAGE_LOG -t $IMAGE_LOG_LATEST -f log-services/Dockerfile log-services/
-    - docker push $IMAGE_LOG
-    - docker push $IMAGE_LOG_LATEST
+    - docker build -t $IMAGE -t $IMAGE_LATEST .
+    - docker push $IMAGE
+    - docker push $IMAGE_LATEST
   only:
     - main
 
@@ -37,7 +35,7 @@ deploy:
     - chmod 600 ~/.kube/config
   script:
     - kubectl cluster-info
-    - kubectl set image deployment/log-service log-service=$IMAGE_LOG -n logging
+    - kubectl set image deployment/log-service log-service=$IMAGE -n logging
     - kubectl rollout status deployment/log-service -n logging --timeout=120s
   only:
     - main
