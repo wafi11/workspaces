@@ -4,8 +4,8 @@ stages:
 
 variables:
   REGISTRY: "192.168.1.31:5050"
-  IMAGE_LOG: "$REGISTRY/root/log-service:$CI_COMMIT_SHORT_SHA"
-  IMAGE_LOG_LATEST: "$REGISTRY/root/log-service:latest"
+  IMAGE_LOG: "$REGISTRY/root/workspaces/log-service:$CI_COMMIT_SHORT_SHA"
+  IMAGE_LOG_LATEST: "$REGISTRY/root/workspaces/log-service:latest"
   DOCKER_HOST: "tcp://docker:2375"
   DOCKER_TLS_CERTDIR: ""
   DOCKER_AUTH_CONFIG: '{"auths":{"192.168.1.31:5050":{"auth":"cm9vdDpnbHBhdC1rRC1Bak5PdUVJa2E3VU05dWRubGVHODZNUXAxT2pFSC4wMS4wdzE0b2U5aXk="}}}'
