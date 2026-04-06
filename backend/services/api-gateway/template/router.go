@@ -30,10 +30,10 @@ func NewTemplateRouter(c *echo.Echo, db *sqlx.DB, redis *redis.Client, minioClie
 	protected.DELETE("/variables/:id", handler.DeleteTemplateVariable)
 
 	// template addons
-	protected.POST("/:template_id/addons", handler.CreateTemplateAddon)
-	protected.GET("/:template_id/addons", handler.GetTemplateAddons)
-	protected.PUT("/addons/:id", handler.UpdateTemplateAddon)
-	protected.DELETE("/addons/:id", handler.DeleteTemplateAddon)
+	protected.POST("/:template_id/add-ons", handler.CreateTemplateAddon)
+	protected.GET("/:template_id/add-ons", handler.GetTemplateAddons)
+	protected.PUT("/add-ons/:id", handler.UpdateTemplateAddon)
+	protected.DELETE("/add-ons/:id", handler.DeleteTemplateAddon)
 
 	// template files
 	protected.POST("/:template_id/files", handler.CreateTemplateFiles)

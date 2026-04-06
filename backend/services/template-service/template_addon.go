@@ -2,6 +2,7 @@ package templateservice
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -20,7 +21,7 @@ func (r *Repository) CreateTemplateAddon(ctx context.Context, req *CreateAddonRe
 
 func (r *Repository) GetTemplateAddons(ctx context.Context, templateID string) ([]TemplateAddon, error) {
 	rows, err := r.db.QueryContext(ctx, `
-		SELECT id, name, description, default_config
+		SELECT id, name,image, description, default_config,template_id
 		FROM template_addons
 		WHERE template_id = $1
 	`, templateID)
@@ -31,13 +32,20 @@ func (r *Repository) GetTemplateAddons(ctx context.Context, templateID string) (
 
 	var addons []TemplateAddon
 	for rows.Next() {
-		var addon TemplateAddon
+    var addon TemplateAddon
+    var defaultConfig []byte  
+    if err := rows.Scan(&addon.Id, &addon.Name, &addon.Image, &addon.Description, &defaultConfig, &addon.TemplateId); err != nil {
+        return nil, fmt.Errorf("failed to scan template addon: %w", err)
+    }
 
-		if err := rows.Scan(&addon.Id, &addon.Name, &addon.Description, &addon.DefaultConfig); err != nil {
-			return nil, fmt.Errorf("failed to scan template addon: %w", err)
-		}
-		addons = append(addons, addon)
-	}
+    if len(defaultConfig) > 0 {
+        if err := json.Unmarshal(defaultConfig, &addon.DefaultConfig); err != nil {
+            return nil, fmt.Errorf("failed to unmarshal default_config: %w", err)
+        }
+    }
+
+    addons = append(addons, addon)
+}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating template addons: %w", err)
 	}
