@@ -16,7 +16,7 @@ export function useGetTemplates() {
   return useQuery({
     queryKey: ["list-templates"],
     queryFn: async () => {
-      const req = await api.get<ApiResponse<Templates[]>>("/templates");
+      const req = await api.get<Templates[]>("/templates");
       return req.data;
     },
   });
@@ -25,9 +25,7 @@ export function useGetTemplateDetails(templateId: string) {
   return useQuery({
     queryKey: ["template", templateId],
     queryFn: async () => {
-      const req = await api.get<ApiResponse<Templates>>(
-        `/templates/${templateId}`
-      );
+      const req = await api.get<Templates>(`/templates/${templateId}`);
       return req.data;
     },
   });

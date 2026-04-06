@@ -10,9 +10,9 @@ export function SidebarProfile() {
   const pathname = usePathname();
 
   const { data } = useProfile();
-  const user = data?.data;
+  const user = data;
 
-  const initials = data?.data.username
+  const initials = data?.username
     .split(" ")
     .map((n) => n[0])
     .join("")

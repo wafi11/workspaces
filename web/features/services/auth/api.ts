@@ -13,7 +13,7 @@ export function useRegister() {
   return useMutation({
     mutationKey: ["register"],
     mutationFn: async (data: RegisterForm) => {
-      const req = await api.post<ApiResponse<null>>("/auth/register", data);
+      const req = await api.post<null>("/auth/register", data);
       return req.data;
     },
     onSuccess: () => {
@@ -28,13 +28,11 @@ export function useLogin() {
   return useMutation({
     mutationKey: ["login"],
     mutationFn: async (data: LoginForm) => {
-      const req = await api.post<
-        ApiResponse<{
-          access_token: string;
-          refresh_token: string;
-        }>
-      >("/auth/login", data);
-      const { access_token, refresh_token } = req.data.data;
+      const req = await api.post<{
+        access_token: string;
+        refresh_token: string;
+      }>("/auth/login", data);
+      const { access_token, refresh_token } = req.data;
       storage.setAccessToken(access_token);
       storage.setRefreshToken(refresh_token);
 
@@ -73,7 +71,7 @@ export function useProfile() {
   return useQuery({
     queryKey: ["profile"],
     queryFn: async () => {
-      const req = await api.get<ApiResponse<User>>("/users");
+      const req = await api.get<User>("/users");
       return req.data;
     },
   });

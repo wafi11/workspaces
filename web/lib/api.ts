@@ -1,7 +1,5 @@
 import { API_URL } from "@/constants";
 import storage from "@/hooks/Storage";
-import { ApiResponse } from "@/types";
-import axios, { AxiosInstance, AxiosResponse, AxiosError } from "axios";
 
 let isRefreshing = false;
 let failedQueue: Array<{
@@ -9,7 +7,6 @@ let failedQueue: Array<{
   reject: (err: unknown) => void;
 }> = [];
 
-// Proses antrian request yang gagal — jalankan ulang setelah token baru didapat
 function processQueue(error: unknown, token: string | null = null) {
   failedQueue.forEach((promise) => {
     if (error) {
@@ -21,140 +18,166 @@ function processQueue(error: unknown, token: string | null = null) {
   failedQueue = [];
 }
 
-class Api {
-  private instance: AxiosInstance;
-
-  constructor() {
-    this.instance = axios.create({
-      baseURL: API_URL,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    // Request interceptor — inject access token di setiap request
-    this.instance.interceptors.request.use((config) => {
-      const token = storage.getAccessToken();
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      return config;
-    });
-
-    // Response interceptor — handle 401 + auto refresh
-    this.instance.interceptors.response.use(
-      (response: AxiosResponse) => {
-        return {
-          ...response,
-          data: {
-            data: response.data.data,
-            status: response.status,
-            message: response.data.message,
-          },
-        };
-      },
-      async (error: AxiosError) => {
-        const originalRequest = error.config as any;
-
-        // Kalau bukan 401 atau sudah pernah di-retry → lempar error
-        if (error.response?.status !== 401 || originalRequest._retry) {
-          return Promise.reject(buildError(error));
-        }
-
-        // Kalau sedang refresh — masukkan ke antrian, tunggu token baru
-        if (isRefreshing) {
-          return new Promise((resolve, reject) => {
-            failedQueue.push({ resolve, reject });
-          })
-            .then((token) => {
-              originalRequest.headers.Authorization = `Bearer ${token}`;
-              return this.instance(originalRequest);
-            })
-            .catch((err) => {
-              return Promise.reject(err);
-            });
-        }
-
-        // Mulai refresh
-        originalRequest._retry = true;
-        isRefreshing = true;
-
-        const refreshToken = storage.getRefreshToken();
-
-        if (!refreshToken) {
-          // Tidak ada refresh token → paksa logout
-          storage.clear();
-          window.location.href = "/login";
-          return Promise.reject(buildError(error));
-        }
-
-        try {
-          const { data } = await api.post<
-            ApiResponse<{
-              access_token: string;
-              refresh_token: string;
-            }>
-          >(`${API_URL}auth/refresh`, {
-            refresh_token: refreshToken,
-          });
-
-          const newAccessToken = data.data.access_token;
-          const newRefreshToken = data.data.refresh_token;
-
-          // Simpan token baru
-          storage.setAccessToken(newAccessToken);
-          storage.setRefreshToken(newRefreshToken);
-
-          // Update header default
-          this.instance.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
-
-          // Jalankan semua request yang tertunda
-          processQueue(null, newAccessToken);
-
-          // Retry request original
-          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-          return this.instance(originalRequest);
-        } catch (refreshError) {
-          // Refresh gagal → paksa logout
-          processQueue(refreshError, null);
-          storage.clear();
-          window.location.href = "/login";
-          return Promise.reject(refreshError);
-        } finally {
-          isRefreshing = false;
-        }
-      }
-    );
-  }
-
-  get instance_() {
-    return this.instance;
-  }
-}
-
-function buildError(error: AxiosError) {
-  if (error.response) {
-    const errorData = error.response.data as any;
+function buildError(status: number, data: any, message?: string) {
+  if (status) {
     return {
-      code: error.response.status,
-      message: errorData.message || error.message,
-      error: errorData.error,
-      success: false,
-    };
-  } else if (error.request) {
-    return {
-      code: 0,
-      message: "Network error - no response received",
-      error: error.message,
+      code: status,
+      message: data?.message || message || "Something went wrong",
+      error: data?.error,
       success: false,
     };
   }
   return {
-    code: -1,
-    message: error.message,
-    error: error.message,
+    code: 0,
+    message: message || "Network error - no response received",
+    error: message,
     success: false,
   };
 }
 
-export const api = new Api().instance_;
+type RequestConfig = {
+  method?: string;
+  headers?: Record<string, string>;
+  body?: any;
+  _retry?: boolean;
+};
+
+async function request<T = any>(
+  endpoint: string,
+  config: RequestConfig = {}
+): Promise<{ data: T; status: number; message: string }> {
+  const token = storage.getAccessToken();
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...config.headers,
+  };
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const url = endpoint.startsWith("http") ? endpoint : `${API_URL}${endpoint}`;
+
+  let response: Response;
+
+  try {
+    response = await fetch(url, {
+      method: config.method || "GET",
+      headers,
+      body: config.body ? JSON.stringify(config.body) : undefined,
+    });
+  } catch (err) {
+    return Promise.reject({
+      code: 0,
+      message: "Network error - no response received",
+      error: String(err),
+      success: false,
+    });
+  }
+
+  // Handle 401 + auto refresh
+  if (response.status === 401 && !config._retry) {
+    if (isRefreshing) {
+      return new Promise<string>((resolve, reject) => {
+        failedQueue.push({ resolve, reject });
+      }).then((newToken) => {
+        return request<T>(endpoint, {
+          ...config,
+          headers: { ...config.headers, Authorization: `Bearer ${newToken}` },
+          _retry: true,
+        });
+      });
+    }
+
+    isRefreshing = true;
+    const refreshToken = storage.getRefreshToken();
+
+    if (!refreshToken) {
+      storage.clear();
+      window.location.href = "/login";
+      return Promise.reject(buildError(401, null, "No refresh token"));
+    }
+
+    try {
+      const refreshRes = await fetch(`${API_URL}auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+
+      const refreshData = await refreshRes.json();
+
+      if (!refreshRes.ok) {
+        throw refreshData;
+      }
+
+      const newAccessToken = refreshData.data.access_token;
+      const newRefreshToken = refreshData.data.refresh_token;
+
+      storage.setAccessToken(newAccessToken);
+      storage.setRefreshToken(newRefreshToken);
+
+      processQueue(null, newAccessToken);
+
+      return request<T>(endpoint, {
+        ...config,
+        headers: {
+          ...config.headers,
+          Authorization: `Bearer ${newAccessToken}`,
+        },
+        _retry: true,
+      });
+    } catch (refreshError) {
+      processQueue(refreshError, null);
+      storage.clear();
+      window.location.href = "/login";
+      return Promise.reject(refreshError);
+    } finally {
+      isRefreshing = false;
+    }
+  }
+
+  const responseData = await response.json();
+
+  if (!response.ok) {
+    return Promise.reject(buildError(response.status, responseData));
+  }
+
+  return {
+    data: responseData.data,
+    status: response.status,
+    message: responseData.message,
+  };
+}
+
+// Method helpers — sama kayak axios instance sebelumnya
+export const api = {
+  get: <T = any>(
+    url: string,
+    config?: Omit<RequestConfig, "method" | "body">
+  ) => request<T>(url, { ...config, method: "GET" }),
+
+  post: <T = any>(
+    url: string,
+    body?: any,
+    config?: Omit<RequestConfig, "method" | "body">
+  ) => request<T>(url, { ...config, method: "POST", body }),
+
+  put: <T = any>(
+    url: string,
+    body?: any,
+    config?: Omit<RequestConfig, "method" | "body">
+  ) => request<T>(url, { ...config, method: "PUT", body }),
+
+  patch: <T = any>(
+    url: string,
+    body?: any,
+    config?: Omit<RequestConfig, "method" | "body">
+  ) => request<T>(url, { ...config, method: "PATCH", body }),
+
+  delete: <T = any>(
+    url: string,
+    config?: Omit<RequestConfig, "method" | "body">
+  ) => request<T>(url, { ...config, method: "DELETE" }),
+};
