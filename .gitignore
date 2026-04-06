@@ -3,7 +3,9 @@ frontend-workspace/node_modules/*
 frontend-workspace/tests/*
 frontend-workspace/.next/*
 operator/.env
+operator/config/config
 operator/.air.toml
 operator/tmp/*
-workspaces/tmp/*
-workspaces/.env
+backend/tmp/*
+backend/config/config
+backend/.env
