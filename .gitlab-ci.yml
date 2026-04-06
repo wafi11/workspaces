@@ -6,11 +6,15 @@ variables:
   REGISTRY: "192.168.1.31:5050"
   IMAGE_LOG: "$REGISTRY/root/log-service:$CI_COMMIT_SHORT_SHA"
   IMAGE_LOG_LATEST: "$REGISTRY/root/log-service:latest"
+  DOCKER_HOST: "tcp://docker:2375"
+  DOCKER_TLS_CERTDIR: ""
 
 build:
   stage: build
-  tags:
-    - shell
+  image: docker:24
+  services:
+    - name: docker:24-dind
+      command: ["--insecure-registry", "192.168.1.31:5050"]
   before_script:
     - echo "$REGISTRY_PASSWORD" | docker login -u $REGISTRY_USER --password-stdin http://$REGISTRY
   script:
