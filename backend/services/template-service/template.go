@@ -10,29 +10,24 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/minio/minio-go/v7"
 	"github.com/redis/go-redis/v9"
-	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/client-go/dynamic"
 )
 
 type Repository struct {
 	db          *sqlx.DB
 	minioClient *minio.Client
 	redisClient *redis.Client
-	dynClient   dynamic.Interface
-	mapper      meta.RESTMapper
+
 }
 
-func NewRepository(db *sqlx.DB, redis *redis.Client, minioClient *minio.Client, dynClient dynamic.Interface, mapper meta.RESTMapper) *Repository {
+func NewRepository(db *sqlx.DB, redis *redis.Client, minioClient *minio.Client) *Repository {
 	return &Repository{
 		db:          db,
 		redisClient: redis,
 		minioClient: minioClient,
-		dynClient:   dynClient,
-		mapper:      mapper,
+
 	}
 }
 
-// ─── Repository Methods ───────────────────────────────────────────────────────
 
 func (r *Repository) ListTemplates(ctx context.Context, req *ListTemplatesRequest) (*ListTemplatesResponse, error) {
 	query := `
@@ -106,9 +101,11 @@ func (r *Repository) CreateTemplate(ctx context.Context, req *CreateTemplateRequ
 		RETURNING id, name, description, image, category, is_public, created_at,icon
 	`, req.Name, req.Description, req.Image, req.Category, req.IsPublic, req.Icon,
 	).Scan(&t.Id, &t.Name, &t.Description, &t.Image, &t.Category, &t.IsPublic, &t.CreatedAt, &req.Icon)
+	
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to insert template: %w", err)
 	}
+
 	for _, v := range req.Variables {
 		r.CreateTemplateVariable(ctx, &v, t.Id)
 	}

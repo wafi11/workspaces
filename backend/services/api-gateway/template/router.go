@@ -6,12 +6,10 @@ import (
 	"github.com/minio/minio-go/v7"
 	"github.com/redis/go-redis/v9"
 	templateservice "github.com/wafi11/workspaces/services/template-service"
-	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/client-go/dynamic"
 )
 
-func NewTemplateRouter(c *echo.Echo, db *sqlx.DB, redis *redis.Client, minioClient *minio.Client, dynClient dynamic.Interface, mapper meta.RESTMapper) {
-	repo := templateservice.NewRepository(db, redis, minioClient, dynClient, mapper)
+func NewTemplateRouter(c *echo.Echo, db *sqlx.DB, redis *redis.Client, minioClient *minio.Client) {
+	repo := templateservice.NewRepository(db, redis, minioClient)
 	svc := templateservice.NewService(repo)
 	handler := NewHandler(svc)
 

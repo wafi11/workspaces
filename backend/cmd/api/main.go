@@ -8,7 +8,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/wafi11/workspaces/config"
-	"github.com/wafi11/workspaces/pkg/k8s"
 	"github.com/wafi11/workspaces/pkg/server"
 )
 
@@ -33,7 +32,6 @@ func main() {
 		log.Fatalf("Failed to connect to Elasticsearch: %v", err)
 	}
 
-	k8sClient, err := k8s.NewK8sClient(conf.K8S_CONFIG)
 
 	if err != nil {
 		fmt.Printf("failed to connect k8s %v+", err)
@@ -52,7 +50,7 @@ func main() {
 		MaxAge:       2000,
 	}))
 
-	server.NewServer(e, database, redisClient, minio, conf, k8sClient, esClient)
+	server.NewServer(e, database, redisClient, minio, conf, esClient)
 
 	log.Printf("starting backend workspace on port %s", conf.Port)
 	if err := e.Start(":" + conf.Port); err != nil {

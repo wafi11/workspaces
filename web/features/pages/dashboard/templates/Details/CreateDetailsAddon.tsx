@@ -77,3 +77,78 @@ export function AddOnForm({
     </div>
   );
 }
+
+export function FileForm({
+  state,
+  setState,
+  onSave,
+  isLoading,
+  onCancel,
+}: {
+  state: {
+    filename: string;
+    sort_order: number;
+  };
+  setState: React.Dispatch<
+    React.SetStateAction<{
+      filename: string;
+      sort_order: number;
+    }>
+  >;
+  onSave: () => void;
+  isLoading: boolean;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="p-3 space-y-3">
+      <div className="flex gap-3">
+        <div className="flex-1 space-y-1">
+          <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">
+            Filename
+          </label>
+          <Input
+            value={state.filename}
+            onChange={(e) =>
+              setState((s) => ({ ...s, filename: e.target.value }))
+            }
+            placeholder="e.g. init.sh"
+            className="h-8 text-sm font-mono"
+            autoFocus
+          />
+        </div>
+        <div className="w-28 space-y-1">
+          <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">
+            Sort Order
+          </label>
+          <Input
+            type="number"
+            value={state.sort_order}
+            onChange={(e) =>
+              setState((s) => ({ ...s, sort_order: Number(e.target.value) }))
+            }
+            className="h-8 text-sm"
+          />
+        </div>
+      </div>
+      <div className="flex gap-2 justify-end">
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={onCancel}
+          disabled={isLoading}
+          className="h-7 px-3 text-xs"
+        >
+          <X className="w-3 h-3 mr-1" /> Cancel
+        </Button>
+        <Button
+          size="sm"
+          onClick={onSave}
+          disabled={isLoading}
+          className="h-7 px-3 text-xs"
+        >
+          <Check className="w-3 h-3 mr-1" /> {isLoading ? "Saving..." : "Save"}
+        </Button>
+      </div>
+    </div>
+  );
+}

@@ -9,8 +9,10 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
-	"github.com/wafi11/workspaces/pkg/k8s"
 )
+func GenerateNamespace(userId, name string) string {
+	return fmt.Sprintf("ws-%s-%s", userId[:8], name)
+}
 
 type Repository struct {
 	db          *sqlx.DB
@@ -68,7 +70,7 @@ func (r *Repository) CreateWorkspace(ctx context.Context, req *CreateWorkspaceRe
 	}
 
 	// 3. generate namespace: "ws-{userId[:8]}-{name}"
-	namespace := k8s.GenerateNamespace(req.UserId, req.Name)
+	namespace := GenerateNamespace(req.UserId, req.Name)
 
 	// 4. marshal env_vars
 	envJSON, err := json.Marshal(req.EnvVars)

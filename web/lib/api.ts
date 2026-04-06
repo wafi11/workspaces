@@ -100,7 +100,7 @@ async function request<T = any>(
     }
 
     try {
-      const refreshRes = await fetch(`${API_URL}auth/refresh`, {
+      const refreshRes = await fetch(`${API_URL}/auth/refresh`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ refresh_token: refreshToken }),
@@ -151,7 +151,6 @@ async function request<T = any>(
   };
 }
 
-// Method helpers — sama kayak axios instance sebelumnya
 export const api = {
   get: <T = any>(
     url: string,

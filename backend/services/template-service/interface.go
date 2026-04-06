@@ -7,7 +7,6 @@ import (
 )
 
 type TemplateRepository interface {
-	ExecuteDeployment(ctx context.Context, templateName string, params DeployParams) error
 	ListTemplates(ctx context.Context, req *ListTemplatesRequest) (*ListTemplatesResponse, error)
 	GetTemplate(ctx context.Context, req *GetTemplateRequest) (*GetTemplateResponse, error)
 	CreateTemplate(ctx context.Context, req *CreateTemplateRequest) (*CreateTemplateResponse, error)

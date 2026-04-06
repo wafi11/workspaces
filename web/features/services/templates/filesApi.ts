@@ -28,11 +28,26 @@ export function useUpdateTemplateFiles(id: string, templateId: string) {
     },
   });
 }
-export function useDeleteTemplateFiles(id: string, templateId: string) {
+export function useCreateTemplateFiles(templateId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationKey: ["template-files", id],
-    mutationFn: async () => {
+    mutationKey: ["template-files", templateId],
+    mutationFn: async (req: EditState) => {
+      const response = await api.post(`/templates/${templateId}/files`, req);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["template-files", templateId],
+      });
+    },
+  });
+}
+export function useDeleteTemplateFiles(templateId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ["template-files", templateId],
+    mutationFn: async (id: string) => {
       const response = await api.delete(`/templates/files/${id}`);
       return response.data;
     },

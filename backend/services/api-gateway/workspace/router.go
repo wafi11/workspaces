@@ -8,12 +8,11 @@ import (
 	"github.com/minio/minio-go/v7"
 	"github.com/redis/go-redis/v9"
 	"github.com/wafi11/workspaces/config"
-	"github.com/wafi11/workspaces/pkg/k8s"
 	"github.com/wafi11/workspaces/pkg/middlewares"
 	workspaceservice "github.com/wafi11/workspaces/services/workspaces-service"
 )
 
-func RegisterRoutes(e *echo.Echo, db *sqlx.DB, redis *redis.Client, conf *config.Config, minioClient *minio.Client, k8sClient *k8s.K8sClient, ctx context.Context) {
+func RegisterRoutes(e *echo.Echo, db *sqlx.DB, redis *redis.Client, conf *config.Config, minioClient *minio.Client, ctx context.Context) {
 
 	repo := workspaceservice.NewRepository(db, redis)
 	svc := workspaceservice.NewService(repo)
