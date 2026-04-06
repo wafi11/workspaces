@@ -12,7 +12,7 @@ build:
   tags:
     - shell
   before_script:
-    - docker login -u $REGISTRY_USER -p $REGISTRY_PASSWORD $REGISTRY
+    - echo "$REGISTRY_PASSWORD" | docker login -u $REGISTRY_USER --password-stdin http://$REGISTRY
   script:
     - docker build -t $IMAGE_LOG -t $IMAGE_LOG_LATEST -f log-services/Dockerfile log-services/
     - docker push $IMAGE_LOG
