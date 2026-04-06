@@ -40,8 +40,6 @@ func main() {
 		return
 	}
 
-	// ctx, cancel := context.WithCancel(context.Background())
-	// defer cancel()
 	// init echo
 	e := echo.New()
 

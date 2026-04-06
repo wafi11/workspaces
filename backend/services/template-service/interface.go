@@ -13,6 +13,27 @@ type TemplateRepository interface {
 	CreateTemplate(ctx context.Context, req *CreateTemplateRequest) (*CreateTemplateResponse, error)
 	UpdateTemplate(ctx context.Context, id string, template *UpdateTemplateRequest) error
 	DeleteTemplate(ctx context.Context, id string) error
+
+
+	// template-variables
+ 	CreateTemplateVariable(ctx context.Context, req *CreateVariableRequest,templateId string) error
+	DeleteTemplateVariable(ctx context.Context, id string) error
+	GetTemplateVariables(ctx context.Context, templateID string) ([]TemplateVariable, error)
+	UpdateTemplateVariable(ctx context.Context, id string, req *CreateVariableRequest) error
+
+
+	// template-addons
+	CreateTemplateAddon(ctx context.Context, req *CreateAddonRequest, templateId string) error
+	DeleteTemplateAddon(ctx context.Context, id string) error
+	GetTemplateAddons(ctx context.Context, templateID string) ([]TemplateAddon, error)
+	UpdateTemplateAddon(ctx context.Context, id string, req *CreateAddonRequest) error
+
+
+	// template-files
+	CreateTemplateFiles(ctx context.Context, req *CreateTemplateFilesRequest, templateId string) error
+	DeleteTemplateFiles(ctx context.Context, id string) error
+	GetTemplateFiles(ctx context.Context, templateID string) ([]TemplateFiles, error)
+	UpdateTemplateFiles(ctx context.Context, id string, req *CreateTemplateFilesRequest) error
 }
 
 type TemplateService interface {
@@ -21,6 +42,27 @@ type TemplateService interface {
 	CreateTemplate(ctx context.Context, req *CreateTemplateRequest) (*CreateTemplateResponse, error)
 	UpdateTemplate(ctx context.Context, id string, template *UpdateTemplateRequest) error
 	DeleteTemplate(ctx context.Context, id string) error
+
+
+	// template-variables
+ 	CreateTemplateVariable(ctx context.Context, req *CreateVariableRequest,templateId string) error
+	DeleteTemplateVariable(ctx context.Context, id string) error
+	GetTemplateVariables(ctx context.Context, templateID string) ([]TemplateVariable, error)
+	UpdateTemplateVariable(ctx context.Context, id string, req *CreateVariableRequest) error
+
+
+	// template-addons
+	CreateTemplateAddon(ctx context.Context, req *CreateAddonRequest, templateId string) error
+	DeleteTemplateAddon(ctx context.Context, id string) error
+	GetTemplateAddons(ctx context.Context, templateID string) ([]TemplateAddon, error)
+	UpdateTemplateAddon(ctx context.Context, id string, req *CreateAddonRequest) error
+
+
+	// template-files
+	CreateTemplateFiles(ctx context.Context, req *CreateTemplateFilesRequest, templateId string) error
+	DeleteTemplateFiles(ctx context.Context, id string) error
+	GetTemplateFiles(ctx context.Context, templateID string) ([]TemplateFiles, error)
+	UpdateTemplateFiles(ctx context.Context, id string, req *CreateTemplateFilesRequest) error
 }
 
 const (

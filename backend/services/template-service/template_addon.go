@@ -18,6 +18,32 @@ func (r *Repository) CreateTemplateAddon(ctx context.Context, req *CreateAddonRe
 	return nil
 }
 
+func (r *Repository) GetTemplateAddons(ctx context.Context, templateID string) ([]TemplateAddon, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT id, name, description, default_config
+		FROM template_addons
+		WHERE template_id = $1
+	`, templateID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get template addons: %w", err)
+	}
+	defer rows.Close()
+
+	var addons []TemplateAddon
+	for rows.Next() {
+		var addon TemplateAddon
+
+		if err := rows.Scan(&addon.Id, &addon.Name, &addon.Description, &addon.DefaultConfig); err != nil {
+			return nil, fmt.Errorf("failed to scan template addon: %w", err)
+		}
+		addons = append(addons, addon)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating template addons: %w", err)
+	}
+	return addons, nil
+}
+
 func (r *Repository) UpdateTemplateAddon(ctx context.Context, id string, req *CreateAddonRequest) error {
 	_, err := r.db.ExecContext(ctx, `
 		UPDATE template_addons
