@@ -1,0 +1,9 @@
+frontend-workspace/.env
+frontend-workspace/node_modules/*
+frontend-workspace/tests/*
+frontend-workspace/.next/*
+operator/.env
+operator/.air.toml
+operator/tmp/*
+workspaces/tmp/*
+workspaces/.env

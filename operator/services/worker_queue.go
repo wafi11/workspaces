@@ -1,0 +1,127 @@
+package services
+
+import (
+	"context"
+	"fmt"
+	"log"
+
+	"github.com/jmoiron/sqlx"
+	"github.com/minio/minio-go/v7"
+	"github.com/redis/go-redis/v9"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/client-go/dynamic"
+)
+
+type Repository struct {
+	redisClient *redis.Client
+	db          *sqlx.DB
+	minioClient *minio.Client
+	jobQueue    chan<- WorkspaceJob
+	dynClient   dynamic.Interface
+	mapper      meta.RESTMapper
+}
+
+func NewRepository(redis *redis.Client, jobQueue chan<- WorkspaceJob, db *sqlx.DB, minioClient *minio.Client, dynClient dynamic.Interface, mapper meta.RESTMapper) *Repository {
+	return &Repository{
+		redisClient: redis,
+		jobQueue:    jobQueue,
+		db:          db,
+		minioClient: minioClient,
+		dynClient:   dynClient,
+		mapper:      mapper,
+	}
+}
+
+func StartOperator(ctx context.Context, jobQueue <-chan WorkspaceJob, k8sClient IK8SClient, r *Repository) {
+	go func() {
+		for {
+			select {
+			case job := <-jobQueue:
+				log.Printf("[operator] received job action=%q workspaceId=%s", job.Action, job.WorkspaceId) // ← tambah ini
+
+				switch job.Action {
+				case JobCreate:
+					if err := handleCreate(ctx, job, k8sClient, r); err != nil {
+						log.Printf("failed to create workspace %s: %v", job.WorkspaceId, err)
+					}
+				case JobDelete:
+					if err := handleDelete(ctx, job, k8sClient); err != nil {
+						log.Printf("failed to delete workspace %s: %v", job.WorkspaceId, err)
+					}
+				default:
+					log.Printf("[operator] unknown action: %q", job.Action) // ← dan ini
+				}
+
+			case <-ctx.Done():
+				log.Println("operator shutting down")
+				return
+			}
+		}
+	}()
+}
+func handleCreate(ctx context.Context, job WorkspaceJob, k8sClient IK8SClient, r *Repository) error {
+	fail := func(err error) error {
+		r.UpdateWorkspaceStatus(ctx, job.WorkspaceId, StatusError)
+		return err
+	}
+
+	if err := k8sClient.CreateNamespace(ctx, job.Namespace, job.WorkspaceId, job.UserId); err != nil {
+		return fail(fmt.Errorf("failed to create namespace: %w", err))
+	}
+
+	if err := k8sClient.CreateResourceQuota(ctx, job.Namespace, QuotaConfig{
+		CPULimit:      "2",
+		MemoryLimit:   "1Gi",
+		StorageLimit:  "5Gi",
+		CPURequest:    "1500m",
+		MemoryRequest: "512Mi",
+	}); err != nil {
+		return fail(fmt.Errorf("failed to create resource quota: %w", err))
+	}
+
+	err := k8sClient.SetupRBAC(ctx, job.Namespace, job.UserId)
+	if err != nil {
+		return fail(fmt.Errorf("failed to setup rbac: %w", err))
+	}
+	dbName := getEnvString(job.EnvVars, "DB_NAME")
+
+	// 4. deploy template
+	if err := r.ExecuteDeployment(ctx, job.TemplateId, DeployParams{
+		Namespace:    job.Namespace,
+		DbName:       &dbName,
+		User:         &job.UserId,
+		Name:         job.WorkspaceId,
+		StorageClass: "longhorn",
+		StorageSize:  "1Gi",
+		Replicas:     1,
+		RunAsUser:    100,
+		RunAsGroup:   100,
+		FsGroup:      100,
+		Password:     "secret",
+		CPURequest:   "0.25",
+		MemRequest:   "100Mi",
+		CPULimit:     "500m",
+		MemLimit:     "128Mi",
+		Username:     job.Username,
+		Domain:       "wfdnstore.online",
+	}); err != nil {
+		return fail(fmt.Errorf("failed deployment: %w", err))
+	}
+
+	if err := r.UpdateWorkspaceStatus(ctx, job.WorkspaceId, StatusRunning); err != nil {
+		return fmt.Errorf("failed to update status: %w", err)
+	}
+
+	log.Printf("workspace %s provisioned successfully", job.WorkspaceId)
+	return nil
+}
+
+func handleDelete(ctx context.Context, job WorkspaceJob, k8sClient IK8SClient) error {
+	// hapus namespace → otomatis hapus semua resource di dalamnya
+	if err := k8sClient.DeleteNamespace(ctx, job.Namespace); err != nil {
+		return fmt.Errorf("failed to delete namespace: %w", err)
+	}
+
+	log.Printf("workspace %s deleted successfully", job.WorkspaceId)
+	return nil
+}
