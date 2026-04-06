@@ -1,11 +1,16 @@
 import { useGetTemplates } from "@/features/services/templates/api";
 import { Templates } from "@/types";
 import { useState } from "react";
+export const FILTERS = ["Variables", "Files", "Add-ons"] as const;
 
 export function useTemplate() {
   const { data } = useGetTemplates();
-  const templateData = data?.data as Templates[] | undefined;
+  const templateData = data as Templates[] | undefined;
+  const [filter, setFilter] = useState<string>(FILTERS[0]);
 
+  const isOpenFilter = (f: string) => filter === f;
+  const toggleFilter = (f: string) =>
+    setFilter((prev) => (prev === f ? "" : f));
   const [selected, setSelected] = useState<Templates | null>(null);
   const [form, setForm] = useState<Partial<Templates>>({});
   const [openDialogCreate, setOpenDialogEdit] = useState<boolean>(false);
@@ -25,6 +30,8 @@ export function useTemplate() {
 
   return {
     templateData,
+    toggleFilter,
+    isOpenFilter,
     selected,
     form,
     openDialogCreate,

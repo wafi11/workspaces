@@ -8,7 +8,13 @@ import {
 import { useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 
-export const STEPS = ["Basic Info", "Variables", "Addons","Files", "Review"] as const;
+export const STEPS = [
+  "Basic Info",
+  "Variables",
+  "Addons",
+  "Files",
+  "Review",
+] as const;
 export type Step = (typeof STEPS)[number];
 
 export function useCreateTemplate() {
@@ -31,10 +37,10 @@ export function useCreateTemplate() {
     default_config: {},
   });
 
-  const defaultFiles = () : TemplateFiles => ({
+  const defaultFiles = (): TemplateFiles => ({
     filename: "",
     sort_order: 0,
-  })
+  });
 
   const defaultValues: CreateTemplateRequest = {
     name: "",
@@ -53,7 +59,7 @@ export function useCreateTemplate() {
   const variables = useFieldArray({ control: form.control, name: "variables" });
   const addons = useFieldArray({ control: form.control, name: "addons" });
   const files = useFieldArray({ control: form.control, name: "files" });
-  
+
   /* ── Navigation ── */
   const isFirst = step === 0;
   const isLast = step === STEPS.length - 1;

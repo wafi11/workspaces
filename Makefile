@@ -10,10 +10,10 @@ build-operator:
 	@echo "Building operator binary..."
 	@go build -o bin/operator operator/cmd/main.go
 
-run-frontend:
-	@echo "Running frontend locally..."
-	@cd frontend-workspaces && npm run dev
+run-web:
+	@echo "Running web locally..."
+	@cd web && npm run dev
 
 run-backend:
 	@echo "Running backend locally..."
-	@cd workspaces && air
+	@cd backend && air

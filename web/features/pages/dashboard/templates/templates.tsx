@@ -1,14 +1,13 @@
 "use client";
-import { PageContainer } from "@/components/layouts";
 import { TopBarAdmin } from "@/components/layouts/TopBarAdmin";
 import { Button } from "@/components/ui/button";
 import { useTemplate } from "@/features/hooks/templates/useTemplate";
 import { cn } from "@/lib/utils";
 import { Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { EditForm } from "./EditForm";
 import { SlideOver } from "./SlideOver";
 import { TemplateCard } from "./TemplatesCard";
-import {useRouter}  from "next/navigation"
 export function TemplatesPage() {
   const {
     closeEdit,
@@ -20,7 +19,7 @@ export function TemplatesPage() {
     templateData,
   } = useTemplate();
 
-  const {push}  = useRouter()
+  const { push } = useRouter();
 
   return (
     <>
@@ -60,7 +59,6 @@ export function TemplatesPage() {
           <EditForm form={form} onChange={handleChange} onClose={closeEdit} />
         )}
       </SlideOver>
-      
     </>
   );
 }
