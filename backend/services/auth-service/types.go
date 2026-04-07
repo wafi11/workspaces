@@ -1,5 +1,14 @@
 package authservices
 
+import "context"
+
+type IServices interface {
+	Login(c context.Context, req *LoginRequest, userAgent, ipAddress string) (*LoginResponse, error)
+	Logout(c context.Context, req *LogoutRequest) (*LogoutResponse, error)
+	RefreshToken(c context.Context, req *RefreshTokenRequest) (*RefreshTokenResponse, error)
+	Register(c context.Context, req *RegisterRequest) (*RegisterResponse, error)
+}
+
 type RegisterRequest struct {
 	Username string `json:"username"`
 	Email    string `json:"email"`

@@ -4,24 +4,23 @@ import (
 	"context"
 
 	"github.com/wafi11/workspaces/config"
+	"github.com/wafi11/workspaces/pkg/models"
+	userservices "github.com/wafi11/workspaces/services/user-service"
 )
 
-type IServices interface {
-	Login(c context.Context, req *LoginRequest, userAgent, ipAddress string) (*LoginResponse, error)
-	Logout(c context.Context, req *LogoutRequest) (*LogoutResponse, error)
-	RefreshToken(c context.Context, req *RefreshTokenRequest) (*RefreshTokenResponse, error)
-	Register(c context.Context, req *RegisterRequest) (*RegisterResponse, error)
-}
+
 
 type Services struct {
 	repo *Repository
 	conf *config.Config
+	userRepo  userservices.UserRepository
 }
 
-func NewServices(repo *Repository, conf *config.Config) *Services {
+func NewServices(repo *Repository, conf *config.Config, userRepo userservices.UserRepository) *Services {
 	return &Services{
 		repo: repo,
 		conf: conf,
+		userRepo: userRepo,
 	}
 }
 
@@ -36,5 +35,19 @@ func (services *Services) RefreshToken(c context.Context, req *RefreshTokenReque
 }
 
 func (services *Services) Register(c context.Context, req *RegisterRequest) (*RegisterResponse, error) {
-	return services.repo.Register(c, req)
+	resp,err := services.repo.Register(c, req)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = services.userRepo.CreateUserQuota(c,&models.UserQuota{
+		UserID:        resp.UserId,
+		MaxWorkspaces: 2,
+		MaxStorageGB:  10,
+		MaxRamMB:      4096,
+		MaxCpuCores:   4,
+	})
+
+	return resp, nil
 }

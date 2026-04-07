@@ -43,7 +43,6 @@ func (repo *Repository) Register(c context.Context, req *RegisterRequest) (*Regi
 
 	err = repo.db.QueryRowContext(c, query, uuid.New(), req.Username, req.Email, hashedPassword).Scan(&userId)
 	if err != nil {
-		// wrap error asli untuk logging, tapi return pesan generic ke client
 		return nil, fmt.Errorf("username or email already registered: %w", err)
 	}
 

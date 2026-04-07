@@ -6,12 +6,14 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/wafi11/workspaces/config"
 	authservices "github.com/wafi11/workspaces/services/auth-service"
+	userservices "github.com/wafi11/workspaces/services/user-service"
 )
 
 func RegisterRoutes(e *echo.Echo, db *sqlx.DB, redisClient *redis.Client, conf *config.Config) {
 
 	repo := authservices.NewRepository(db, redisClient, conf)
-	svc := authservices.NewServices(repo, conf)
+	userRepo := userservices.NewRepository(db, redisClient)
+	svc := authservices.NewServices(repo, conf, userRepo)
 	h := NewHandler(svc)
 
 	auth := e.Group("/api/v1/auth")
