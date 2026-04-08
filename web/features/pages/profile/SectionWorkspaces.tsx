@@ -1,34 +1,35 @@
 "use client"
 
-import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Layers, Calendar, Terminal, ExternalLink } from "lucide-react"
+import { Card } from "@/components/ui/card"
+import { Workspaces } from "@/types/workspaces"
+import { Calendar, Layers, Terminal } from "lucide-react"
+import { DialogCreateWorkspaces } from "../dashboard/workspaces/DialogCreateWorkspaces"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 
-// Sesuaikan dengan tipe data JSON kamu
-interface Workspace {
-    id: string
-    name: string
-    status: string
-    created_at: string
-    url?: string
-}
+
 
 interface SectionWorkspacesProps {
-    data?: Workspace[]
+    data?: Workspaces[]
 }
 
 export function SectionWorkspaces({ data }: SectionWorkspacesProps) {
+    const {push}  = useRouter()
     if (!data || data.length === 0) {
         return (
             <div className="p-8 text-center border-2 border-dashed rounded-lg">
                 <p className="text-muted-foreground text-sm">No active workspaces found.</p>
+                <DialogCreateWorkspaces title="Create Your Workspaces" />
             </div>
         )
     }
 
     return (
         <section className="space-y-4 mt-8">
-            <div className="flex items-center gap-2">
+            <div className="flex justify-between items-center gap-2">
+                <div className="flex items-center gap-2">
+
                 <Layers className="w-5 h-5 text-primary" />
                 <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                     Your Workspaces
@@ -36,11 +37,14 @@ export function SectionWorkspaces({ data }: SectionWorkspacesProps) {
                 <Badge variant="secondary" className="ml-2 font-mono text-[10px]">
                     {data.length} Instances
                 </Badge>
+                </div>
+            <DialogCreateWorkspaces className="mt-0 p-2 text-sm" title="Create" />
+
             </div>
 
             <div className="grid grid-cols-1 gap-3">
                 {data.map((ws) => (
-                    <Card key={ws.id} className="overflow-hidden  bg-muted/30 border-border/50 hover:bg-muted/50 transition-colors">
+                    <Card key={ws.id} onClick={() => push(`/profile/workspaces/${ws.id}`)} className="overflow-hidden  bg-muted/30 border-border/50 hover:bg-muted/50 transition-colors">
                         <div className="px-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
                             {/* Info Utama */}
                             <div className="flex items-start gap-3">

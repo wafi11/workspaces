@@ -24,8 +24,7 @@ export function WorkspaceDetails({ slug }: WorkspaceDetailsProps) {
   const [logs, setLogs] = useState<any[]>([]);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
-  const workspace = data?.data;
-console.log(workspace)
+  const workspace = data
   // --- LOGIC SSE ---
   useEffect(() => {
     if (!workspace?.namespace) return;

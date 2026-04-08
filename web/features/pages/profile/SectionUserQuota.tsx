@@ -15,7 +15,7 @@ interface UserQuotaProps {
 }
 
 export function SectionUserQuota({ data }: UserQuotaProps) {
-    // Tampilan Loading atau Empty State jika data belum ada
+
     if (!data) {
         return (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-pulse">
@@ -39,7 +39,7 @@ export function SectionUserQuota({ data }: UserQuotaProps) {
                 {/* CPU Quota */}
                 <CardDetails 
                     label="CPU Limit"
-                    value={`${data.maxCpuCores} Cores`}
+                    value={`${data.used_cpu_cores}/${data.maxCpuCores} Cores`}
                     sub="Maximum compute power"
                     icon={Cpu}
                 />
@@ -47,7 +47,7 @@ export function SectionUserQuota({ data }: UserQuotaProps) {
                 {/* RAM Quota */}
                 <CardDetails 
                     label="Memory"
-                    value={`${data.maxRamMb / 1024} GB`} // Konversi MB ke GB jika perlu
+                    value={`${data.used_ram_mb}/${data.maxRamMb / 1024} GB`} // Konversi MB ke GB jika perlu
                     sub={`${data.maxRamMb} MB total allocated`}
                     icon={Database}
                 />
@@ -55,7 +55,7 @@ export function SectionUserQuota({ data }: UserQuotaProps) {
                 {/* Storage Quota */}
                 <CardDetails 
                     label="Storage"
-                    value={`${data.maxStorageGb} GB`}
+                    value={`${data.used_storage_gb}/${data.maxStorageGb} GB`}
                     sub="Persistent disk capacity"
                     icon={HardDrive}
                 />
@@ -63,7 +63,7 @@ export function SectionUserQuota({ data }: UserQuotaProps) {
                 {/* Workspace Quota */}
                 <CardDetails 
                     label="Workspaces"
-                    value={`${data.maxWorkspaces}`}
+                    value={`${data.used_workspaces}/${data.maxWorkspaces}`}
                     sub="Maximum active projects"
                     icon={Layers}
                 />

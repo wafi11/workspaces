@@ -10,3 +10,10 @@ export type Workspaces = {
   updated_at: string;
   url: string;
 };
+
+
+export type WorkspaceRequest = {
+    name: string;
+    description: string;
+    env_vars: Record<string, string>;
+};
