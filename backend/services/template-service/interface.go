@@ -11,22 +11,20 @@ type TemplateRepository interface {
 	GetTemplate(ctx context.Context, req *GetTemplateRequest) (*GetTemplateResponse, error)
 	CreateTemplate(ctx context.Context, req *CreateTemplateRequest) (*CreateTemplateResponse, error)
 	UpdateTemplate(ctx context.Context, id string, template *UpdateTemplateRequest) error
+	GetDetailsInfo(c context.Context, templateId string) (*DetailsInfo, error)
 	DeleteTemplate(ctx context.Context, id string) error
 
-
 	// template-variables
- 	CreateTemplateVariable(ctx context.Context, req *CreateVariableRequest,templateId string) error
+	CreateTemplateVariable(ctx context.Context, req *CreateVariableRequest, templateId string) error
 	DeleteTemplateVariable(ctx context.Context, id string) error
 	GetTemplateVariables(ctx context.Context, templateID string) ([]TemplateVariable, error)
 	UpdateTemplateVariable(ctx context.Context, id string, req *CreateVariableRequest) error
-
 
 	// template-addons
 	CreateTemplateAddon(ctx context.Context, req *CreateAddonRequest, templateId string) error
 	DeleteTemplateAddon(ctx context.Context, id string) error
 	GetTemplateAddons(ctx context.Context, templateID string) ([]TemplateAddon, error)
 	UpdateTemplateAddon(ctx context.Context, id string, req *CreateAddonRequest) error
-
 
 	// template-files
 	CreateTemplateFiles(ctx context.Context, req *CreateTemplateFilesRequest, templateId string) error
@@ -40,22 +38,20 @@ type TemplateService interface {
 	GetTemplate(ctx context.Context, req *GetTemplateRequest) (*GetTemplateResponse, error)
 	CreateTemplate(ctx context.Context, req *CreateTemplateRequest) (*CreateTemplateResponse, error)
 	UpdateTemplate(ctx context.Context, id string, template *UpdateTemplateRequest) error
+	GetDetailsInfo(c context.Context, templateId string) (*DetailsInfo, error)
 	DeleteTemplate(ctx context.Context, id string) error
 
-
 	// template-variables
- 	CreateTemplateVariable(ctx context.Context, req *CreateVariableRequest,templateId string) error
+	CreateTemplateVariable(ctx context.Context, req *CreateVariableRequest, templateId string) error
 	DeleteTemplateVariable(ctx context.Context, id string) error
 	GetTemplateVariables(ctx context.Context, templateID string) ([]TemplateVariable, error)
 	UpdateTemplateVariable(ctx context.Context, id string, req *CreateVariableRequest) error
-
 
 	// template-addons
 	CreateTemplateAddon(ctx context.Context, req *CreateAddonRequest, templateId string) error
 	DeleteTemplateAddon(ctx context.Context, id string) error
 	GetTemplateAddons(ctx context.Context, templateID string) ([]TemplateAddon, error)
 	UpdateTemplateAddon(ctx context.Context, id string, req *CreateAddonRequest) error
-
 
 	// template-files
 	CreateTemplateFiles(ctx context.Context, req *CreateTemplateFilesRequest, templateId string) error
@@ -80,10 +76,10 @@ type Template struct {
 	Name        string             `json:"name"`
 	Description string             `json:"description"`
 	Image       string             `json:"image"`
-	Icon        string            `json:"icon"`
+	Icon        string             `json:"icon"`
 	Category    string             `json:"category"`
 	IsPublic    bool               `json:"is_public"`
-	TemplateUrl string            `json:"template_url"`
+	TemplateUrl string             `json:"template_url"`
 	Variables   []TemplateVariable `json:"variables,omitempty"`
 	Addons      []TemplateAddon    `json:"addons,omitempty"`
 	Files       []TemplateFiles    `json:"files,omitempty"`
@@ -148,7 +144,7 @@ type CachedTemplate struct {
 	Image       string             `json:"image"`
 	Category    string             `json:"category"`
 	IsPublic    bool               `json:"is_public"`
-	TemplateUrl string            `json:"template_url"`
+	TemplateUrl string             `json:"template_url"`
 	Icon        string             `json:"icon"`
 	Variables   []TemplateVariable `json:"variables,omitempty"`
 	Addons      []TemplateAddon    `json:"addons,omitempty"`
@@ -215,6 +211,21 @@ type UpdateTemplateRequest struct {
 	IsPublic    *bool   `json:"is_public"`
 	TemplateUrl *string `json:"template_url"`
 	Icon        *string `json:"icon"`
+}
+
+type DetailsInfo struct {
+	TemplateName string      `json:"template_name"`
+	Variables    []Variables `json:"variables"`
+	Addons       []Addon     `json:"addons"`
+}
+
+type Variables struct {
+	Key      string `json:"key"`
+	Required bool   `json:"required"`
+}
+type Addon struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
 }
 
 func (req *UpdateTemplateRequest) merge(t *Template) {

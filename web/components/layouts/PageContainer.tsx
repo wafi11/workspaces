@@ -1,11 +1,14 @@
+"use client"
 import { cn } from "@/lib/utils";
 import React, { forwardRef } from "react";
 import { SidebarProfile } from "./SidebarProfile";
+import { NavItem } from "@/data";
 
 
 type PageContainerProps = {
   withSidebar?: boolean;
   withFooter?: boolean;
+  data : NavItem[]
 };
 
 export const PageContainer = forwardRef<
@@ -17,6 +20,7 @@ export const PageContainer = forwardRef<
       className,
       children,
       withSidebar = true,
+      data,
       withFooter = true,
       ...props
     },
@@ -26,7 +30,7 @@ export const PageContainer = forwardRef<
     return (
       <>
        <div className="flex flex-1 mt-0 overflow-hidden">
-        {withSidebar && <SidebarProfile />}
+        {withSidebar && <SidebarProfile navItems={data}/>}
         <main
           ref={ref}
           className={cn(

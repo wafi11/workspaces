@@ -22,3 +22,9 @@ export const navItems: NavItem[] = [
   { label: "Templates", icon: FileCode2, href: "/dashboard/templates" },
   { label: "Settings", icon: Settings, href: "/dashboard/settings" },
 ];
+export const navItemsUsers: NavItem[] = [
+  { label: "Workspaces", icon: LayoutDashboard, href: "/profile" },
+  { label: "Templates", icon: FileCode2, href: "/profile/templates" },
+  { label: "Observability", icon: Boxes, href: "/profile/obeservability" },
+  { label: "Settings", icon: Settings, href: "/profile/settings" },
+];

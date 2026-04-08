@@ -17,6 +17,7 @@ func RegisterRoutes(e *echo.Echo, db *sqlx.DB, redis *redis.Client, conf *config
 
 	user := e.Group("/api/v1/users", middlewares.AuthMiddleware(conf))
 	user.GET("", h.GetProfile)
+	user.GET("/quota", h.GetQuota)
 	user.PUT("/", h.UpdateUser)
 	user.PUT("/password", h.ChangePassword)
 	user.GET("/sessions", h.GetUserSessions)

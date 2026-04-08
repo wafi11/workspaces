@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Templates } from "@/types";
 import { X } from "lucide-react";
 import { Field } from "./helpers";
-import { useUpdateTemplates } from "@/features/services/templates/api";
+import { useUpdateTemplate } from "@/features/services/templates/api";
 
 export function EditForm({
   form,
@@ -16,7 +16,7 @@ export function EditForm({
   onChange: (key: keyof Templates, value: string | boolean) => void;
   onClose: () => void;
 }) {
-  const { mutate } = useUpdateTemplates(form.id as string);
+  const { mutate } = useUpdateTemplate(form.id as string);
 
   const handleSubmit = () => {
     mutate(form);

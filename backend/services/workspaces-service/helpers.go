@@ -8,6 +8,10 @@ import (
 
 // ─── Cache Helpers ────────────────────────────────────────────────────────────
 
+func generateUrl(id string) string{
+	return fmt.Sprintf("https://%s.wfdnstore.online",id)
+}
+
 func (r *Repository) setWorkspaceCache(ctx context.Context, w *Workspace) {
 	b, err := json.Marshal(w)
 	if err != nil {

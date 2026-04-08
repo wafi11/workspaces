@@ -4,7 +4,7 @@ import { ApiResponse } from "@/types/api";
 import { LoginForm, RegisterForm } from "./validation";
 import storage from "@/hooks/Storage";
 import { api } from "@/lib/api";
-import { User } from "@/types";
+import { User, UserQuota } from "@/types";
 import { useRouter } from "next/navigation";
 import { LOGIN_URL } from "@/constants";
 
@@ -72,6 +72,16 @@ export function useProfile() {
     queryKey: ["profile"],
     queryFn: async () => {
       const req = await api.get<User>("/users");
+      return req.data;
+    },
+  });
+}
+// Pakai useQuery bukan useMutation karena ini fetch data
+export function useProfileQuota() {
+  return useQuery({
+    queryKey: ["profile-quota"],
+    queryFn: async () => {
+      const req = await api.get<UserQuota>("/users/quota");
       return req.data;
     },
   });

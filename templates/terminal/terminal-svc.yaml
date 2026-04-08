@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: terminal
+  namespace: {{.Namespace}}
+spec:
+  selector:
+    app: terminal
+  ports:
+  - port: 80
+    targetPort: 7681
+  type: ClusterIP

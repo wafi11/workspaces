@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{.Name}}
+  namespace: {{.Namespace}}
+spec:
+  replicas:
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      nodeSelector:
+        node-role.kubernetes.io/storage: "true"
+      containers:
+        - name: postgres
+          image: {{.Image}}
+          env:
+            - name: POSTGRES_USER
+              value: {{.DB_USER}}
+            - name: POSTGRES_PASSWORD
+              value: {{.DB_PASSWORD}}
+            - name: POSTGRES_DB
+              value: {{.DB_NAME}}
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: {{.CPULimit}}
+              memory: {{.MemLimit}}
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: postgres-storage
+          persistentVolumeClaim:
+            claimName: {{.Name}}-pvc

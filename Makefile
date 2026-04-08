@@ -17,3 +17,11 @@ run-web:
 run-backend:
 	@echo "Running backend locally..."
 	@cd backend && air
+
+remote-github:
+	@echo "Remote to GitHub..."
+	@git remote set-url origin  git@github.com:wafi11/workspaces.git
+
+remote-gitlab:
+	@echo "Remote to GitLab..."
+	@git remote set-url origin http://192.168.1.31/root/workspaces.git

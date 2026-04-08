@@ -11,14 +11,21 @@ import (
 const WorkspaceEventChannel = "workspace:events"
 
 type WorkspaceJob struct {
-	WorkspaceId string
-	UserId      string
-	TemplateId  string
-	Username    string
-	Namespace   string
-	Image       string
-	EnvVars     map[string]any
-	Action      JobAction
+	WorkspaceId            string
+	UserId                 string
+	TemplateId             string
+	Username               string
+	Namespace              string
+	Image                  string
+	EnvVars                map[string]any
+	CPURequest             string
+	MemoryRequest          string
+	StorageRequest         string
+	MemoryTerminalRequest  string
+	StorageTerminalRequest string
+	CpuTerminalReuqest     string
+	Action                 JobAction
+	Replicas               string
 }
 
 type JobAction string
@@ -26,6 +33,7 @@ type JobAction string
 const (
 	JobCreate JobAction = "create"
 	JobDelete JobAction = "delete"
+	JobAdd    JobAction = "add"
 )
 
 func PublishEvent(ctx context.Context, rdb *redis.Client, event WorkspaceJob) {

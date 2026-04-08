@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: terminal
+  namespace: {{.Namespace}}
+spec:
+  replicas: {{.Replicas}}
+  selector:
+    matchLabels:
+      app: terminal
+  template:
+    metadata:
+      labels:
+        app: terminal
+    spec:
+      securityContext:
+        runAsUser: {{.RunAsUser}}
+        runAsGroup: {{.RunAsGroup}}
+        fsGroup: {{.FsGroup}}
+        runAsNonRoot: true
+      containers:
+        - name: terminal
+          image: 192.168.1.31:5050/workspaces/workspace-terminal:latest
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - containerPort: 7681
+          command:
+            - ttyd
+            - -W
+            - -p
+            - "7681"
+            - -c
+            - "admin:{{.Password}}"
+            - bash
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "64Mi"
+            limits:
+              cpu: {{.CPULimit}}
+              memory: {{.MemLimit}}
+          volumeMounts:
+            - name: terminal-storage
+              mountPath: /home/ttyd
+      volumes:
+        - name: terminal-storage
+          persistentVolumeClaim:
+            claimName: terminal-pvc

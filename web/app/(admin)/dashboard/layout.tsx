@@ -1,4 +1,6 @@
+"use client"
 import { PageContainer } from "@/components/layouts";
+import { navItems } from "@/data";
 import { ReactNode } from "react";
 
 interface PageProps {
@@ -6,5 +8,5 @@ interface PageProps {
 }
 
 export default function Page({ children }: PageProps) {
-  return <PageContainer>{children}</PageContainer>;
+  return <PageContainer data={navItems}>{children}</PageContainer>;
 }

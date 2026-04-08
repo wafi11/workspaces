@@ -35,6 +35,7 @@ type JobAction string
 const (
 	JobCreate JobAction = "create"
 	JobDelete JobAction = "delete"
+	JobAdd    JobAction = "add"
 )
 
 const (
@@ -69,7 +70,10 @@ const (
 )
 
 type DeployParams struct {
-	DbName       *string
+	DB_USER      *string
+	DB_NAME      *string
+	DB_PASSWORD  *string
+	Image        *string
 	User         *string
 	Name         string
 	Namespace    string

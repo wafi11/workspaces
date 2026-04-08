@@ -5,6 +5,7 @@ import { TopBarAdmin } from "@/components/layouts/TopBarAdmin";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardDetails } from "@/components/ui/card-details";
 import {
   Activity,
   Users,
@@ -120,21 +121,7 @@ export function AdminDashboardPage() {
             icon: Database,
           },
         ].map((s) => (
-          <div
-            key={s.label}
-            className="bg-muted/50 border border-border/50 rounded-md p-4"
-          >
-            <div className="flex justify-between items-start mb-2">
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wider">
-                {s.label}
-              </p>
-              <s.icon className="w-3.5 h-3.5 text-muted-foreground" />
-            </div>
-            <p className="text-[22px] font-medium font-mono leading-none">
-              {s.value}
-            </p>
-            <p className="text-[11px] text-muted-foreground mt-1.5">{s.sub}</p>
-          </div>
+         <CardDetails key={s.label} icon={s.icon} label={s.label} sub={s.label} value={s.value}/>
         ))}
       </div>
 

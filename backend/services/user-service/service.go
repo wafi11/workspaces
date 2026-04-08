@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"strings"
+
+	"github.com/wafi11/workspaces/pkg/models"
 )
 
 type Service struct {
@@ -78,4 +80,25 @@ func (s *Service) RevokeSession(ctx context.Context, req *RevokeSessionRequest) 
 	}
 
 	return s.repo.RevokeSession(ctx, req)
+}
+
+
+func (s *Service) GetUserQuota(ctx context.Context,userId string) (*models.UserQuota, error) {
+	if err := validateUserID(userId); err != nil {
+		return nil, err
+	}
+	return s.repo.GetUserQuota(ctx,userId)
+}
+
+func (s *Service) UpdateUserQuota(ctx context.Context,quota *models.UserQuota) error {
+	if err := validateUserID(quota.UserID); err != nil {
+		return err
+	}
+	return s.repo.UpdateUserQuota(ctx,quota)
+}
+func (s *Service) CreateUserQuota(ctx context.Context,quota *models.UserQuota) error {
+	if err := validateUserID(quota.UserID); err != nil {
+		return err
+	}
+	return s.repo.CreateUserQuota(ctx,quota)
 }

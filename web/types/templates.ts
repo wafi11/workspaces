@@ -10,6 +10,18 @@ export type Templates = {
   icon: string;
 };
 
+export type TemplateForm = {
+   template_name : string
+   variables: {
+    key : string
+    required : boolean
+   }[]
+   addons: {
+    id : string
+    name : string
+   }[]
+}
+
 export type TemplateVariable = {
   key: string;
   default_value: string;

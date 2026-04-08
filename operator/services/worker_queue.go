@@ -37,12 +37,16 @@ func StartOperator(ctx context.Context, jobQueue <-chan WorkspaceJob, k8sClient 
 		for {
 			select {
 			case job := <-jobQueue:
-				log.Printf("[operator] received job action=%q workspaceId=%s", job.Action, job.WorkspaceId) // ← tambah ini
+				log.Printf("[operator] received job action=%q workspaceId=%s\n", job.Action, job.WorkspaceId) // ← tambah ini
 
 				switch job.Action {
 				case JobCreate:
 					if err := handleCreate(ctx, job, k8sClient, r); err != nil {
 						log.Printf("failed to create workspace %s: %v", job.WorkspaceId, err)
+					}
+				case JobAdd:
+					if err := handleAdd(ctx, job, r); err != nil {
+						log.Printf("failed to create services %s: %v", job.WorkspaceId, err)
 					}
 				case JobDelete:
 					if err := handleDelete(ctx, job, k8sClient); err != nil {
@@ -59,6 +63,37 @@ func StartOperator(ctx context.Context, jobQueue <-chan WorkspaceJob, k8sClient 
 		}
 	}()
 }
+
+func handleAdd(ctx context.Context, job WorkspaceJob, r *Repository) error {
+	dbName := getEnvString(job.EnvVars, "DB_NAME")
+	dbPassword := getEnvString(job.EnvVars, "DB_PASSWORD")
+	dbUser := getEnvString(job.EnvVars, "DB_USER")
+
+	if err := r.ExecuteDeployment(ctx, job.TemplateId, DeployParams{
+		Namespace:    job.Namespace,
+		DB_NAME:      &dbName,
+		DB_USER:      &dbUser,
+		DB_PASSWORD:  &dbPassword,
+		User:         &job.UserId,
+		Name:         "postgres",
+		Image:        &job.Image,
+		StorageClass: "local-path",
+		StorageSize:  "1Gi",
+		Replicas:     1,
+		CPURequest:   "0.25",
+		MemRequest:   "100Mi",
+		CPULimit:     "100m",
+		MemLimit:     "128Mi",
+		Username:     job.Username,
+		Domain:       "wfdnstore.online",
+	}); err != nil {
+		return fmt.Errorf("failed deployment: %w", err)
+	}
+
+	return nil
+
+}
+
 func handleCreate(ctx context.Context, job WorkspaceJob, k8sClient IK8SClient, r *Repository) error {
 	fail := func(err error) error {
 		r.UpdateWorkspaceStatus(ctx, job.WorkspaceId, StatusError)
@@ -85,23 +120,23 @@ func handleCreate(ctx context.Context, job WorkspaceJob, k8sClient IK8SClient, r
 	}
 	dbName := getEnvString(job.EnvVars, "DB_NAME")
 
+	password := getEnvString(job.EnvVars, "password")
+
 	// 4. deploy template
 	if err := r.ExecuteDeployment(ctx, job.TemplateId, DeployParams{
 		Namespace:    job.Namespace,
-		DbName:       &dbName,
+		DB_NAME:      &dbName,
 		User:         &job.UserId,
 		Name:         job.WorkspaceId,
-		StorageClass: "longhorn",
+		StorageClass: "local-path",
 		StorageSize:  "1Gi",
 		Replicas:     1,
-		RunAsUser:    100,
-		RunAsGroup:   100,
-		FsGroup:      100,
-		Password:     "secret",
+		RunAsUser:    1000,
+		RunAsGroup:   1000,
+		FsGroup:      1000,
+		Password:     password,
 		CPURequest:   "0.25",
 		MemRequest:   "100Mi",
-		CPULimit:     "500m",
-		MemLimit:     "128Mi",
 		Username:     job.Username,
 		Domain:       "wfdnstore.online",
 	}); err != nil {

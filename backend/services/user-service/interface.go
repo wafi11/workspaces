@@ -3,6 +3,8 @@ package userservices
 import (
 	"context"
 	"time"
+
+	"github.com/wafi11/workspaces/pkg/models"
 )
 
 const (
@@ -17,6 +19,10 @@ type UserRepository interface {
 	ChangePassword(ctx context.Context, req *ChangePasswordRequest) (*ChangePasswordResponse, error)
 	GetUserSessions(ctx context.Context, req *GetUserSessionsRequest) (*GetUserSessionsResponse, error)
 	RevokeSession(ctx context.Context, req *RevokeSessionRequest) (*RevokeSessionResponse, error)
+
+	GetUserQuota(ctx context.Context,userId string) (*models.UserQuota, error)
+	UpdateUserQuota(ctx context.Context,quota *models.UserQuota) error
+	CreateUserQuota(ctx context.Context,quota *models.UserQuota) error
 }
 
 type UserService interface {
@@ -25,6 +31,9 @@ type UserService interface {
 	ChangePassword(ctx context.Context, req *ChangePasswordRequest) (*ChangePasswordResponse, error)
 	GetUserSessions(ctx context.Context, req *GetUserSessionsRequest) (*GetUserSessionsResponse, error)
 	RevokeSession(ctx context.Context, req *RevokeSessionRequest) (*RevokeSessionResponse, error)
+	GetUserQuota(ctx context.Context,userId string) (*models.UserQuota, error)
+	UpdateUserQuota(ctx context.Context,quota *models.UserQuota) error
+	CreateUserQuota(ctx context.Context,quota *models.UserQuota) error
 }
 
 type CachedUser struct {

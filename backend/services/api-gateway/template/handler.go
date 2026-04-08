@@ -42,6 +42,22 @@ func (h *Handler) CreateTemplate(ctx echo.Context) error {
 	return response.Success(ctx, http.StatusCreated, "template created successfully", data)
 }
 
+func (h *Handler) FindTemplateDetailsForm(c echo.Context) error {
+	template_id := c.Param("template_id")
+
+	if template_id == "" {
+		return response.Error(c, http.StatusNotFound, "templates not found", nil)
+	}
+
+	data, err := h.svc.GetDetailsInfo(c.Request().Context(), template_id)
+
+	if err != nil {
+		return response.Error(c, http.StatusNotFound, "templates not found", nil)
+	}
+
+	return response.Success(c, http.StatusOK, "Successfully retreived templates details", data)
+}
+
 func (h *Handler) UpdateTemplate(ctx echo.Context) error {
 	id := ctx.Param("id")
 	var req templateservice.UpdateTemplateRequest
@@ -50,7 +66,7 @@ func (h *Handler) UpdateTemplate(ctx echo.Context) error {
 		return response.Error(ctx, http.StatusBadRequest, "invalid request body", err)
 	}
 
-	err := h.svc.UpdateTemplate(ctx.Request().Context(),id, &req)
+	err := h.svc.UpdateTemplate(ctx.Request().Context(), id, &req)
 	if err != nil {
 		switch {
 		case errors.Is(err, templateservice.ErrValidation):
@@ -68,7 +84,7 @@ func (h *Handler) UpdateTemplate(ctx echo.Context) error {
 func (h *Handler) DeleteTemplate(ctx echo.Context) error {
 	id := ctx.Param("id")
 
-	err := h.svc.DeleteTemplate(ctx.Request().Context(),id)
+	err := h.svc.DeleteTemplate(ctx.Request().Context(), id)
 	if err != nil {
 		switch {
 		case errors.Is(err, templateservice.ErrValidation):
@@ -93,12 +109,12 @@ func (h *Handler) GetTemplateDetails(ctx echo.Context) error {
 	if err != nil {
 		return response.Error(ctx, http.StatusNotFound, "template not found", nil)
 	}
-	  log.Printf("[template] id=%s name=%s icon=%s url=%s",
-        data.Template.Id,
-        data.Template.Name,
-        data.Template.Icon,
-        data.Template.TemplateUrl,
-    )
+	log.Printf("[template] id=%s name=%s icon=%s url=%s",
+		data.Template.Id,
+		data.Template.Name,
+		data.Template.Icon,
+		data.Template.TemplateUrl,
+	)
 
 	return response.Success(ctx, http.StatusOK, "Successfully Get Template", data.Template)
 

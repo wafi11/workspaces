@@ -1,12 +1,16 @@
 "use client";
-import { navItems } from "@/data/DataSidebar";
+import { NavItem } from "@/data/DataSidebar";
 import { useProfile } from "@/features/services/auth";
 import { cn } from "@/lib/utils";
 import { LogOut } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export function SidebarProfile() {
+interface SidebarProfileProps {
+  navItems : NavItem[]
+}
+
+export function SidebarProfile({navItems} : SidebarProfileProps) {
   const pathname = usePathname();
 
   const { data } = useProfile();

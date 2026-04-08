@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/minio/minio-go/v7"
@@ -16,7 +17,6 @@ type Repository struct {
 	db          *sqlx.DB
 	minioClient *minio.Client
 	redisClient *redis.Client
-
 }
 
 func NewRepository(db *sqlx.DB, redis *redis.Client, minioClient *minio.Client) *Repository {
@@ -24,10 +24,8 @@ func NewRepository(db *sqlx.DB, redis *redis.Client, minioClient *minio.Client) 
 		db:          db,
 		redisClient: redis,
 		minioClient: minioClient,
-
 	}
 }
-
 
 func (r *Repository) ListTemplates(ctx context.Context, req *ListTemplatesRequest) (*ListTemplatesResponse, error) {
 	query := `
@@ -101,7 +99,7 @@ func (r *Repository) CreateTemplate(ctx context.Context, req *CreateTemplateRequ
 		RETURNING id, name, description, image, category, is_public, created_at,icon
 	`, req.Name, req.Description, req.Image, req.Category, req.IsPublic, req.Icon,
 	).Scan(&t.Id, &t.Name, &t.Description, &t.Image, &t.Category, &t.IsPublic, &t.CreatedAt, &req.Icon)
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to insert template: %w", err)
 	}
@@ -139,7 +137,6 @@ func (r *Repository) CreateTemplate(ctx context.Context, req *CreateTemplateRequ
 		Message:  "template created successfully",
 	}, nil
 }
-
 
 func (repo *Repository) UpdateTemplate(ctx context.Context, id string, req *UpdateTemplateRequest) error {
 	// 1. fetch existing
@@ -215,4 +212,54 @@ func (repo *Repository) GetTemplatesConfigFile(ctx context.Context, id string) (
 	}
 
 	return files, nil
+}
+
+func (repo *Repository) GetDetailsInfo(c context.Context, templateId string) (*DetailsInfo, error) {
+	query := `
+        SELECT t.name, (
+            SELECT json_agg(
+                json_build_object('id', ta.id, 'name', ta.name)
+                ORDER BY ta.name ASC
+            )
+            FROM template_addons ta
+            WHERE ta.template_id = t.id
+        ) as addon_list, (
+            SELECT json_agg(
+                json_build_object('key', tv."key", 'required', tv.required)
+                ORDER BY tv."key" ASC
+            )
+            FROM template_variables tv
+            WHERE tv.template_id = t.id
+        ) as variables
+        FROM templates t
+        WHERE t.id = $1
+    `
+
+	var detail DetailsInfo
+	var addonList json.RawMessage
+	var varJSON json.RawMessage
+
+	err := repo.db.QueryRowContext(c, query, templateId).Scan(&detail.TemplateName, &addonList, &varJSON)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("template not found")
+		}
+		log.Printf("failed to scan template: %s", err)
+		return nil, fmt.Errorf("failed to find template")
+	}
+
+	if addonList != nil {
+		if err := json.Unmarshal(addonList, &detail.Addons); err != nil {
+			log.Printf("failed to unmarshal variables: %s", err)
+			return nil, fmt.Errorf("failed to find template")
+		}
+	}
+	if varJSON != nil {
+		if err := json.Unmarshal(varJSON, &detail.Variables); err != nil {
+			log.Printf("failed to unmarshal variables: %s", err)
+			return nil, fmt.Errorf("failed to find template")
+		}
+	}
+
+	return &detail, nil
 }

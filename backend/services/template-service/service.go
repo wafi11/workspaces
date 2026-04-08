@@ -1,6 +1,9 @@
 package templateservice
 
-import "context"
+import (
+	"context"
+	"fmt"
+)
 
 type Service struct {
 	repo TemplateRepository
@@ -19,7 +22,7 @@ func (s *Service) ListTemplates(ctx context.Context, req *ListTemplatesRequest) 
 }
 
 func (s *Service) GetTemplate(ctx context.Context, req *GetTemplateRequest) (*GetTemplateResponse, error) {
-	
+
 	return s.repo.GetTemplate(ctx, req)
 }
 
@@ -30,18 +33,25 @@ func (s *Service) CreateTemplate(ctx context.Context, req *CreateTemplateRequest
 	return s.repo.CreateTemplate(ctx, req)
 }
 
-func (s *Service) UpdateTemplate(ctx context.Context,id string, req *UpdateTemplateRequest) error {
-	return s.repo.UpdateTemplate(ctx,id,req)
+func (s *Service) UpdateTemplate(ctx context.Context, id string, req *UpdateTemplateRequest) error {
+	return s.repo.UpdateTemplate(ctx, id, req)
 }
 
-func (s *Service) DeleteTemplate(ctx context.Context,id string) error {
-	return s.repo.DeleteTemplate(ctx,id)
+func (s *Service) GetDetailsInfo(c context.Context, templateId string) (*DetailsInfo, error) {
+	if templateId == "" {
+		return nil, fmt.Errorf("templates not found")
+	}
+	return s.repo.GetDetailsInfo(c, templateId)
+}
+
+func (s *Service) DeleteTemplate(ctx context.Context, id string) error {
+	return s.repo.DeleteTemplate(ctx, id)
 }
 
 // template-variables
 func (s *Service) CreateTemplateVariable(ctx context.Context, req *CreateVariableRequest, templateId string) error {
 	return s.repo.CreateTemplateVariable(ctx, req, templateId)
-}	
+}
 func (s *Service) DeleteTemplateVariable(ctx context.Context, id string) error {
 	return s.repo.DeleteTemplateVariable(ctx, id)
 }
@@ -66,12 +76,10 @@ func (s *Service) UpdateTemplateAddon(ctx context.Context, id string, req *Creat
 	return s.repo.UpdateTemplateAddon(ctx, id, req)
 }
 
-
 // template-files
 func (s *Service) CreateTemplateFiles(ctx context.Context, req *CreateTemplateFilesRequest, templateId string) error {
 	return s.repo.CreateTemplateFiles(ctx, req, templateId)
 }
-
 
 func (s *Service) DeleteTemplateFiles(ctx context.Context, id string) error {
 	return s.repo.DeleteTemplateFiles(ctx, id)
@@ -81,6 +89,6 @@ func (s *Service) GetTemplateFiles(ctx context.Context, templateID string) ([]Te
 	return s.repo.GetTemplateFiles(ctx, templateID)
 }
 
-func (s *Service) UpdateTemplateFiles(ctx context.Context, id string, req *CreateTemplateFilesRequest) error{	
+func (s *Service) UpdateTemplateFiles(ctx context.Context, id string, req *CreateTemplateFilesRequest) error {
 	return s.repo.UpdateTemplateFiles(ctx, id, req)
 }

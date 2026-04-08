@@ -1,7 +1,7 @@
 import { api } from "@/lib/api";
 import { ApiResponse } from "@/types";
 import { Workspaces } from "@/types/workspaces";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 export function useGetListWorkspace() {
   return useQuery({
@@ -12,6 +12,7 @@ export function useGetListWorkspace() {
     },
   });
 }
+
 export function useGetWorkspace(id: string) {
   return useQuery({
     queryKey: ["workspaces", id],
@@ -22,4 +23,38 @@ export function useGetWorkspace(id: string) {
       return request.data;
     },
   });
+}
+export function useGetListWorkspaceForm() {
+  return useQuery({
+    queryKey: ["workspaces-form"],
+    queryFn: async () => {
+      const request = await api.get<{id : string,name : string}[]>(
+        `/workspaces/form`
+      );
+      return request.data;
+    },
+  });
+}
+
+export function useCreateAddonWorkspaces(){
+  return useMutation({
+    mutationKey : ["workspace-addon"],
+    mutationFn : async(req : {workspace_id : string,template_addon_id: string,config : {
+      key : string,
+      value : string
+    }[]})  => {
+      const request = await api.post(`/workspaces/${req.workspace_id}/add-ons`,req)
+      return request.data
+    }
+  })
+}
+
+export function useGetWorkspacesUsers(){
+  return useQuery({
+    queryKey : ["workspace-users"],
+    queryFn : async ()  => {
+      const request = await api.get("/workspaces/user")
+      return request.data
+    }
+  })
 }

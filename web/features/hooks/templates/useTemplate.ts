@@ -1,10 +1,10 @@
-import { useGetTemplates } from "@/features/services/templates/api";
+import { useTemplates } from "@/features/services/templates/api";
 import { Templates } from "@/types";
 import { useState } from "react";
 export const FILTERS = ["Variables", "Files", "Add-ons"] as const;
 
 export function useTemplate() {
-  const { data } = useGetTemplates();
+  const { data } = useTemplates();
   const templateData = data as Templates[] | undefined;
   const [filter, setFilter] = useState<string>(FILTERS[0]);
 

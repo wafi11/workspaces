@@ -1,6 +1,6 @@
 "use client";
 import { TopBarAdmin } from "@/components/layouts/TopBarAdmin";
-import { useGetTemplateDetails } from "@/features/services/templates/api";
+import { useTemplateDetails } from "@/features/services/templates/api";
 import { TemplateDetailsCard } from "./Details/DetailsCard";
 import { SubBarFilterComponent } from "./Details/SubBarFilter";
 import { DetailsError, DetailsLoading } from "./Details/DetailsLoading";
@@ -10,7 +10,7 @@ import { DetailsFiles } from "./Details/DetailsFiles";
 import { DetailsAddons } from "./Details/DetailsAddons";
 
 export function TemplateDetails({ id }: { id: string }) {
-  const { data, isLoading, error } = useGetTemplateDetails(id);
+  const { data, isLoading, error } = useTemplateDetails(id);
   const { toggleFilter, isOpenFilter } = useTemplate();
 
   if (isLoading) {

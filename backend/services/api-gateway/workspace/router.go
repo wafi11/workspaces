@@ -18,10 +18,13 @@ func RegisterRoutes(e *echo.Echo, db *sqlx.DB, redis *redis.Client, conf *config
 	svc := workspaceservice.NewService(repo)
 	h := NewHandler(svc)
 
-	// workerqueue.StartOperator(ctx, jobQueue, k8sClient, repo, templateRepo)
+	ws := e.Group("/api/v1/workspaces", middlewares.AuthMiddleware(conf))
+	ws.POST("", h.Create)
+	ws.GET("", h.ListWorkspaces)
+	ws.GET("/user", h.ListWorkspaceByUserId)
+	ws.GET("/form", h.ListWorkspaceForm)
+	ws.GET("/:id", h.DetailsWorkspaces)
 
-	user := e.Group("/api/v1/workspaces", middlewares.AuthMiddleware(conf))
-	user.POST("", h.Create)
-	user.GET("", h.ListWorkspaces)
-	user.GET("/:id", h.DetailsWorkspaces)
+	ws.GET("/:workspace_id/add-ons", h.GetAddonService)
+	ws.POST("/:workspace_id/add-ons", h.CreateAddonService)
 }
