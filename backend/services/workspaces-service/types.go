@@ -2,6 +2,7 @@ package workspaceservice
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -40,7 +41,7 @@ type WorkspaceRepository interface {
 	DeleteWorkspace(ctx context.Context, req *DeleteWorkspaceRequest) (*DeleteWorkspaceResponse, error)
 	UpdateWorkspaceStatus(ctx context.Context, workspaceId string, status WorkspaceStatus) error
 	CreateAddonWorkspace(c context.Context, req CreateWorkspaceAddon) error
-	GetAddonService(c context.Context, workspaceId string) ([]WorkspaceAddon, error)
+	GetAddonService(c context.Context, workspaceId string) ([]WorkspaceAddonDetails, error)
 }
 
 type WorkspaceService interface {
@@ -51,7 +52,7 @@ type WorkspaceService interface {
 	GetWorkspace(ctx context.Context, req *GetWorkspaceRequest) (*GetWorkspaceResponse, error)
 	DeleteWorkspace(ctx context.Context, req *DeleteWorkspaceRequest) (*DeleteWorkspaceResponse, error)
 	CreateAddonWorkspace(c context.Context, req CreateWorkspaceAddon) error
-	GetAddonService(c context.Context, workspaceId string) ([]WorkspaceAddon, error)
+	GetAddonService(c context.Context, workspaceId string) ([]WorkspaceAddonDetails, error)
 }
 
 type Workspace struct {
@@ -81,11 +82,19 @@ type CachedWorkspace struct {
 }
 
 type WorkspaceAddon struct {
-	ID              string      `db:"id"              json:"id"`
-	WorkspaceID     string      `db:"workspace_id"    json:"workspace_id"`
-	TemplateAddonId string      `db:"template_addon_id" json:"template_addon_id"`
-	Status          string      `db:"status"          json:"status"`
-	Config          AddonConfig `db:"config"          json:"config"`
+	ID              string          `db:"id"              json:"id"`
+	WorkspaceID     string          `db:"workspace_id"    json:"workspace_id"`
+	TemplateAddonId string          `db:"template_addon_id" json:"template_addon_id"`
+	Status          string          `db:"status"          json:"status"`
+	Config          json.RawMessage `db:"config"          json:"config"`
+}
+
+type WorkspaceAddonDetails struct {
+	ID     string          `json:"id"`
+	Name   string          `json:"name"`
+	Icon   string          `json:"icon"`
+	Status string          `json:"status"`
+	Config json.RawMessage `json:"config"`
 }
 
 type AddonConfig struct {

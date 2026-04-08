@@ -75,15 +75,15 @@ func handleAdd(ctx context.Context, job WorkspaceJob, r *Repository) error {
 		DB_USER:      &dbUser,
 		DB_PASSWORD:  &dbPassword,
 		User:         &job.UserId,
-		Name:         "postgres",
+		Name:         job.Name,
 		Image:        &job.Image,
 		StorageClass: "local-path",
-		StorageSize:  "1Gi",
+		StorageSize:  job.StorageRequest,
 		Replicas:     1,
-		CPURequest:   "0.25",
-		MemRequest:   "100Mi",
-		CPULimit:     "100m",
-		MemLimit:     "128Mi",
+		CPURequest:   job.CPURequest,
+		MemRequest:   job.MemoryRequest,
+		CPULimit:     job.CPULimit,
+		MemLimit:     job.MemoryLimit,
 		Username:     job.Username,
 		Domain:       "wfdnstore.online",
 	}); err != nil {
@@ -103,17 +103,25 @@ func handleCreate(ctx context.Context, job WorkspaceJob, k8sClient IK8SClient, r
 	if err := k8sClient.CreateNamespace(ctx, job.Namespace, job.WorkspaceId, job.UserId); err != nil {
 		return fail(fmt.Errorf("failed to create namespace: %w", err))
 	}
+	ensureValue := func(val, fallback string) string {
+		if val == "" || val == "<nil>" {
+			return fallback
+		}
+		return val
+	}
+
+	log.Printf("DEBUG JOB: ID=%s, CpuTermLimit='%s', MemTermLimit='%s', StorageReq='%s'",
+		job.WorkspaceId, job.CpuTerminalLimit, job.MemoryTerminalLimit, job.StorageRequest)
 
 	if err := k8sClient.CreateResourceQuota(ctx, job.Namespace, QuotaConfig{
-		CPULimit:      "2",
-		MemoryLimit:   "1Gi",
-		StorageLimit:  "5Gi",
-		CPURequest:    "1500m",
-		MemoryRequest: "512Mi",
+		CPULimit:      ensureValue(job.CPURequest, "1"),
+		MemoryLimit:   ensureValue(job.MemoryLimit, "1024Mi"),
+		StorageLimit:  ensureValue(job.StorageLimit, "5Gi"),
+		CPURequest:    ensureValue(job.CPURequest, "1"),
+		MemoryRequest: ensureValue(job.MemoryRequest, "1024Mi"),
 	}); err != nil {
 		return fail(fmt.Errorf("failed to create resource quota: %w", err))
 	}
-
 	err := k8sClient.SetupRBAC(ctx, job.Namespace, job.UserId)
 	if err != nil {
 		return fail(fmt.Errorf("failed to setup rbac: %w", err))
@@ -129,15 +137,17 @@ func handleCreate(ctx context.Context, job WorkspaceJob, k8sClient IK8SClient, r
 		User:         &job.UserId,
 		Name:         job.WorkspaceId,
 		StorageClass: "local-path",
-		StorageSize:  "1Gi",
+		StorageSize:  job.StorageRequest,
 		Replicas:     1,
 		RunAsUser:    1000,
 		RunAsGroup:   1000,
 		FsGroup:      1000,
 		Password:     password,
-		CPURequest:   "0.25",
-		MemRequest:   "100Mi",
+		CPULimit:     "0.25",
+		MemLimit:     "128Mi",
 		Username:     job.Username,
+		CPURequest:   "0.10",
+		MemRequest:   "100Mi",
 		Domain:       "wfdnstore.online",
 	}); err != nil {
 		return fail(fmt.Errorf("failed deployment: %w", err))

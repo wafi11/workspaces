@@ -28,6 +28,8 @@ func (h *Handler) Create(c echo.Context) error {
 		return response.Error(c, http.StatusBadRequest, "invalid body request", nil)
 	}
 
+	req.TemplateId = "a7fda0ee-092c-40dc-be9f-8917784764b2"
+
 	req.UserId = userId
 
 	data, err := h.svc.CreateWorkspace(c.Request().Context(), &req, username)

@@ -11,21 +11,25 @@ import (
 const WorkspaceEventChannel = "workspace:events"
 
 type WorkspaceJob struct {
-	WorkspaceId            string
-	UserId                 string
-	TemplateId             string
-	Username               string
-	Namespace              string
-	Image                  string
-	EnvVars                map[string]any
-	CPURequest             string
-	MemoryRequest          string
-	StorageRequest         string
-	MemoryTerminalRequest  string
-	StorageTerminalRequest string
-	CpuTerminalReuqest     string
-	Action                 JobAction
-	Replicas               string
+	WorkspaceId          string
+	Name                 string
+	UserId               string
+	TemplateId           string
+	Username             string
+	Namespace            string
+	Image                string
+	EnvVars              map[string]any
+	CPURequest           string
+	MemoryRequest        string
+	StorageRequest       string
+	MemoryTerminalLimit  string
+	StorageTerminalLimit string
+	CpuTerminalLimit     string
+	CPULimit             string
+	MemoryLimit          string
+	StorageLimit         string
+	Action               JobAction
+	Replicas             string
 }
 
 type JobAction string

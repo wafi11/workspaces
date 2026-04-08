@@ -58,7 +58,7 @@ func (s *Service) DeleteWorkspace(ctx context.Context, req *DeleteWorkspaceReque
 }
 
 // workspace addon
-func (s *Service) GetAddonService(c context.Context, workspaceId string) ([]WorkspaceAddon, error) {
+func (s *Service) GetAddonService(c context.Context, workspaceId string) ([]WorkspaceAddonDetails, error) {
 	return s.repo.GetAddonService(c, workspaceId)
 }
 

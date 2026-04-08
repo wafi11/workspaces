@@ -21,62 +21,89 @@ func (repo *Repository) CreateAddonWorkspace(c context.Context, req CreateWorksp
 		return fmt.Errorf("invalid addon configuration format")
 	}
 
-	var templateAddonId string
+	// --- 1. SETUP DEFAULT RESOURCE ---
+	// Sementara kita hardcode dulu nilainya
+	const (
+		defaultAddonCPU = "0.20"
+		defaultAddonMem = "128Mi"
+		defaultAddonStg = "1Gi"
+	)
+
+	// 2. Insert ke workspace_addons
+	var addonId string = uuid.New().String()
 	query := `
         INSERT INTO workspace_addons (id, workspace_id, template_addon_id, status, config)
-        VALUES ($1, $2, $3, $4, $5) RETURNING id
+        VALUES ($1, $2, $3, $4, $5)
     `
-	err = repo.db.QueryRowContext(c, query,
-		uuid.New().String(),
+	_, err = repo.db.ExecContext(c, query,
+		addonId,
 		req.WorkspaceID,
 		req.TemplateAddonId,
-		req.Status,
+		"pending",
 		data,
-	).Scan(&templateAddonId)
+	)
 	if err != nil {
 		log.Printf("CreateAddonWorkspace: db error: %v", err)
 		return fmt.Errorf("failed to save addon")
 	}
 
-	var namespace string
-	err = repo.db.QueryRowContext(c, `SELECT namespace FROM workspaces WHERE id = $1`, req.WorkspaceID).Scan(&namespace)
+	// 3. Ambil data Namespace, Image, dan TemplateID (Gabung jadi satu query biar efisien)
+	var namespace, image, name, templateId string
+	queryDetails := `
+        SELECT w.namespace,w.name, ta.image, ta.template_id 
+        FROM workspaces w
+        JOIN template_addons ta ON ta.id = $2
+        WHERE w.id = $1
+    `
+	err = repo.db.QueryRowContext(c, queryDetails, req.WorkspaceID, req.TemplateAddonId).Scan(
+		&namespace, &name, &image, &templateId,
+	)
 	if err != nil {
-		log.Printf("CreateAddonWorkspace: workspace not found: %v", err)
-		return fmt.Errorf("workspace not found")
+		log.Printf("CreateAddonWorkspace: lookup error: %v", err)
+		return fmt.Errorf("workspace or addon template not found")
 	}
 
-	var image string
-	err = repo.db.QueryRowContext(c, "select image from template_addons where id = $1", req.TemplateAddonId).Scan(&image)
-	if err != nil {
-		log.Printf("CreateAddonWorkspace: workspace not found: %v", err)
-		return fmt.Errorf("workspace not found")
-	}
-	var templateId string
-	err = repo.db.QueryRowContext(c, "select template_id from template_addons where id = $1", req.TemplateAddonId).Scan(&templateId)
-	if err != nil {
-		log.Printf("CreateAddonWorkspace: workspace not found: %v", err)
-		return fmt.Errorf("workspace not found")
-	}
-	debugData, _ := json.Marshal(envVars)
-	log.Printf("DEBUG ENV VARS: %s", string(debugData))
+	// 4. Catat ke workspace_resources (Gunakan DEFAULT)
+	// Ini penting biar di K8S Operator nanti bisa dapet angka resources-nya
+	_, _ = repo.db.ExecContext(c, `
+        INSERT INTO workspace_resources (workspace_id, kind, name, cpu_cores, ram_mb, storage_gb, status)
+        VALUES ($1, 'addon', $2, $3, $4, $5, 'pending')`,
+		req.WorkspaceID, "addon-"+addonId[:8], 0.20, 128, 1,
+	)
 
+	log.Printf("DEBUG ADDON: Image=%s, Namespace=%s, CPU=%s", image, namespace, defaultAddonCPU)
+
+	// 5. Publish Event
 	PublishEvent(c, repo.redisClient, WorkspaceJob{
-		WorkspaceId: req.WorkspaceID,
-		Namespace:   namespace,
-		TemplateId:  templateId,
-		Action:      JobAdd,
-		Image:       image,
-		EnvVars:     envVars,
+		WorkspaceId:    req.WorkspaceID,
+		Namespace:      namespace,
+		TemplateId:     templateId,
+		Action:         JobAdd,
+		Image:          image,
+		EnvVars:        envVars,
+		Name:           name,
+		CPURequest:     defaultAddonCPU,
+		MemoryRequest:  defaultAddonMem,
+		StorageRequest: defaultAddonStg,
+		CPULimit:       "1",
+		MemoryLimit:    defaultAddonMem,
 	})
 
 	return nil
 }
 
-func (repo *Repository) GetAddonService(c context.Context, workspaceId string) ([]WorkspaceAddon, error) {
+func (repo *Repository) GetAddonService(c context.Context, workspaceId string) ([]WorkspaceAddonDetails, error) {
 	query := `
-		SELECT id, workspace_id, template_addon_id, status, config
-		FROM workspace_addon
-		WHERE workspace_id = $1
+		SELECT 
+			wa.id, 
+			t.name,
+			t.icon,
+			wa.status, 
+			wa.config
+		FROM workspace_addons wa
+		LEFT JOIN template_addons ta on  ta.id = wa.template_addon_id 
+		LEFT JOIN templates t on t.id = ta.template_id
+		WHERE wa.workspace_id = $1
 	`
 
 	rows, err := repo.db.QueryContext(c, query, workspaceId)
@@ -86,25 +113,19 @@ func (repo *Repository) GetAddonService(c context.Context, workspaceId string) (
 	}
 	defer rows.Close()
 
-	var addons []WorkspaceAddon
+	var addons []WorkspaceAddonDetails
 	for rows.Next() {
-		var addon WorkspaceAddon
-		var configRaw []byte
+		var addon WorkspaceAddonDetails
 
 		if err := rows.Scan(
 			&addon.ID,
-			&addon.WorkspaceID,
-			&addon.TemplateAddonId,
+			&addon.Name,
+			&addon.Icon,
 			&addon.Status,
-			&configRaw,
+			&addon.Config,
 		); err != nil {
 			log.Printf("GetAddonService: scan error: %v", err)
 			return nil, fmt.Errorf("failed to read addon data")
-		}
-
-		if err := json.Unmarshal(configRaw, &addon.Config); err != nil {
-			log.Printf("GetAddonService: failed to parse config for addon: %v", err)
-			return nil, fmt.Errorf("failed to parse addon configuration")
 		}
 
 		addons = append(addons, addon)

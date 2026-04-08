@@ -28,7 +28,6 @@ func NewRepository(db *sqlx.DB, redis *redis.Client) *Repository {
 	}
 }
 
-// ─── Repository Methods ───────────────────────────────────────────────────────
 func (r *Repository) CreateWorkspace(ctx context.Context, req *CreateWorkspaceRequest, username string) (*CreateWorkspaceResponse, error) {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -36,131 +35,109 @@ func (r *Repository) CreateWorkspace(ctx context.Context, req *CreateWorkspaceRe
 	}
 	defer tx.Rollback()
 
-	// 1. Lock quota row dulu biar ga bisa diakses concurrent
-	var maxWorkspaces, used_workspaces int
-	err = tx.QueryRowContext(ctx,
-		`SELECT used_workspaces,max_workspaces FROM user_quotas WHERE user_id = $1 FOR UPDATE`,
-		req.UserId,
-	).Scan(&maxWorkspaces, &used_workspaces)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			maxWorkspaces = 3
-		} else {
-			return nil, err
-		}
-	}
-
-	if used_workspaces >= maxWorkspaces {
-		return nil, ErrQuotaExceeded
-	}
-
-	// 3. Insert workspace
-	var w Workspace
-	var envJSON, envRaw []byte
-	envJSON, err = json.Marshal(req.EnvVars)
-	if err != nil {
-		return nil, err
-	}
-
-	err = tx.QueryRowContext(ctx, `
-        INSERT INTO workspaces (user_id, template_id, name, namespace, status, env_vars)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING id, user_id, template_id, name, namespace, status, env_vars, created_at, updated_at
-    `, req.UserId, req.TemplateId, req.Name, GenerateNamespace(req.UserId, req.Name), StatusPending, envJSON,
-	).Scan(
-		&w.Id, &w.UserId, &w.TemplateId,
-		&w.Name, &w.Namespace, &w.Status,
-		&envRaw, &w.CreatedAt, &w.UpdatedAt,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := json.Unmarshal(envRaw, &w.EnvVars); err != nil {
-		w.EnvVars = map[string]any{}
-	}
-
-	// 4. Update URL dalam transaction yang sama
-	w.Url = generateUrl(w.Id)
-	_, err = tx.ExecContext(ctx, `UPDATE workspaces SET url = $1 WHERE id = $2`, w.Url, w.Id)
-	if err != nil {
-		return nil, err
-	}
 	var q struct {
-		MaxWS, MaxCPU, MaxRAM, MaxStorage     int
-		UsedWS, UsedCPU, UsedRAM, UsedStorage int
+		MaxWS, MaxRAM, MaxStorage    int
+		UsedWS, UsedRAM, UsedStorage int
+		MaxCPU, UsedCPU              float64
 	}
+
 	err = tx.QueryRowContext(ctx, `
-        SELECT 
-            max_workspaces, max_cpu_cores, max_ram_mb, max_storage_gb,
-            used_workspaces, used_cpu_cores, used_ram_mb, used_storage_gb
+        SELECT max_workspaces, max_cpu_cores, max_ram_mb, max_storage_gb,
+               used_workspaces, used_cpu_cores, used_ram_mb, used_storage_gb
         FROM user_quotas WHERE user_id = $1 FOR UPDATE`,
 		req.UserId,
 	).Scan(
 		&q.MaxWS, &q.MaxCPU, &q.MaxRAM, &q.MaxStorage,
 		&q.UsedWS, &q.UsedCPU, &q.UsedRAM, &q.UsedStorage,
 	)
-
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			// Default quota jika belum ada record
 			q.MaxWS, q.MaxCPU, q.MaxRAM, q.MaxStorage = 3, 4, 4096, 20
 		} else {
 			return nil, err
 		}
 	}
-	reqCPU := 1
-	reqRAM := 1024
-	reqSTG := 5
 
-	// 3. Validasi Quota
-	if q.UsedWS+1 > q.MaxWS {
-		return nil, fmt.Errorf("limit workspace tercapai")
-	}
-	if q.UsedCPU+reqCPU > q.MaxCPU {
-		return nil, fmt.Errorf("limit CPU tidak mencukupi")
-	}
-	if q.UsedRAM+reqRAM > q.MaxRAM {
-		return nil, fmt.Errorf("limit RAM tidak mencukupi")
-	}
-	_, err = tx.ExecContext(ctx, `
-        INSERT INTO workspace_resources (workspace_id, kind, name, cpu_cores, ram_mb, storage_gb, status)
-        VALUES ($1, 'deployment', $2, $3, $4, $5, 'pending')`,
-		w.Id, w.Name, reqCPU, reqRAM, reqSTG,
+	// --- Konfigurasi Resource ---
+	const (
+		reqCPU, reqRAM, reqSTG    = 1.0, 1024, 5
+		termCPU, termRAM, termSTG = 0.25, 100, 1
 	)
+
+	// Hitung total untuk validasi dan update kuota
+	totalReqCPU := reqCPU + termCPU
+	totalReqRAM := reqRAM + termRAM
+	totalReqSTG := reqSTG + termSTG
+
+	if q.UsedWS+1 > q.MaxWS {
+		return nil, ErrQuotaExceeded
+	}
+	if q.UsedCPU+totalReqCPU > q.MaxCPU {
+		return nil, fmt.Errorf("insufficient CPU quota (need %.2f, available %.2f)", totalReqCPU, q.MaxCPU-q.UsedCPU)
+	}
+	if q.UsedRAM+totalReqRAM > q.MaxRAM {
+		return nil, fmt.Errorf("insufficient RAM quota")
+	}
+
+	// 3. Insert Workspace (sama seperti sebelumnya)
+	var w Workspace
+	envJSON, _ := json.Marshal(req.EnvVars)
+	err = tx.QueryRowContext(ctx, `
+        INSERT INTO workspaces (user_id, template_id, name, namespace, status, env_vars)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id, user_id, template_id, name, namespace, status, env_vars, created_at, updated_at`,
+		req.UserId, req.TemplateId, req.Name, GenerateNamespace(req.UserId, req.Name), StatusPending, envJSON,
+	).Scan(&w.Id, &w.UserId, &w.TemplateId, &w.Name, &w.Namespace, &w.Status, &envJSON, &w.CreatedAt, &w.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
 
-	// 5. Commit dulu baru publish event
+	w.Url = generateUrl(w.Id)
+	tx.ExecContext(ctx, `UPDATE workspaces SET url = $1 WHERE id = $2`, w.Url, w.Id)
+
+	// 5. Simpan Resource Detail (Dua baris agar tracking jelas)
+	// Resource Utama
+	tx.ExecContext(ctx, `INSERT INTO workspace_resources (workspace_id, kind, name, cpu_cores, ram_mb, storage_gb, status)
+        VALUES ($1, 'deployment', $2, $3, $4, $5, 'pending')`, w.Id, w.Name, reqCPU, reqRAM, reqSTG)
+
+	// Resource Terminal
+	tx.ExecContext(ctx, `INSERT INTO workspace_resources (workspace_id, kind, name, cpu_cores, ram_mb, storage_gb, status)
+        VALUES ($1, 'terminal', $2, $3, $4, $5, 'pending')`, w.Id, w.Name+"-terminal", termCPU, termRAM, termSTG)
+
+	// Update Kuota User dengan TOTAL (Utama + Terminal)
+	if _, err = tx.ExecContext(ctx, `
+        UPDATE user_quotas 
+        SET used_workspaces = used_workspaces + 1,
+            used_cpu_cores = used_cpu_cores + $1,
+            used_ram_mb = used_ram_mb + $2,
+            used_storage_gb = used_storage_gb + $3
+        WHERE user_id = $4`,
+		totalReqCPU, totalReqRAM, totalReqSTG, req.UserId,
+	); err != nil {
+		return nil, err
+	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
-	// 6. Publish event & invalidate cache (di luar transaction)
 	PublishEvent(ctx, r.redisClient, WorkspaceJob{
-		WorkspaceId:            w.Id,
-		UserId:                 w.UserId,
-		Namespace:              w.Namespace,
-		TemplateId:             req.TemplateId,
-		Username:               username,
-		Action:                 JobCreate,
-		EnvVars:                w.EnvVars,
-		MemoryRequest:          "100Mi",
-		StorageRequest:         "1Gi",
-		MemoryTerminalRequest:  "",
-		StorageTerminalRequest: "",
-		CpuTerminalReuqest:     "",
-		Replicas:               "1",
-		CPURequest:             "0.25",
+		WorkspaceId:          w.Id,
+		UserId:               w.UserId,
+		Namespace:            w.Namespace,
+		TemplateId:           req.TemplateId,
+		Username:             username,
+		Action:               JobCreate,
+		EnvVars:              req.EnvVars,
+		CPURequest:           fmt.Sprintf("%.2f", reqCPU),
+		MemoryRequest:        fmt.Sprintf("%dMi", reqRAM),
+		StorageRequest:       fmt.Sprintf("%dGi", reqSTG),
+		CpuTerminalLimit:     fmt.Sprintf("%.2f", termCPU),
+		MemoryTerminalLimit:  fmt.Sprintf("%dMi", termRAM),
+		StorageTerminalLimit: fmt.Sprintf("%dGi", termSTG),
 	})
 
-	r.redisClient.Del(ctx, fmt.Sprintf(workspacesCacheKey, req.UserId))
-
-	return &CreateWorkspaceResponse{
-		Workspace: &w,
-		Message:   "workspace created, provisioning in progress",
-	}, nil
+	return &CreateWorkspaceResponse{Workspace: &w, Message: "provisioning in progress"}, nil
 }
 
 func (r *Repository) ListWorkspacesByUserId(ctx context.Context, req *ListWorkspacesRequest) (*ListWorkspacesResponse, error) {
