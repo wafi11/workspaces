@@ -24,6 +24,8 @@ func RegisterRoutes(e *echo.Echo, db *sqlx.DB, redis *redis.Client, conf *config
 	ws.GET("/user", h.ListWorkspaceByUserId)
 	ws.GET("/form", h.ListWorkspaceForm)
 	ws.GET("/:id", h.DetailsWorkspaces)
+	ws.PATCH("/:workspace_id/start", h.StartWorkspaces)
+	ws.PATCH("/:workspace_id/stop", h.StopWorkspaces)
 
 	ws.GET("/:workspace_id/add-ons", h.GetAddonService)
 	ws.POST("/:workspace_id/add-ons", h.CreateAddonService)

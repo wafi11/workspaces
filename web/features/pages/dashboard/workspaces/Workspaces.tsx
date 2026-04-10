@@ -6,7 +6,7 @@ import { WorkspaceCard } from "./WorkspaceCard";
 
 export function WorkspacePage() {
   const { data } = useGetListWorkspace();
-  const workspaceData = data?.data;
+  const workspaceData = data;
 
   return (
     <>

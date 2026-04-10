@@ -43,7 +43,7 @@ func (r *Repository) setUserCache(ctx context.Context, userId string, u *User) {
 func (r *Repository) getUserCache(ctx context.Context, userId string) (*User, error) {
 	val, err := r.redisClient.Get(ctx, fmt.Sprintf(userCacheKey, userId)).Bytes()
 	if err != nil {
-		return nil, err // cache miss
+		return nil, err
 	}
 
 	var cached CachedUser
@@ -122,19 +122,17 @@ func (r *Repository) GetProfile(ctx context.Context, req *GetUserRequest) (*GetU
 
 	// 2. cache miss → hit db
 	var (
-		profile   User
-		createdAt time.Time
-		updatedAt time.Time
+		profile User
 	)
 
 	query := `
-		SELECT id, email, username, created_at, updated_at 
+		SELECT id, email, username,terminal_url,created_at, updated_at 
 		FROM users 
 		WHERE id = $1
 	`
 
 	err := r.db.QueryRowContext(ctx, query, req.UserId).
-		Scan(&profile.Id, &profile.Email, &profile.Username, &createdAt, &updatedAt)
+		Scan(&profile.Id, &profile.Email, &profile.Username, &profile.TerminalUrl, &profile.CreatedAt, &profile.UpdatedAt)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

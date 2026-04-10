@@ -10,10 +10,11 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
+	"github.com/wafi11/workspaces/pkg/publisher"
 )
 
-func GenerateNamespace(userId, name string) string {
-	return fmt.Sprintf("ws-%s-%s", userId[:8], name)
+func GenerateNamespace(userId string) string {
+	return fmt.Sprintf("ws-%s", userId)
 }
 
 type Repository struct {
@@ -41,6 +42,7 @@ func (r *Repository) CreateWorkspace(ctx context.Context, req *CreateWorkspaceRe
 		MaxCPU, UsedCPU              float64
 	}
 
+	// Ambil Quota User
 	err = tx.QueryRowContext(ctx, `
         SELECT max_workspaces, max_cpu_cores, max_ram_mb, max_storage_gb,
                used_workspaces, used_cpu_cores, used_ram_mb, used_storage_gb
@@ -50,91 +52,63 @@ func (r *Repository) CreateWorkspace(ctx context.Context, req *CreateWorkspaceRe
 		&q.MaxWS, &q.MaxCPU, &q.MaxRAM, &q.MaxStorage,
 		&q.UsedWS, &q.UsedCPU, &q.UsedRAM, &q.UsedStorage,
 	)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			q.MaxWS, q.MaxCPU, q.MaxRAM, q.MaxStorage = 3, 4, 4096, 20
-		} else {
-			return nil, err
-		}
-	}
 
-	// --- Konfigurasi Resource ---
+	// Resource constants (Bisa ditaruh di config)
 	const (
-		reqCPU, reqRAM, reqSTG    = 1.0, 1024, 5
-		termCPU, termRAM, termSTG = 0.25, 100, 1
+		reqCPU, reqRAM   = 0.5, 512  // Resource untuk Terminal
+		codeCpu, codeRAM = 1.0, 1024 // Resource untuk VS Code
+		// Storage tidak ditambah lagi kalau sudah ada PVC di namespace ini
 	)
 
-	// Hitung total untuk validasi dan update kuota
-	totalReqCPU := reqCPU + termCPU
-	totalReqRAM := reqRAM + termRAM
-	totalReqSTG := reqSTG + termSTG
+	totalReqCPU := reqCPU + codeCpu
+	totalReqRAM := reqRAM + codeRAM
 
+	// Validasi Quota
 	if q.UsedWS+1 > q.MaxWS {
-		return nil, ErrQuotaExceeded
+		return nil, fmt.Errorf("quota workspaces penuh")
 	}
 	if q.UsedCPU+totalReqCPU > q.MaxCPU {
-		return nil, fmt.Errorf("insufficient CPU quota (need %.2f, available %.2f)", totalReqCPU, q.MaxCPU-q.UsedCPU)
-	}
-	if q.UsedRAM+totalReqRAM > q.MaxRAM {
-		return nil, fmt.Errorf("insufficient RAM quota")
+		return nil, fmt.Errorf("quota CPU tidak cukup")
 	}
 
-	// 3. Insert Workspace (sama seperti sebelumnya)
+	// 1. Insert ke tabel Workspaces
 	var w Workspace
 	envJSON, _ := json.Marshal(req.EnvVars)
 	err = tx.QueryRowContext(ctx, `
-        INSERT INTO workspaces (user_id, template_id, name, namespace, status, env_vars)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING id, user_id, template_id, name, namespace, status, env_vars, created_at, updated_at`,
-		req.UserId, req.TemplateId, req.Name, GenerateNamespace(req.UserId, req.Name), StatusPending, envJSON,
-	).Scan(&w.Id, &w.UserId, &w.TemplateId, &w.Name, &w.Namespace, &w.Status, &envJSON, &w.CreatedAt, &w.UpdatedAt)
+        INSERT INTO workspaces (user_id, name, status, env_vars)
+        VALUES ($1, $2, 'pending', $3)
+        RETURNING id, user_id, name, status`,
+		req.UserId, req.Name, envJSON,
+	).Scan(&w.Id, &w.UserId, &w.Name, &w.Status)
+
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("errr : %s", err.Error())
 	}
-
-	w.Url = generateUrl(w.Id)
-	tx.ExecContext(ctx, `UPDATE workspaces SET url = $1 WHERE id = $2`, w.Url, w.Id)
-
-	// 5. Simpan Resource Detail (Dua baris agar tracking jelas)
-	// Resource Utama
-	tx.ExecContext(ctx, `INSERT INTO workspace_resources (workspace_id, kind, name, cpu_cores, ram_mb, storage_gb, status)
-        VALUES ($1, 'deployment', $2, $3, $4, $5, 'pending')`, w.Id, w.Name, reqCPU, reqRAM, reqSTG)
-
-	// Resource Terminal
-	tx.ExecContext(ctx, `INSERT INTO workspace_resources (workspace_id, kind, name, cpu_cores, ram_mb, storage_gb, status)
-        VALUES ($1, 'terminal', $2, $3, $4, $5, 'pending')`, w.Id, w.Name+"-terminal", termCPU, termRAM, termSTG)
-
-	// Update Kuota User dengan TOTAL (Utama + Terminal)
-	if _, err = tx.ExecContext(ctx, `
+	// 2. Update Kuota (Hanya CPU & RAM, Storage tetap karena sharing)
+	_, err = tx.ExecContext(ctx, `
         UPDATE user_quotas 
         SET used_workspaces = used_workspaces + 1,
             used_cpu_cores = used_cpu_cores + $1,
-            used_ram_mb = used_ram_mb + $2,
-            used_storage_gb = used_storage_gb + $3
-        WHERE user_id = $4`,
-		totalReqCPU, totalReqRAM, totalReqSTG, req.UserId,
-	); err != nil {
-		return nil, err
-	}
+            used_ram_mb = used_ram_mb + $2
+        WHERE user_id = $3`,
+		totalReqCPU, totalReqRAM, req.UserId,
+	)
 
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
-	PublishEvent(ctx, r.redisClient, WorkspaceJob{
-		WorkspaceId:          w.Id,
-		UserId:               w.UserId,
-		Namespace:            w.Namespace,
-		TemplateId:           req.TemplateId,
-		Username:             username,
-		Action:               JobCreate,
-		EnvVars:              req.EnvVars,
-		CPURequest:           fmt.Sprintf("%.2f", reqCPU),
-		MemoryRequest:        fmt.Sprintf("%dMi", reqRAM),
-		StorageRequest:       fmt.Sprintf("%dGi", reqSTG),
-		CpuTerminalLimit:     fmt.Sprintf("%.2f", termCPU),
-		MemoryTerminalLimit:  fmt.Sprintf("%dMi", termRAM),
-		StorageTerminalLimit: fmt.Sprintf("%dGi", termSTG),
+	publisher.PublishEvent(ctx, r.redisClient, publisher.WorkspaceJob{
+		UserId:        w.UserId,
+		TemplateId:    req.TemplateId,
+		Name:          "code",
+		Username:      username,
+		Action:        publisher.JobAdd,
+		EnvVars:       req.EnvVars,
+		CPURequest:    fmt.Sprintf("%.2f", reqCPU),
+		MemoryRequest: fmt.Sprintf("%dMi", reqRAM),
+		CPULimit:      fmt.Sprintf("%.2f", codeCpu),
+		MemoryLimit:   fmt.Sprintf("%dMi", codeRAM),
 	})
 
 	return &CreateWorkspaceResponse{Workspace: &w, Message: "provisioning in progress"}, nil
@@ -143,7 +117,7 @@ func (r *Repository) CreateWorkspace(ctx context.Context, req *CreateWorkspaceRe
 func (r *Repository) ListWorkspacesByUserId(ctx context.Context, req *ListWorkspacesRequest) (*ListWorkspacesResponse, error) {
 
 	rows, err := r.db.QueryContext(ctx, `
-		SELECT id, user_id, template_id, name, status, env_vars, created_at, updated_at
+		SELECT id, user_id, name, status, env_vars, created_at, updated_at
 		FROM workspaces
 		WHERE user_id = $1 AND status != $2
 		ORDER BY created_at DESC
@@ -158,7 +132,7 @@ func (r *Repository) ListWorkspacesByUserId(ctx context.Context, req *ListWorksp
 		var w Workspace
 		var envRaw []byte
 		if err := rows.Scan(
-			&w.Id, &w.UserId, &w.TemplateId,
+			&w.Id, &w.UserId,
 			&w.Name, &w.Status,
 			&envRaw, &w.CreatedAt, &w.UpdatedAt,
 		); err != nil {
@@ -206,7 +180,7 @@ func (r *Repository) ListWorkspaces(ctx context.Context, limit int, offset int, 
 	}
 
 	rows, err := r.db.QueryContext(ctx, `
-        SELECT id, user_id, template_id, name, namespace, status, env_vars, created_at, updated_at
+        SELECT id, user_id, name, namespace, status, env_vars, created_at, updated_at
         FROM workspaces
         WHERE status = $1
         ORDER BY user_id DESC,created_at DESC
@@ -222,7 +196,7 @@ func (r *Repository) ListWorkspaces(ctx context.Context, limit int, offset int, 
 		var w Workspace
 		var envRaw []byte
 		if err := rows.Scan(
-			&w.Id, &w.UserId, &w.TemplateId,
+			&w.Id, &w.UserId,
 			&w.Name, &w.Namespace, &w.Status,
 			&envRaw, &w.CreatedAt, &w.UpdatedAt,
 		); err != nil {
@@ -247,12 +221,12 @@ func (r *Repository) GetWorkspace(ctx context.Context, req *GetWorkspaceRequest)
 	var w Workspace
 	var envRaw []byte
 	err := r.db.QueryRowContext(ctx, `
-		SELECT id, user_id, template_id, name,namespace, status,url, env_vars, created_at, updated_at
+		SELECT id, user_id, name,namespace, status,url, env_vars, created_at, updated_at
 		FROM workspaces
 		WHERE id = $1
 	`, req.WorkspaceId,
 	).Scan(
-		&w.Id, &w.UserId, &w.TemplateId,
+		&w.Id, &w.UserId,
 		&w.Name, &w.Namespace, &w.Status, &w.Url,
 		&envRaw, &w.CreatedAt, &w.UpdatedAt,
 	)
@@ -294,11 +268,11 @@ func (r *Repository) DeleteWorkspace(ctx context.Context, req *DeleteWorkspaceRe
 		return nil, err
 	}
 
-	PublishEvent(ctx, r.redisClient, WorkspaceJob{
+	publisher.PublishEvent(ctx, r.redisClient, publisher.WorkspaceJob{
 		WorkspaceId: w.Id,
 		UserId:      w.UserId,
 		Namespace:   w.Namespace,
-		Action:      JobDelete,
+		Action:      publisher.JobDelete,
 	})
 
 	// 4. invalidate cache

@@ -9,3 +9,5 @@ operator/tmp/*
 backend/tmp/*
 backend/config/config
 backend/.env
+ws-cli
+workspace-terminal

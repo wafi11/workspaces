@@ -28,8 +28,6 @@ func (h *Handler) Create(c echo.Context) error {
 		return response.Error(c, http.StatusBadRequest, "invalid body request", nil)
 	}
 
-	req.TemplateId = "a7fda0ee-092c-40dc-be9f-8917784764b2"
-
 	req.UserId = userId
 
 	data, err := h.svc.CreateWorkspace(c.Request().Context(), &req, username)
@@ -104,4 +102,34 @@ func (h *Handler) DetailsWorkspaces(c echo.Context) error {
 	}
 
 	return response.Success(c, http.StatusOK, "Successfullt Get Workspaces", data.Workspace)
+}
+
+func (h *Handler) StartWorkspaces(c echo.Context) error {
+	workspaceId := c.Param("workspace_id")
+
+	if workspaceId == "" {
+		return response.Error(c, http.StatusBadRequest, "workspace not found", nil)
+	}
+
+	err := h.svc.UpdateWorkspaceStatus(c.Request().Context(), workspaceId, "running")
+	if err != nil {
+		return response.Error(c, http.StatusBadRequest, "failed to start workspaces", nil)
+	}
+
+	return response.Success(c, http.StatusOK, "Successfully Start Workspace", nil)
+}
+
+func (h *Handler) StopWorkspaces(c echo.Context) error {
+	workspaceId := c.Param("workspace_id")
+
+	if workspaceId == "" {
+		return response.Error(c, http.StatusBadRequest, "workspace not found", nil)
+	}
+
+	err := h.svc.UpdateWorkspaceStatus(c.Request().Context(), workspaceId, "stopped")
+	if err != nil {
+		return response.Error(c, http.StatusBadRequest, "failed to start workspaces", nil)
+	}
+
+	return response.Success(c, http.StatusOK, "Successfully Start Workspace", nil)
 }

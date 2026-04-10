@@ -2,19 +2,12 @@ package authservices
 
 import (
 	"fmt"
-	"strings"
 
-	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func GenerateNamespace(email string) string {
-	local := strings.Split(email, "@")[0]
-	local = strings.ToLower(local)
-	local = strings.ReplaceAll(local, ".", "-")
-	local = strings.ReplaceAll(local, "_", "-")
-	suffix := uuid.New().String()[:8]
-	return fmt.Sprintf("user-%s-%s", local, suffix)
+func generateNamespace(userID string) string {
+	return fmt.Sprintf("ws-%s", userID)
 }
 
 func HashPassword(password string) (string, error) {

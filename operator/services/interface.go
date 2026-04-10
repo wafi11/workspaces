@@ -5,14 +5,14 @@ import (
 )
 
 type IK8SClient interface {
-	CreateNamespace(ctx context.Context, namespace, workspaceId, userId string) error
-	DeleteNamespace(ctx context.Context, namespace string) error
-	CreateResourceQuota(ctx context.Context, namespace string, quota QuotaConfig) error
-	UpdateResourceQuota(ctx context.Context, namespace string, quota QuotaConfig) error
-	SetupRBAC(ctx context.Context, namespace, userId string) error
-	createServiceAccount(ctx context.Context, namespace, userID string) error
-	createRole(ctx context.Context, namespace string) error
-	createRoleBinding(ctx context.Context, namespace, userID string) error
+	CreateNamespace(ctx context.Context, userId string) error
+	DeleteNamespace(ctx context.Context, userId string) error
+	CreateResourceQuota(ctx context.Context, userId string, quota QuotaConfig) error
+	UpdateResourceQuota(ctx context.Context, userId string, quota QuotaConfig) error
+	SetupRBAC(ctx context.Context, userId string) error
+	createServiceAccount(ctx context.Context, userID string) error
+	createRole(ctx context.Context, userID string) error
+	createRoleBinding(ctx context.Context, userID string) error
 	DeleteRBAC(ctx context.Context, userID string) error
 }
 

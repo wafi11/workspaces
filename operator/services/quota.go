@@ -9,12 +9,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (k *K8sClient) CreateResourceQuota(ctx context.Context, namespace string, quota QuotaConfig) error {
+func (k *K8sClient) CreateResourceQuota(ctx context.Context, userId string, quota QuotaConfig) error {
 
 	rq := &corev1.ResourceQuota{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "workspace-quota",
-			Namespace: namespace,
+			Namespace: generateNamespace(userId),
 		},
 		Spec: corev1.ResourceQuotaSpec{
 			Hard: corev1.ResourceList{
@@ -27,7 +27,7 @@ func (k *K8sClient) CreateResourceQuota(ctx context.Context, namespace string, q
 		},
 	}
 
-	_, err := k.Client.CoreV1().ResourceQuotas(namespace).Create(ctx, rq, metav1.CreateOptions{})
+	_, err := k.Client.CoreV1().ResourceQuotas(generateNamespace(userId)).Create(ctx, rq, metav1.CreateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to create resource quota: %w", err)
 	}

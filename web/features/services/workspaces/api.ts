@@ -7,7 +7,7 @@ export function useGetListWorkspace() {
   return useQuery({
     queryKey: ["workspaces"],
     queryFn: async () => {
-      const request = await api.get<ApiResponse<Workspaces[]>>("/workspaces");
+      const request = await api.get<Workspaces[]>("/workspaces");
       return request.data;
     },
   });

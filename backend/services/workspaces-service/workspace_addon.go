@@ -7,9 +7,11 @@ import (
 	"log"
 
 	"github.com/google/uuid"
+	"github.com/wafi11/workspaces/pkg/publisher"
 )
 
 func (repo *Repository) CreateAddonWorkspace(c context.Context, req CreateWorkspaceAddon) error {
+
 	envVars := make(map[string]any)
 	for _, cfg := range req.Config {
 		envVars[cfg.Key] = cfg.Value
@@ -22,7 +24,6 @@ func (repo *Repository) CreateAddonWorkspace(c context.Context, req CreateWorksp
 	}
 
 	// --- 1. SETUP DEFAULT RESOURCE ---
-	// Sementara kita hardcode dulu nilainya
 	const (
 		defaultAddonCPU = "0.20"
 		defaultAddonMem = "128Mi"
@@ -64,21 +65,18 @@ func (repo *Repository) CreateAddonWorkspace(c context.Context, req CreateWorksp
 	}
 
 	// 4. Catat ke workspace_resources (Gunakan DEFAULT)
-	// Ini penting biar di K8S Operator nanti bisa dapet angka resources-nya
 	_, _ = repo.db.ExecContext(c, `
         INSERT INTO workspace_resources (workspace_id, kind, name, cpu_cores, ram_mb, storage_gb, status)
         VALUES ($1, 'addon', $2, $3, $4, $5, 'pending')`,
 		req.WorkspaceID, "addon-"+addonId[:8], 0.20, 128, 1,
 	)
 
-	log.Printf("DEBUG ADDON: Image=%s, Namespace=%s, CPU=%s", image, namespace, defaultAddonCPU)
-
 	// 5. Publish Event
-	PublishEvent(c, repo.redisClient, WorkspaceJob{
+	publisher.PublishEvent(c, repo.redisClient, publisher.WorkspaceJob{
 		WorkspaceId:    req.WorkspaceID,
 		Namespace:      namespace,
 		TemplateId:     templateId,
-		Action:         JobAdd,
+		Action:         publisher.JobAdd,
 		Image:          image,
 		EnvVars:        envVars,
 		Name:           name,

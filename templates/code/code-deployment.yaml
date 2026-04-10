@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: code
+  namespace: {{.Namespace}}
+spec:
+  replicas: {{.Replicas}}
+  selector:
+    matchLabels:
+      app: code
+  template:
+    metadata:
+      labels:
+        app: code
+    spec:
+      securityContext:
+        runAsUser: {{.RunAsUser}}
+        runAsGroup: {{.RunAsGroup}}
+        fsGroup: {{.FsGroup}}
+      containers:
+        - name: code
+          image: codercom/code-server:4.91.1
+          args: ["--auth", "password", "--bind-addr", "0.0.0.0:8080", "/home/{{.Username}}"]
+          env:
+            - name: PASSWORD
+              value: "{{.Password}}"
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: {{.CPURequest}}
+              memory: {{.MemRequest}}
+            limits:
+              cpu: {{.CPULimit}}
+              memory: {{.MemLimit}}
+          volumeMounts:
+            - name: user-data
+              mountPath: /home/{{.Username}}
+      volumes:
+        - name: user-data
+          persistentVolumeClaim:
+            claimName: shared-storage-pvc

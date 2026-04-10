@@ -2,6 +2,9 @@ run-operator:
 	@echo "Running operator locally..."
 	@cd operator && air
 
+build-wscli:
+	docker build
+
 run-operator-with-logs:
 	@echo "Running operator locally with logs..."
 	@go run operator/cmd/main.go --log-level=debug

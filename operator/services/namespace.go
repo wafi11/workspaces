@@ -8,21 +8,20 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (k *K8sClient) CreateNamespace(ctx context.Context, namespace, workspace_id, userId string) error {
+func (k *K8sClient) CreateNamespace(ctx context.Context, userId string) error {
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: namespace,
+			Name: generateNamespace(userId),
 			Labels: map[string]string{
-				"managed-by":   "workspace-operator",
-				"user-id":      userId,
-				"workspace-id": workspace_id,
+				"managed-by": "workspace-operator",
+				"user-id":    userId,
 			},
 		},
 	}
 
 	_, err := k.Client.CoreV1().Namespaces().Create(ctx, ns, metav1.CreateOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to create namespace %s: %w", namespace, err)
+		return fmt.Errorf("failed to create namespace %s: %w", generateNamespace(userId), err)
 	}
 
 	return nil

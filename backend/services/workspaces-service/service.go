@@ -65,3 +65,7 @@ func (s *Service) GetAddonService(c context.Context, workspaceId string) ([]Work
 func (s *Service) CreateAddonWorkspace(c context.Context, req CreateWorkspaceAddon) error {
 	return s.repo.CreateAddonWorkspace(c, req)
 }
+
+func (s *Service) UpdateWorkspaceStatus(ctx context.Context, workspaceId string, status WorkspaceStatus) error {
+	return s.repo.UpdateWorkspaceStatus(ctx, workspaceId, status)
+}

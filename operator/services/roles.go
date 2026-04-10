@@ -9,33 +9,33 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (k *K8sClient) SetupRBAC(ctx context.Context, namespace, userID string) error {
+func (k *K8sClient) SetupRBAC(ctx context.Context, userID string) error {
 	// 1. Buat ServiceAccount untuk user
-	if err := k.createServiceAccount(ctx, namespace, userID); err != nil {
+	if err := k.createServiceAccount(ctx, generateNamespace(userID)); err != nil {
 		return err
 	}
 
 	// 2. Buat Role — hanya bisa akses namespace sendiri
-	if err := k.createRole(ctx, namespace); err != nil {
+	if err := k.createRole(ctx, generateNamespace(userID)); err != nil {
 		return err
 	}
 
 	// 3. Bind Role ke ServiceAccount
-	if err := k.createRoleBinding(ctx, namespace, userID); err != nil {
+	if err := k.createRoleBinding(ctx, generateNamespace(userID)); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (k *K8sClient) createServiceAccount(ctx context.Context, namespace, userID string) error {
+func (k *K8sClient) createServiceAccount(ctx context.Context, namespace string) error {
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("user-%s", userID),
+			Name:      namespace,
 			Namespace: namespace,
 			Labels: map[string]string{
 				"managed-by": "workspace-controller",
-				"user-id":    userID,
+				"user-id":    namespace,
 			},
 		},
 	}
@@ -56,19 +56,16 @@ func (k *K8sClient) createRole(ctx context.Context, namespace string) error {
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
-				// Boleh lihat pods, logs
 				APIGroups: []string{""},
 				Resources: []string{"pods", "pods/log", "services"},
 				Verbs:     []string{"get", "list", "watch"},
 			},
 			{
-				// Boleh akses exec ke pod (untuk terminal di vscode)
 				APIGroups: []string{""},
 				Resources: []string{"pods/exec"},
 				Verbs:     []string{"create"},
 			},
 			{
-				// Tidak boleh delete/create deployment sendiri
 				APIGroups: []string{"apps"},
 				Resources: []string{"deployments"},
 				Verbs:     []string{"get", "list", "watch"},
@@ -84,7 +81,7 @@ func (k *K8sClient) createRole(ctx context.Context, namespace string) error {
 	return nil
 }
 
-func (k *K8sClient) createRoleBinding(ctx context.Context, namespace, userID string) error {
+func (k *K8sClient) createRoleBinding(ctx context.Context, namespace string) error {
 	rb := &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "workspace-user-rolebinding",
@@ -93,7 +90,7 @@ func (k *K8sClient) createRoleBinding(ctx context.Context, namespace, userID str
 		Subjects: []rbacv1.Subject{
 			{
 				Kind:      "ServiceAccount",
-				Name:      fmt.Sprintf("user-%s", userID),
+				Name:      namespace,
 				Namespace: namespace,
 			},
 		},

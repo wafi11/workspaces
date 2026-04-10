@@ -20,9 +20,9 @@ type UserRepository interface {
 	GetUserSessions(ctx context.Context, req *GetUserSessionsRequest) (*GetUserSessionsResponse, error)
 	RevokeSession(ctx context.Context, req *RevokeSessionRequest) (*RevokeSessionResponse, error)
 
-	GetUserQuota(ctx context.Context,userId string) (*models.UserQuota, error)
-	UpdateUserQuota(ctx context.Context,quota *models.UserQuota) error
-	CreateUserQuota(ctx context.Context,quota *models.UserQuota) error
+	GetUserQuota(ctx context.Context, userId string) (*models.UserQuota, error)
+	UpdateUserQuota(ctx context.Context, quota *models.UserQuota) error
+	CreateUserQuota(ctx context.Context, quota *models.UserQuota) error
 }
 
 type UserService interface {
@@ -31,17 +31,18 @@ type UserService interface {
 	ChangePassword(ctx context.Context, req *ChangePasswordRequest) (*ChangePasswordResponse, error)
 	GetUserSessions(ctx context.Context, req *GetUserSessionsRequest) (*GetUserSessionsResponse, error)
 	RevokeSession(ctx context.Context, req *RevokeSessionRequest) (*RevokeSessionResponse, error)
-	GetUserQuota(ctx context.Context,userId string) (*models.UserQuota, error)
-	UpdateUserQuota(ctx context.Context,quota *models.UserQuota) error
-	CreateUserQuota(ctx context.Context,quota *models.UserQuota) error
+	GetUserQuota(ctx context.Context, userId string) (*models.UserQuota, error)
+	UpdateUserQuota(ctx context.Context, quota *models.UserQuota) error
+	CreateUserQuota(ctx context.Context, quota *models.UserQuota) error
 }
 
 type CachedUser struct {
-	Id        string    `json:"id"`
-	Username  string    `json:"username"`
-	Email     string    `json:"email"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	Id          string    `json:"id"`
+	Username    string    `json:"username"`
+	Email       string    `json:"email"`
+	TerminalUrl string    `json:"terminal_url"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type CachedSession struct {
@@ -99,11 +100,12 @@ type ChangePasswordResponse struct {
 }
 
 type User struct {
-	Id        string    `json:"id"`
-	Username  string    `json:"username"`
-	Email     string    `json:"email"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	Id          string    `json:"id"`
+	Username    string    `json:"username"`
+	Email       string    `json:"email"`
+	TerminalUrl string    `json:"terminal_url"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type Session struct {

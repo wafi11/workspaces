@@ -6,8 +6,6 @@ import (
 	"fmt"
 )
 
-// ─── Cache Helpers ────────────────────────────────────────────────────────────
-
 func generateUrl(id string) string{
 	return fmt.Sprintf("https://%s.wfdnstore.online",id)
 }

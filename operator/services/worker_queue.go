@@ -65,27 +65,24 @@ func StartOperator(ctx context.Context, jobQueue <-chan WorkspaceJob, k8sClient 
 }
 
 func handleAdd(ctx context.Context, job WorkspaceJob, r *Repository) error {
-	dbName := getEnvString(job.EnvVars, "DB_NAME")
-	dbPassword := getEnvString(job.EnvVars, "DB_PASSWORD")
-	dbUser := getEnvString(job.EnvVars, "DB_USER")
-
+	log.Printf("DEBUG JOB: CPUReq: %s, CPULimit: %s, MemReq: %s, MemLimit: %s",
+		job.CPURequest, job.CPULimit, job.MemoryRequest, job.MemoryLimit)
 	if err := r.ExecuteDeployment(ctx, job.TemplateId, DeployParams{
-		Namespace:    job.Namespace,
-		DB_NAME:      &dbName,
-		DB_USER:      &dbUser,
-		DB_PASSWORD:  &dbPassword,
-		User:         &job.UserId,
-		Name:         job.Name,
-		Image:        &job.Image,
-		StorageClass: "local-path",
-		StorageSize:  job.StorageRequest,
-		Replicas:     1,
-		CPURequest:   job.CPURequest,
-		MemRequest:   job.MemoryRequest,
-		CPULimit:     job.CPULimit,
-		MemLimit:     job.MemoryLimit,
-		Username:     job.Username,
-		Domain:       "wfdnstore.online",
+		Namespace:  generateNamespace(job.UserId),
+		User:       &job.UserId,
+		Name:       job.Name,
+		Image:      &job.Image,
+		Replicas:   1,
+		RunAsUser:  1000,
+		RunAsGroup: 1000,
+		FsGroup:    1000,
+		Password:   "password123",
+		CPURequest: job.CPURequest,
+		MemRequest: job.MemoryRequest,
+		CPULimit:   job.CPULimit,
+		MemLimit:   job.MemoryLimit,
+		Username:   job.Username,
+		Domain:     "wfdnstore.online",
 	}); err != nil {
 		return fmt.Errorf("failed deployment: %w", err)
 	}
@@ -95,13 +92,9 @@ func handleAdd(ctx context.Context, job WorkspaceJob, r *Repository) error {
 }
 
 func handleCreate(ctx context.Context, job WorkspaceJob, k8sClient IK8SClient, r *Repository) error {
-	fail := func(err error) error {
-		r.UpdateWorkspaceStatus(ctx, job.WorkspaceId, StatusError)
-		return err
-	}
 
-	if err := k8sClient.CreateNamespace(ctx, job.Namespace, job.WorkspaceId, job.UserId); err != nil {
-		return fail(fmt.Errorf("failed to create namespace: %w", err))
+	if err := k8sClient.CreateNamespace(ctx, job.UserId); err != nil {
+		return (fmt.Errorf("failed to create namespace: %w", err))
 	}
 	ensureValue := func(val, fallback string) string {
 		if val == "" || val == "<nil>" {
@@ -110,51 +103,45 @@ func handleCreate(ctx context.Context, job WorkspaceJob, k8sClient IK8SClient, r
 		return val
 	}
 
-	log.Printf("DEBUG JOB: ID=%s, CpuTermLimit='%s', MemTermLimit='%s', StorageReq='%s'",
-		job.WorkspaceId, job.CpuTerminalLimit, job.MemoryTerminalLimit, job.StorageRequest)
-
-	if err := k8sClient.CreateResourceQuota(ctx, job.Namespace, QuotaConfig{
+	if err := k8sClient.CreateResourceQuota(ctx, job.UserId, QuotaConfig{
 		CPULimit:      ensureValue(job.CPURequest, "1"),
 		MemoryLimit:   ensureValue(job.MemoryLimit, "1024Mi"),
 		StorageLimit:  ensureValue(job.StorageLimit, "5Gi"),
 		CPURequest:    ensureValue(job.CPURequest, "1"),
 		MemoryRequest: ensureValue(job.MemoryRequest, "1024Mi"),
 	}); err != nil {
-		return fail(fmt.Errorf("failed to create resource quota: %w", err))
+		return (fmt.Errorf("failed to create resource quota: %w", err))
 	}
-	err := k8sClient.SetupRBAC(ctx, job.Namespace, job.UserId)
+	err := k8sClient.SetupRBAC(ctx, job.UserId)
 	if err != nil {
-		return fail(fmt.Errorf("failed to setup rbac: %w", err))
+		return (fmt.Errorf("failed to setup rbac: %w", err))
 	}
 	dbName := getEnvString(job.EnvVars, "DB_NAME")
 
-	password := getEnvString(job.EnvVars, "password")
-
 	// 4. deploy template
 	if err := r.ExecuteDeployment(ctx, job.TemplateId, DeployParams{
-		Namespace:    job.Namespace,
-		DB_NAME:      &dbName,
-		User:         &job.UserId,
-		Name:         job.WorkspaceId,
-		StorageClass: "local-path",
-		StorageSize:  job.StorageRequest,
-		Replicas:     1,
-		RunAsUser:    1000,
-		RunAsGroup:   1000,
-		FsGroup:      1000,
-		Password:     password,
-		CPULimit:     "0.25",
-		MemLimit:     "128Mi",
-		Username:     job.Username,
-		CPURequest:   "0.10",
-		MemRequest:   "100Mi",
-		Domain:       "wfdnstore.online",
+		WS_TOKEN:         getEnvString(job.EnvVars, "WS_TOKEN"),
+		WS_REFRESH_TOKEN: getEnvString(job.EnvVars, "WS_REFRESH_TOKEN"),
+		WS_API_URL:       getEnvString(job.EnvVars, "WS_API_URL"),
+		Namespace:        generateNamespace(job.UserId),
+		DB_NAME:          &dbName,
+		User:             &job.UserId,
+		Name:             job.UserId,
+		StorageClass:     "nfs",
+		StorageSize:      job.StorageRequest,
+		Replicas:         1,
+		RunAsUser:        1000,
+		RunAsGroup:       1000,
+		FsGroup:          1000,
+		Password:         "password123",
+		CPULimit:         "0.25",
+		MemLimit:         "128Mi",
+		Username:         job.Username,
+		CPURequest:       "0.10",
+		MemRequest:       "100Mi",
+		Domain:           "wfdnstore.online",
 	}); err != nil {
-		return fail(fmt.Errorf("failed deployment: %w", err))
-	}
-
-	if err := r.UpdateWorkspaceStatus(ctx, job.WorkspaceId, StatusRunning); err != nil {
-		return fmt.Errorf("failed to update status: %w", err)
+		return (fmt.Errorf("failed deployment: %w", err))
 	}
 
 	log.Printf("workspace %s provisioned successfully", job.WorkspaceId)

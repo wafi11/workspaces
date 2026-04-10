@@ -50,17 +50,6 @@ func (s *Subscriber) handle(payload string) {
 		return
 	}
 
-	job := WorkspaceJob{
-		WorkspaceId: event.WorkspaceId,
-		UserId:      event.UserId,
-		Namespace:   event.Namespace,
-		TemplateId:  event.TemplateId,
-		Username:    event.Username,
-		Image:       event.Image,
-		EnvVars:     event.EnvVars,
-		Action:      event.Action,
-	}
-
 	log.Printf("[subscriber] received event: %s workspace=%s", event.Action, event.WorkspaceId)
-	s.jobQueue <- job
+	s.jobQueue <- event
 }

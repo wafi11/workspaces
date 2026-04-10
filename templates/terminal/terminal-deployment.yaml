@@ -2,9 +2,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: terminal
-  namespace: {{.Namespace}}
+  namespace: { { .Namespace } }
 spec:
-  replicas: {{.Replicas}}
+  replicas: { { .Replicas } }
   selector:
     matchLabels:
       app: terminal
@@ -14,13 +14,20 @@ spec:
         app: terminal
     spec:
       securityContext:
-        runAsUser: {{.RunAsUser}}
-        runAsGroup: {{.RunAsGroup}}
-        fsGroup: {{.FsGroup}}
+        runAsUser: { { .RunAsUser } }
+        runAsGroup: { { .RunAsGroup } }
+        fsGroup: { { .FsGroup } }
         runAsNonRoot: true
       containers:
         - name: terminal
           image: 192.168.1.31:5050/workspaces/workspace-terminal:latest
+          env:
+            - name: WS_TOKEN
+              value: "{{.WS_TOKEN}}"
+            - name: WS_REFRESH_TOKEN
+              value: "{{.WS_REFRESH_TOKEN}}"
+            - name: WS_API_URL
+              value: "{{.WS_API_URL}}"
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: false
@@ -42,8 +49,8 @@ spec:
               cpu: "100m"
               memory: "64Mi"
             limits:
-              cpu: {{.CPULimit}}
-              memory: {{.MemLimit}}
+              cpu: { { .CPULimit } }
+              memory: { { .MemLimit } }
           volumeMounts:
             - name: terminal-storage
               mountPath: /home/ttyd

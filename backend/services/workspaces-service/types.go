@@ -50,23 +50,22 @@ type WorkspaceService interface {
 	ListWorkspacesByUserId(ctx context.Context, req *ListWorkspacesRequest) (*ListWorkspacesResponse, error)
 	ListWorkspaceForm(ctx context.Context, userId string) ([]ListWorkspaceForm, error)
 	GetWorkspace(ctx context.Context, req *GetWorkspaceRequest) (*GetWorkspaceResponse, error)
+	UpdateWorkspaceStatus(ctx context.Context, workspaceId string, status WorkspaceStatus) error
 	DeleteWorkspace(ctx context.Context, req *DeleteWorkspaceRequest) (*DeleteWorkspaceResponse, error)
 	CreateAddonWorkspace(c context.Context, req CreateWorkspaceAddon) error
 	GetAddonService(c context.Context, workspaceId string) ([]WorkspaceAddonDetails, error)
 }
 
 type Workspace struct {
-	Id           string          `json:"id"`
-	UserId       string          `json:"user_id"`
-	TemplateId   string          `json:"template_id"`
-	TemplateName string          `json:"-"`
-	Name         string          `json:"name"`
-	Namespace    string          `json:"namespace,omitempty"`
-	Status       WorkspaceStatus `json:"status"`
-	EnvVars      map[string]any  `json:"env_vars"`
-	CreatedAt    time.Time       `json:"created_at"`
-	UpdatedAt    time.Time       `json:"updated_at"`
-	Url          string          `json:"url"`
+	Id        string          `json:"id"`
+	UserId    string          `json:"user_id"`
+	Name      string          `json:"name"`
+	Namespace string          `json:"namespace,omitempty"`
+	Status    WorkspaceStatus `json:"status"`
+	EnvVars   map[string]any  `json:"env_vars"`
+	CreatedAt time.Time       `json:"created_at"`
+	UpdatedAt time.Time       `json:"updated_at"`
+	Url       string          `json:"url"`
 }
 
 type CachedWorkspace struct {
