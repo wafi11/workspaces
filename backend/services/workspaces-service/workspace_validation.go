@@ -5,7 +5,6 @@ import (
 	"fmt"
 )
 
-
 func validateCreateWorkspace(req *CreateWorkspaceRequest) error {
 	switch {
 	case req == nil:

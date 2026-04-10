@@ -10,11 +10,11 @@ interface WorkspaceDetails {
 }
 export function WorkspaceDetailsUser({id} : WorkspaceDetails){
     console.log(id)
-   const {data}  = useGetAddonWorkspaces(id)
+   const {data}  = useGetWorkspace(id)
    console.log(data) 
    return (
         <>
-            {data && <WorkspaceAddons addons={data} />}
+            {/* {data && <WorkspaceAddons addons={data} />} */}
         </>
     )
 }

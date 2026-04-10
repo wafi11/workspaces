@@ -109,11 +109,16 @@ type CreateWorkspaceAddon struct {
 }
 
 type CreateWorkspaceRequest struct {
-	UserId     string         `json:"user_id"`
-	TemplateId string         `json:"template_id"`
-	Name       string         `json:"name"`
-	EnvVars    map[string]any `json:"env_vars"`
-	Addons     []string       `json:"addons"`
+	UserId        string         `json:"user_id"`
+	TemplateId    string         `json:"template_id"`
+	Password      string         `json:"password"`
+	Name          string         `json:"name"`
+	LimitRam      int            `json:"limit_ram_mb"`
+	LimitCpuCores float64        `json:"limit_cpu_cores"`
+	ReqRam        int            `json:"req_ram_mb"`
+	ReqCpuCores   float64        `json:"req_cpu_cores"`
+	EnvVars       map[string]any `json:"env_vars"`
+	Addons        []string       `json:"addons"`
 }
 
 type CreateWorkspaceResponse struct {

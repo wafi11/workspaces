@@ -12,6 +12,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/wafi11/workspaces/config"
 	"github.com/wafi11/workspaces/pkg/publisher"
+	"github.com/wafi11/workspaces/pkg/utils"
 )
 
 type Repository struct {
@@ -36,7 +37,7 @@ func (repo *Repository) Register(c context.Context, req *RegisterRequest) (*Regi
 		VALUES ($1, $2, $3, $4)
 		RETURNING id, username
 	`
-	hashedPassword, err := HashPassword(req.Password)
+	hashedPassword, err := utils.HashPassword(req.Password)
 	if err != nil {
 		return nil, fmt.Errorf("failed to process password: %w", err)
 	}
@@ -136,7 +137,7 @@ func (repo *Repository) Login(c context.Context, req *LoginRequest, userAgent, i
 		return nil, fmt.Errorf("failed to query user: %w", err)
 	}
 
-	if !VerifyPassword(password, req.Password) {
+	if !utils.VerifyPassword(password, req.Password) {
 		return nil, fmt.Errorf("invalid credentials")
 	}
 
