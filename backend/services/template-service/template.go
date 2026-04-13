@@ -263,3 +263,36 @@ func (repo *Repository) GetDetailsInfo(c context.Context, templateId string) (*D
 
 	return &detail, nil
 }
+
+
+func (repo *Repository)  FindTemplateWorkspaceForm(c context.Context)([]TemplateWorkspaceForm,error){
+	query := `
+		SELECT id,name,icon
+		FROM templates
+	`
+
+	rows,err := repo.db.QueryContext(c,query)
+	if err != nil {
+		log.Printf("failed to get template workspaces form")
+		return nil,fmt.Errorf("templates not found")
+	}
+
+	defer rows.Close()
+	
+	var templates []TemplateWorkspaceForm
+	for rows.Next() {
+		var template TemplateWorkspaceForm
+		err := rows.Scan(
+			&template.ID,template.Name,&template.Icon,
+		)
+
+		if err != nil {
+			log.Printf("failed to scan template workspace form : %s",err.Error())
+			return nil,fmt.Errorf("failed to find templates")
+		}
+
+		templates = append(templates,template)
+	}
+
+	return templates,nil
+}

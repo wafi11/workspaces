@@ -13,6 +13,7 @@ type TemplateRepository interface {
 	UpdateTemplate(ctx context.Context, id string, template *UpdateTemplateRequest) error
 	GetDetailsInfo(c context.Context, templateId string) (*DetailsInfo, error)
 	DeleteTemplate(ctx context.Context, id string) error
+	FindTemplateWorkspaceForm(c context.Context)([]TemplateWorkspaceForm,error)
 
 	// template-variables
 	CreateTemplateVariable(ctx context.Context, req *CreateVariableRequest, templateId string) error
@@ -40,6 +41,7 @@ type TemplateService interface {
 	UpdateTemplate(ctx context.Context, id string, template *UpdateTemplateRequest) error
 	GetDetailsInfo(c context.Context, templateId string) (*DetailsInfo, error)
 	DeleteTemplate(ctx context.Context, id string) error
+	FindTemplateWorkspaceForm(c context.Context)([]TemplateWorkspaceForm,error)
 
 	// template-variables
 	CreateTemplateVariable(ctx context.Context, req *CreateVariableRequest, templateId string) error
@@ -84,6 +86,12 @@ type Template struct {
 	Addons      []TemplateAddon    `json:"addons,omitempty"`
 	Files       []TemplateFiles    `json:"files,omitempty"`
 	CreatedAt   time.Time          `json:"created_at"`
+}
+
+type TemplateWorkspaceForm struct {
+	ID string `json:"id"`
+	Name string `json:"name"`
+	Icon string `json:"icon"`
 }
 
 type TemplateFiles struct {

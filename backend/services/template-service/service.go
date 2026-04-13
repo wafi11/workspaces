@@ -43,6 +43,9 @@ func (s *Service) GetDetailsInfo(c context.Context, templateId string) (*Details
 	}
 	return s.repo.GetDetailsInfo(c, templateId)
 }
+func (s *Service)  FindTemplateWorkspaceForm(c context.Context)([]TemplateWorkspaceForm,error){
+	return s.repo.FindTemplateWorkspaceForm(c)
+}
 
 func (s *Service) DeleteTemplate(ctx context.Context, id string) error {
 	return s.repo.DeleteTemplate(ctx, id)

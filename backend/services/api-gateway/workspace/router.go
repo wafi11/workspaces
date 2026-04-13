@@ -32,6 +32,8 @@ func RegisterRoutes(e *echo.Echo, db *sqlx.DB, redis *config.RedisConnection, co
 	ws.GET("/:id", h.DetailsWorkspaces)
 	ws.PATCH("/:workspace_id/start", h.StartWorkspaces)
 	ws.PATCH("/:workspace_id/stop", h.StopWorkspaces)
+	ws.PATCH("/:workspace_id/paused", h.PausedWorkspaces)
+	ws.PATCH("/:workspace_id/resumed", h.ResumedWorkspaces)
 	svc.StartEventConsumer(ctx)
 
 }

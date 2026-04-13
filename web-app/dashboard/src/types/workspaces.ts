@@ -29,6 +29,7 @@ export type WorkspaceSessions = {
 
 export type WorkspaceRequest = {
   name: string;
+  password: string;
   description: string;
   env_vars: Record<string, string>;
 };

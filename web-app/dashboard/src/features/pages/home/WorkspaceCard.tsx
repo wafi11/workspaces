@@ -1,4 +1,5 @@
-import { ActionBtn } from "@/features/components/button";
+import { useUpdateStatusWorkspace } from "@/features/api/workspace";
+import { ActionBtn } from "@/features/components/ActionButton";
 import { StatusBadge } from "@/features/components/statusBadge";
 import type { WorkspaceSessions } from "@/types";
 import { formatDate } from "@/utils/formatDate";
@@ -6,6 +7,13 @@ import { formatDate } from "@/utils/formatDate";
 export function WorkspaceCard({ ws }: { ws: WorkspaceSessions }) {
   const isRunning = ws.status === "running";
   const isPaused = ws.status === "paused";
+  const isStopped = ws.status === "stopped";
+  const isPending = ws.status === "pending";
+
+  const { mutate: startWs } = useUpdateStatusWorkspace(ws.id, "start");
+  const { mutate: stopWs } = useUpdateStatusWorkspace(ws.id, "stop");
+  const { mutate: resumeWs } = useUpdateStatusWorkspace(ws.id, "resumed");
+  const { mutate: pauseWs } = useUpdateStatusWorkspace(ws.id, "paused");
 
   return (
     <div
@@ -39,22 +47,11 @@ export function WorkspaceCard({ ws }: { ws: WorkspaceSessions }) {
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span
-            className="text-sm font-medium truncate"
+            className="text-sm font-semibold truncate"
             style={{ color: "var(--color-sidebar-text-active)" }}
           >
             {ws.name}
           </span>
-          {ws.url && (
-            <a
-              href={ws.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[11px] truncate hover:underline"
-              style={{ color: "var(--color-sidebar-text)" }}
-            >
-              {ws.url}
-            </a>
-          )}
         </div>
         <StatusBadge status={ws.status} />
       </div>
@@ -98,8 +95,8 @@ export function WorkspaceCard({ ws }: { ws: WorkspaceSessions }) {
       <div className="flex gap-2">
         {isRunning && (
           <>
-            <ActionBtn label="Pause" variant="warn" onClick={() => {}} />
-            <ActionBtn label="Stop" variant="danger" onClick={() => {}} />
+            <ActionBtn label="Pause" variant="warn" onClick={() => pauseWs()} />
+            <ActionBtn label="Stop" variant="danger" onClick={() => stopWs()} />
             <ActionBtn
               label="Open"
               variant="default"
@@ -109,15 +106,27 @@ export function WorkspaceCard({ ws }: { ws: WorkspaceSessions }) {
         )}
         {isPaused && (
           <>
-            <ActionBtn label="Resume" variant="default" onClick={() => {}} />
-            <ActionBtn label="Stop" variant="danger" onClick={() => {}} />
+            <ActionBtn
+              label="Resume"
+              variant="default"
+              onClick={() => resumeWs()}
+            />
+            <ActionBtn label="Stop" variant="danger" onClick={() => stopWs()} />
           </>
         )}
-        {ws.status === "stopped" && (
-          <ActionBtn label="Start" variant="default" onClick={() => {}} />
+        {isStopped && (
+          <ActionBtn
+            label="Start"
+            variant="default"
+            onClick={() => startWs()}
+          />
         )}
-        {ws.status === "pending" && (
-          <ActionBtn label="Start" variant="default" onClick={() => {}} />
+        {isPending && (
+          <ActionBtn
+            label="Start"
+            variant="default"
+            onClick={() => startWs()}
+          />
         )}
       </div>
     </div>

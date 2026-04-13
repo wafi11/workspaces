@@ -16,6 +16,7 @@ func NewTemplateRouter(c *echo.Echo, db *sqlx.DB, redis *redis.Client, minioClie
 	protected := c.Group("/api/v1/templates")
 	protected.POST("", handler.CreateTemplate)
 	protected.GET("", handler.GetListTemplates)
+	protected.GET("/workspace/form", handler.FinTemplateWorkspaceForm)
 	protected.GET("/:template_id", handler.GetTemplateDetails)
 	protected.GET("/:template_id/form", handler.FindTemplateDetailsForm)
 	protected.PUT("/:id", handler.UpdateTemplate)

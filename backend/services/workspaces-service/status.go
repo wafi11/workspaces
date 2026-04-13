@@ -3,6 +3,7 @@ package workspaceservice
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -106,24 +107,27 @@ func (r *Repository) UpdateWorkspaceStatus(ctx context.Context, workspaceId stri
 // Berbeda dari handleStop (manual) — tidak ada cooldown next_start_at
 // karena ini bukan user yang stop, tapi sistem.
 func (r *Repository) AutoStopWorkspace(ctx context.Context, workspaceId string) error {
+	log.Printf("[autostop] mulai proses workspace %s", workspaceId)
+
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
+		log.Printf("[autostop] gagal begin tx workspace %s: %s", workspaceId, err.Error())
 		return err
 	}
 	defer tx.Rollback()
 
 	res, err := r.lockWorkspaceForUpdate(ctx, tx, workspaceId)
 	if err != nil {
+		log.Printf("[autostop] gagal lock workspace %s: %s", workspaceId, err.Error())
 		return err
 	}
+	log.Printf("[autostop] workspace %s status=%s cpu=%v ram=%v user=%s", workspaceId, res.CurrStatus, res.ReqCPU, res.ReqRAM, res.UserId)
 
-	// Kalau sudah stopped/paused (misalnya user manual stop duluan), skip saja
 	if res.CurrStatus == "stopped" || res.CurrStatus == "paused" {
 		log.Printf("[autostop] workspace %s sudah dalam status %s, skip", workspaceId, res.CurrStatus)
 		return tx.Commit()
 	}
 
-	// Release quota
 	_, err = tx.ExecContext(ctx, `
 		UPDATE user_quotas
 		SET used_cpu_cores = GREATEST(used_cpu_cores - $1, 0),
@@ -132,34 +136,62 @@ func (r *Repository) AutoStopWorkspace(ctx context.Context, workspaceId string) 
 		res.ReqCPU, res.ReqRAM, res.UserId,
 	)
 	if err != nil {
+		log.Printf("[autostop] gagal release quota user %s: %s", res.UserId, err.Error())
 		return fmt.Errorf("autostop: gagal release quota: %w", err)
 	}
+	log.Printf("[autostop] quota dirilis user %s cpu=%v ram=%v", res.UserId, res.ReqCPU, res.ReqRAM)
 
-	// Update session — tidak ada next_start_at karena auto stop, user bisa langsung start lagi
+	
+	var sessionID string
+	err = tx.QueryRowContext(ctx, `
+		SELECT id FROM workspace_sessions
+		WHERE workspace_id = $1
+		AND status IN ('running', 'paused')
+		ORDER BY created_at DESC
+		LIMIT 1
+		`, workspaceId).Scan(&sessionID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			log.Printf("[autostop] tidak ada session aktif untuk workspace %s", workspaceId)
+			return fmt.Errorf("autostop: tidak ada session aktif untuk workspace %s", workspaceId)
+		}
+		log.Printf("[autostop] gagal ambil session workspace %s: %s", workspaceId, err.Error())
+		return fmt.Errorf("autostop: gagal ambil session: %w", err)
+	}
+	log.Printf("[autostop] session aktif ditemukan id=%s", sessionID)
+	nextStartAt := time.Now().UTC().Add(cooldown)
+
 	_, err = tx.ExecContext(ctx, `
 		UPDATE workspace_sessions
-		SET status     = 'stopped',
-		    stopped_at = NOW(),
-		    paused_at  = NULL,
-		    updated_at = NOW()
-		WHERE workspace_id = $1 AND status = 'active'
-	`, workspaceId)
-	if err != nil {
-		return fmt.Errorf("autostop: gagal update session: %w", err)
-	}
+		SET status        = 'stopped',
+			next_start_at = NOW() + $1::interval,
+			stopped_at    = NOW(),
+			paused_at     = NULL,
+			updated_at    = NOW()
+		WHERE id = $2
+	`, fmt.Sprintf("%d minutes", int(cooldown)), sessionID)
+	log.Printf("[autostop] session %s diupdate ke stopped, next_start_at=%s", sessionID, nextStartAt.Format(time.RFC3339))
 
 	_, err = tx.ExecContext(ctx,
 		`UPDATE workspaces SET status = 'stopped', updated_at = NOW() WHERE id = $1`,
 		workspaceId,
 	)
 	if err != nil {
+		log.Printf("[autostop] gagal update workspace %s: %s", workspaceId, err.Error())
 		return fmt.Errorf("autostop: gagal update workspace: %w", err)
 	}
+	log.Printf("[autostop] workspace %s diupdate ke stopped", workspaceId)
 
-	// Publish stop ke operator
 	r.publishStop(ctx, workspaceId, res)
+	log.Printf("[autostop] stop event dipublish untuk workspace %s", workspaceId)
 
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		log.Printf("[autostop] gagal commit tx workspace %s: %s", workspaceId, err.Error())
+		return err
+	}
+
+	log.Printf("[autostop] selesai workspace %s berhasil distop", workspaceId)
+	return nil
 }
 
 // ---------------------------------------------------------------------------
@@ -189,7 +221,7 @@ func (r *Repository) handleStart(ctx context.Context, tx *sql.Tx, workspaceId st
 			workspace_id, user_id, status,
 			started_at, expires_at,
 			created_at, updated_at
-		) VALUES ($1, $2, 'active', NOW(), NOW() + $3::interval, NOW(), NOW())
+		) VALUES ($1, $2, 'running', NOW(), NOW() + $3::interval, NOW(), NOW())
 	`, workspaceId, res.UserId, fmt.Sprintf("%d minutes", int(cooldown)))
 	if err != nil {
 		return fmt.Errorf("gagal buat session: %w", err)

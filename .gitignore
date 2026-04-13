@@ -10,5 +10,7 @@ operator/tmp/*
 backend/tmp/*
 backend/config/config
 backend/.env
+web-app/dashboard/.tanstack
+web-app/dashboard/node_modules
 ws-cli
 workspace-terminal

@@ -3,11 +3,17 @@ type Variant = "default" | "warn" | "danger";
 export function ActionBtn({
   label,
   variant,
+  disabled,
+  type,
+  className,
   onClick,
 }: {
+  className?: string;
+  disabled?: boolean;
+  type?: "submit" | "button";
   label: string;
   variant: Variant;
-  onClick: () => void;
+  onClick?: () => void;
 }) {
   const styles: Record<
     Variant,
@@ -25,15 +31,19 @@ export function ActionBtn({
 
   return (
     <button
+      type={type ?? "button"}
+      disabled={disabled}
       onClick={onClick}
-      className="flex-1 py-1.5 rounded-md text-xs font-medium transition-colors"
+      className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-colors ${className ?? ""}`}
       style={{
-        color: s.color,
+        color: disabled ? "var(--color-sidebar-text-muted)" : s.color,
         border: `1px solid ${s.border}`,
         background: "transparent",
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.5 : 1,
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = s.hoverBg;
+        if (!disabled) e.currentTarget.style.background = s.hoverBg;
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.background = "transparent";

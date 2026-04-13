@@ -121,7 +121,7 @@ func (h *Handler) StartWorkspaces(c echo.Context) error {
 
 	err := h.svc.UpdateWorkspaceStatus(c.Request().Context(), workspaceId,userId, "running")
 	if err != nil {
-		return response.Error(c, http.StatusBadRequest, "failed to start workspaces", nil)
+		return response.Error(c, http.StatusBadRequest, err.Error(), nil)
 	}
 
 	return response.Success(c, http.StatusOK, "Successfully Start Workspace", nil)

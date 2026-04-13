@@ -132,3 +132,14 @@ func (h *Handler) GetListTemplates(ctx echo.Context) error {
 
 	return response.Success(ctx, http.StatusOK, "successfully get templates", data.Templates)
 }
+
+
+func (h *Handler) FinTemplateWorkspaceForm(ctx echo.Context) error {
+
+	data, err := h.svc.FindTemplateWorkspaceForm(ctx.Request().Context())
+	if err != nil {
+		return response.Error(ctx, http.StatusInternalServerError, err.Error(),nil)
+	}
+
+	return response.Success(ctx, http.StatusOK, "successfully get templates workspace form", data)
+}

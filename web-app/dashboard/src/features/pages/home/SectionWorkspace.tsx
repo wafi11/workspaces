@@ -1,6 +1,7 @@
 import { useGetWorkspacesUsers } from "@/features/api/workspace";
 import { EmptyState } from "./EmptyState";
 import { WorkspaceCard } from "./WorkspaceCard";
+import { DialogCreateWorkspaces } from "@/features/components/workspaces/DialogCreateWorkspaces";
 
 export function SectionWorkspace() {
   const { data: workspaceData, isLoading } = useGetWorkspacesUsers();
@@ -44,6 +45,7 @@ export function SectionWorkspace() {
             {workspaceData.length} instances
           </span>
         </div>
+        <DialogCreateWorkspaces />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">

@@ -14,7 +14,7 @@ import (
 
 func (repo *Repository) CreateWorkspaceSessions(ctx context.Context, req CreateWorkspaceSessions) error {
 	now := time.Now().UTC()
-	expiresAt := now.Add(5 * time.Minute)
+	expiresAt := now.Add(cooldown * time.Minute)
 	
 
 	query := `
@@ -25,6 +25,27 @@ func (repo *Repository) CreateWorkspaceSessions(ctx context.Context, req CreateW
     `
 
 	_, err := repo.db.ExecContext(ctx, query, req.WorkspaceId, req.UserId, req.Status, now, expiresAt, now, now)
+	if err != nil {
+		log.Printf("failed to start sessions: %s", err.Error())
+		return fmt.Errorf("failed to start sessions")
+	}
+
+	return nil
+}
+
+func TxCreateWorkspaceSessions(ctx context.Context, req CreateWorkspaceSessions,tx *sql.Tx) error {
+	now := time.Now().UTC()
+	expiresAt := now.Add(cooldown * time.Minute)
+	
+
+	query := `
+        INSERT INTO workspace_sessions (
+            workspace_id, user_id, status, started_at, expires_at,
+            created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `
+
+	_, err := tx.ExecContext(ctx, query, req.WorkspaceId, req.UserId, req.Status, now, expiresAt, now, now)
 	if err != nil {
 		log.Printf("failed to start sessions: %s", err.Error())
 		return fmt.Errorf("failed to start sessions")
@@ -48,7 +69,7 @@ func (repo *Repository) HandleStopWorkspace() asynq.HandlerFunc {
 
 func (repo *Repository) CanStartWorkspace(ctx context.Context, workspaceID string,tx *sql.Tx) (bool, error) {
     query := `
-        SELECT expires_at FROM workspace_sessions
+        SELECT next_start_at FROM workspace_sessions
         WHERE workspace_id = $1
         ORDER BY created_at DESC
         LIMIT 1
