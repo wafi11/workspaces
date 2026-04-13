@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	messagebroker "github.com/wafi11/workspace-operator/pkg/message-broker"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (k *K8sClient) CreateResourceQuota(ctx context.Context, userId string, quota QuotaConfig) error {
+func (k *K8sClient) CreateResourceQuota(ctx context.Context, userId string, quota messagebroker.QuotaConfig) error {
 
 	rq := &corev1.ResourceQuota{
 		ObjectMeta: metav1.ObjectMeta{
@@ -35,7 +36,7 @@ func (k *K8sClient) CreateResourceQuota(ctx context.Context, userId string, quot
 	return nil
 }
 
-func (k *K8sClient) UpdateResourceQuota(ctx context.Context, namespace string, quota QuotaConfig) error {
+func (k *K8sClient) UpdateResourceQuota(ctx context.Context, namespace string, quota messagebroker.QuotaConfig) error {
 
 	rq, err := k.Client.CoreV1().ResourceQuotas(namespace).Get(ctx, "workspace-quota", metav1.GetOptions{})
 	if err != nil {

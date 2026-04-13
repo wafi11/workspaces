@@ -8,6 +8,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/minio/minio-go/v7"
 	"github.com/redis/go-redis/v9"
+	workspacev1 "github.com/wafi11/workspace-operator/pkg/proto"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/dynamic"
 )
@@ -16,15 +17,19 @@ type Repository struct {
 	redisClient *redis.Client
 	db          *sqlx.DB
 	minioClient *minio.Client
-	jobQueue    chan<- WorkspaceJob
 	dynClient   dynamic.Interface
 	mapper      meta.RESTMapper
 }
 
-func NewRepository(redis *redis.Client, jobQueue chan<- WorkspaceJob, db *sqlx.DB, minioClient *minio.Client, dynClient dynamic.Interface, mapper meta.RESTMapper) *Repository {
+func NewRepository(
+	redis *redis.Client,
+	db *sqlx.DB,
+	minioClient *minio.Client,
+	dynClient dynamic.Interface,
+	mapper meta.RESTMapper,
+) *Repository {
 	return &Repository{
 		redisClient: redis,
-		jobQueue:    jobQueue,
 		db:          db,
 		minioClient: minioClient,
 		dynClient:   dynClient,
@@ -32,128 +37,144 @@ func NewRepository(redis *redis.Client, jobQueue chan<- WorkspaceJob, db *sqlx.D
 	}
 }
 
-func StartOperator(ctx context.Context, jobQueue <-chan WorkspaceJob, k8sClient IK8SClient, r *Repository) {
+// ─── Operator ────────────────────────────────────────────
+
+func StartOperator(
+	ctx context.Context,
+	jobQueue <-chan *workspacev1.WorkspaceEnvelope,
+	k8sClient IK8SClient,
+	r *Repository,
+) {
 	go func() {
 		for {
 			select {
-			case job := <-jobQueue:
-				log.Printf("[operator] received job action=%q workspaceId=%s\n", job.Action, job.WorkspaceId) // ← tambah ini
-
-				switch job.Action {
-				case JobCreate:
-					if err := handleCreate(ctx, job, k8sClient, r); err != nil {
-						log.Printf("failed to create workspace %s: %v", job.WorkspaceId, err)
-					}
-				case JobAdd:
-					if err := handleAdd(ctx, job, r); err != nil {
-						log.Printf("failed to create services %s: %v", job.WorkspaceId, err)
-					}
-				case JobDelete:
-					if err := handleDelete(ctx, job, k8sClient); err != nil {
-						log.Printf("failed to delete workspace %s: %v", job.WorkspaceId, err)
-					}
-				default:
-					log.Printf("[operator] unknown action: %q", job.Action) // ← dan ini
-				}
-
 			case <-ctx.Done():
-				log.Println("operator shutting down")
+				log.Println("[operator] shutting down")
 				return
+
+			case envelope := <-jobQueue:
+				if err := dispatch(ctx, envelope, k8sClient, r); err != nil {
+					log.Printf("[operator] error: %v", err)
+
+					// publish UpdateStatus FAILED balik ke redis
+					// supaya repository bisa rollback DB
+					publishFailed(ctx, r.redisClient, envelope, err)
+				}
 			}
 		}
 	}()
 }
 
-func handleAdd(ctx context.Context, job WorkspaceJob, r *Repository) error {
-	log.Printf("DEBUG JOB: CPUReq: %s, CPULimit: %s, MemReq: %s, MemLimit: %s",
-		job.CPURequest, job.CPULimit, job.MemoryRequest, job.MemoryLimit)
-	if err := r.ExecuteDeployment(ctx, job.TemplateId, DeployParams{
-		Namespace:  generateNamespace(job.UserId),
-		User:       &job.UserId,
-		Name:       job.Name,
-		Image:      &job.Image,
-		Replicas:   1,
+func dispatch(
+	ctx context.Context,
+	envelope *workspacev1.WorkspaceEnvelope,
+	k8sClient IK8SClient,
+	r *Repository,
+) error {
+log.Printf("[operator] envelope type=%T payload=%+v", envelope.Payload, envelope.Payload)
+	switch p := envelope.Payload.(type) {
+		
+	case *workspacev1.WorkspaceEnvelope_Create:
+		log.Printf("[operator] create workspace_id=%s", p.Create.Identity.WorkspaceId)
+		return handleCreate(ctx, p.Create, k8sClient, r)
+
+	case *workspacev1.WorkspaceEnvelope_Add:
+		log.Printf("[operator] add pod workspace_id=%s", p.Add.Identity.WorkspaceId)
+		return handleAdd(ctx, p.Add, r)
+
+	case *workspacev1.WorkspaceEnvelope_Delete:
+		log.Printf("[operator] delete workspace_id=%s", p.Delete.Identity.WorkspaceId)
+		return handleDelete(ctx, p.Delete, k8sClient)
+
+	case *workspacev1.WorkspaceEnvelope_Stop:
+		log.Printf("[operator] stop workspace_id=%s", p.Stop.Identity.WorkspaceId)
+		return handleStop(ctx, p.Stop, k8sClient)
+
+	case *workspacev1.WorkspaceEnvelope_Start:
+		log.Printf("[operator] start workspace_id=%s", p.Start.Identity.WorkspaceId)
+		return handleStart(ctx, p.Start, k8sClient)
+
+	default:
+		return fmt.Errorf("unknown payload type: %T", envelope.Payload)
+	}
+}
+
+// ─── Handlers ────────────────────────────────────────────
+
+func handleCreate(ctx context.Context, e *workspacev1.CreateWorkspaceEvent, k8sClient IK8SClient, r *Repository) error {
+	id := e.Identity
+
+	if err := k8sClient.CreateNamespace(ctx, id.UserId); err != nil {
+		return fmt.Errorf("create namespace: %w", err)
+	}
+
+	if err := k8sClient.CreateResourceQuota(ctx, id.UserId, toQuotaConfig(e.Resources)); err != nil {
+		return fmt.Errorf("create quota: %w", err)
+	}
+
+	if err := k8sClient.SetupRBAC(ctx, id.UserId); err != nil {
+		return fmt.Errorf("setup rbac: %w", err)
+	}
+
+	if err := r.ExecuteDeployment(ctx, e.TemplateId, toDeployParams(e.Identity, e.Resources, e.EnvVars)); err != nil {
+		return fmt.Errorf("deploy: %w", err)
+	}
+
+	log.Printf("[operator] workspace %s provisioned successfully", id.WorkspaceId)
+	return nil
+}
+
+func handleAdd(ctx context.Context, e *workspacev1.AddPodEvent, r *Repository) error {
+	res := e.Resources
+	log.Printf("[operator] add pod CPUReq=%s CPULimit=%s MemReq=%s MemLimit=%s",
+		res.CpuRequest, res.CpuLimit, res.MemoryRequest, res.MemoryLimit)
+
+	if err := r.ExecuteDeployment(ctx, e.TemplateId, DeployParams{
+		WsID:       e.Identity.WorkspaceId,
+		DB_USER: &e.AddOns.DbUser,
+		DB_NAME: &e.AddOns.DbName,
+		DB_PASSWORD: &e.AddOns.DbPassword,
+		Namespace:  generateNamespace(e.Identity.UserId),
+		User:       &e.Identity.UserId,
+		Name:       e.Identity.Name,
+		Image:      &e.Image,
+		Password:   e.Identity.Password,
+		Replicas:   int(e.Replicas),
 		RunAsUser:  1000,
 		RunAsGroup: 1000,
 		FsGroup:    1000,
-		Password:   "password123",
-		CPURequest: job.CPURequest,
-		MemRequest: job.MemoryRequest,
-		CPULimit:   job.CPULimit,
-		MemLimit:   job.MemoryLimit,
-		Username:   job.Username,
+		CPURequest: res.CpuRequest,
+		CPULimit:   res.CpuLimit,
+		MemRequest: res.MemoryRequest,
+		MemLimit:   res.MemoryLimit,
+		Username:   e.Identity.Username,
 		Domain:     "wfdnstore.online",
 	}); err != nil {
-		return fmt.Errorf("failed deployment: %w", err)
+		return fmt.Errorf("deploy: %w", err)
 	}
-
-	return nil
-
-}
-
-func handleCreate(ctx context.Context, job WorkspaceJob, k8sClient IK8SClient, r *Repository) error {
-
-	if err := k8sClient.CreateNamespace(ctx, job.UserId); err != nil {
-		return (fmt.Errorf("failed to create namespace: %w", err))
-	}
-	ensureValue := func(val, fallback string) string {
-		if val == "" || val == "<nil>" {
-			return fallback
-		}
-		return val
-	}
-
-	if err := k8sClient.CreateResourceQuota(ctx, job.UserId, QuotaConfig{
-		CPULimit:      ensureValue(job.CPURequest, "1"),
-		MemoryLimit:   ensureValue(job.MemoryLimit, "1024Mi"),
-		StorageLimit:  ensureValue(job.StorageLimit, "5Gi"),
-		CPURequest:    ensureValue(job.CPURequest, "1"),
-		MemoryRequest: ensureValue(job.MemoryRequest, "1024Mi"),
-	}); err != nil {
-		return (fmt.Errorf("failed to create resource quota: %w", err))
-	}
-	err := k8sClient.SetupRBAC(ctx, job.UserId)
-	if err != nil {
-		return (fmt.Errorf("failed to setup rbac: %w", err))
-	}
-	dbName := getEnvString(job.EnvVars, "DB_NAME")
-
-	// 4. deploy template
-	if err := r.ExecuteDeployment(ctx, job.TemplateId, DeployParams{
-		WS_TOKEN:         getEnvString(job.EnvVars, "WS_TOKEN"),
-		WS_REFRESH_TOKEN: getEnvString(job.EnvVars, "WS_REFRESH_TOKEN"),
-		WS_API_URL:       getEnvString(job.EnvVars, "WS_API_URL"),
-		Namespace:        generateNamespace(job.UserId),
-		DB_NAME:          &dbName,
-		User:             &job.UserId,
-		Name:             job.UserId,
-		StorageClass:     "nfs",
-		StorageSize:      job.StorageRequest,
-		Replicas:         1,
-		RunAsUser:        1000,
-		RunAsGroup:       1000,
-		FsGroup:          1000,
-		Password:         "password123",
-		CPULimit:         "0.25",
-		MemLimit:         "128Mi",
-		Username:         job.Username,
-		CPURequest:       "0.10",
-		MemRequest:       "100Mi",
-		Domain:           "wfdnstore.online",
-	}); err != nil {
-		return (fmt.Errorf("failed deployment: %w", err))
-	}
-
-	log.Printf("workspace %s provisioned successfully", job.WorkspaceId)
 	return nil
 }
 
-func handleDelete(ctx context.Context, job WorkspaceJob, k8sClient IK8SClient) error {
-	// hapus namespace → otomatis hapus semua resource di dalamnya
-	if err := k8sClient.DeleteNamespace(ctx, job.Namespace); err != nil {
-		return fmt.Errorf("failed to delete namespace: %w", err)
+func handleDelete(ctx context.Context, e *workspacev1.DeleteWorkspaceEvent, k8sClient IK8SClient) error {
+	if err := k8sClient.DeleteNamespace(ctx, e.Identity.Namespace); err != nil {
+		return fmt.Errorf("delete namespace: %w", err)
 	}
+	log.Printf("[operator] workspace %s deleted", e.Identity.WorkspaceId)
+	return nil
+}
 
-	log.Printf("workspace %s deleted successfully", job.WorkspaceId)
+func handleStop(ctx context.Context, e *workspacev1.StopWorkspaceEvent, k8sClient IK8SClient) error {
+	if err := k8sClient.StopScalling(ctx,e.Identity.Namespace,e.Identity.Name); err != nil {
+		return fmt.Errorf("scale down: %w", err)
+	}
+	log.Printf("[operator] workspace %s stopped", e.Identity.WorkspaceId)
+	return nil
+}
+
+func handleStart(ctx context.Context, e *workspacev1.StartWorkspaceEvent, k8sClient IK8SClient) error {
+	if err := k8sClient.StartScalling(ctx,e.Identity.Namespace,e.Identity.Name); err != nil {
+		return fmt.Errorf("scale up: %w", err)
+	}
+	log.Printf("[operator] workspace %s started", e.Identity.WorkspaceId)
 	return nil
 }

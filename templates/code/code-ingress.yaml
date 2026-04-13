@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: code-server
+  name: {{.Name}}
   namespace: {{.Namespace}}
   annotations:
     kubernetes.io/ingress.class: nginx
@@ -14,13 +14,13 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-  - host: "code-{{.User}}.{{.Domain}}"
+  - host: "{{.Name}}-{{.User}}.{{.Domain}}"
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: code
+            name: {{.Name}}
             port:
               number: 8080

@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: code
+  name: {{.Name}}
   namespace: {{.Namespace}}
 spec:
   replicas: {{.Replicas}}
   selector:
     matchLabels:
-      app: code
+      app: {{.Name}}
   template:
     metadata:
       labels:
-        app: code
+        app: {{.Name}}
     spec:
       securityContext:
         runAsUser: {{.RunAsUser}}
@@ -20,7 +20,7 @@ spec:
       containers:
         - name: code
           image: codercom/code-server:4.91.1
-          args: ["--auth", "password", "--bind-addr", "0.0.0.0:8080", "/home/{{.Username}}"]
+          args: ["--auth", "password", "--bind-addr", "0.0.0.0:8080", "/data"]
           env:
             - name: PASSWORD
               value: "{{.Password}}"
@@ -35,7 +35,8 @@ spec:
               memory: {{.MemLimit}}
           volumeMounts:
             - name: user-data
-              mountPath: /home/{{.Username}}
+              mountPath: /data
+              subPath: home
       volumes:
         - name: user-data
           persistentVolumeClaim:

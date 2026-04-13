@@ -13,7 +13,7 @@ export function TopBarAdmin({
 }: TopBarAdminProps) {
   return (
     <div className="flex items-center justify-between pb-5 border-b border-border">
-      <div className="flex flex-col gap-0.5">
+      <div className="flex flex-col gap-2 gap-0.5">
         <div className="flex items-center gap-2">
           <Badge
             variant="outline"

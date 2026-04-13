@@ -1,6 +1,7 @@
 export type User = {
   created_at: string;
   email: string;
+  terminal_url : string
   id: string;
   updated_at: string;
   username: string;

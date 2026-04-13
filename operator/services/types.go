@@ -10,27 +10,28 @@ func generateNamespace(userID string) string {
 	return fmt.Sprintf("ws-%s", userID)
 }
 
-type WorkspaceJob struct {
-	WorkspaceId          string         `json:"workspace_id"`
-	UserId               string         `json:"user_id"`
-	TemplateId           string         `json:"template_id"`
-	Username             string         `json:"username"`
-	Name                 string         `json:"name"`
-	Namespace            string         `json:"namespace"`
-	Image                string         `json:"image"`
-	EnvVars              map[string]any `json:"env_vars"`
-	CPURequest           string         `json:"cpu_request"`
-	MemoryRequest        string         `json:"memory_request"`
-	StorageRequest       string         `json:"storage_request"`
-	MemoryTerminalLimit  string         `json:"memory_terminal_limit"`
-	StorageTerminalLimit string         `json:"storage_terminal_limit"`
-	CpuTerminalLimit     string         `json:"cpu_terminal_limit"`
-	CPULimit             string         `json:"cpu_limit"`
-	MemoryLimit          string         `json:"memory_limit"`
-	StorageLimit         string         `json:"storage_limit"`
-	Action               JobAction      `json:"action"`
-	Replicas             string         `json:"replicas"`
-}
+var (
+	ErrWorkspaceNotFound = errors.New("workspace not found")
+	ErrQuotaExceeded     = errors.New("workspace quota exceeded")
+	ErrValidation        = errors.New("validation error")
+	ErrTemplateNotFound  = errors.New("template not found")
+)
+
+const (
+	workspaceCacheKey  = "workspace:%s"
+	workspacesCacheKey = "workspaces:user:%s"
+	cacheTTL           = 5 * time.Minute
+)
+
+type WorkspaceStatus string
+
+const (
+	StatusPending  WorkspaceStatus = "pending"
+	StatusRunning  WorkspaceStatus = "running"
+	StatusStopped  WorkspaceStatus = "stopped"
+	StatusError    WorkspaceStatus = "error"
+	StatusDeleting WorkspaceStatus = "deleting"
+)
 
 type Workspace struct {
 	Id           string          `json:"id"`
@@ -46,46 +47,8 @@ type Workspace struct {
 	Url          string          `json:"url"`
 }
 
-type JobAction string
-
-const (
-	JobCreate JobAction = "create"
-	JobDelete JobAction = "delete"
-	JobAdd    JobAction = "add"
-)
-
-const (
-	workspaceCacheKey  = "workspace:%s"
-	workspacesCacheKey = "workspaces:user:%s"
-	cacheTTL           = 5 * time.Minute
-)
-
-type QuotaConfig struct {
-	CPULimit      string
-	MemoryLimit   string
-	StorageLimit  string
-	CPURequest    string
-	MemoryRequest string
-}
-
-var (
-	ErrWorkspaceNotFound = errors.New("workspace not found")
-	ErrQuotaExceeded     = errors.New("workspace quota exceeded")
-	ErrValidation        = errors.New("validation error")
-	ErrTemplateNotFound  = errors.New("template not found")
-)
-
-type WorkspaceStatus string
-
-const (
-	StatusPending  WorkspaceStatus = "pending"
-	StatusRunning  WorkspaceStatus = "running"
-	StatusStopped  WorkspaceStatus = "stopped"
-	StatusError    WorkspaceStatus = "error"
-	StatusDeleting WorkspaceStatus = "deleting"
-)
-
 type DeployParams struct {
+	WsID             string
 	WS_TOKEN         string
 	WS_REFRESH_TOKEN string
 	WS_API_URL       string

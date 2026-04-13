@@ -39,7 +39,7 @@ export function RegisterPage() {
       title="Access Your Workspace"
       subtitle="Siapkan infrastruktur Anda dan mulai deploy aplikasi pertama Anda hari ini."
     >
-      <div className="space-y-4">
+      <div className="space-y-2">
         <div className="space-y-2 text-center md:text-left">
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Create Account
@@ -50,7 +50,7 @@ export function RegisterPage() {
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)}>
-          <FieldGroup className="space-y-4">
+          <FieldGroup className="">
             {/* Username Field */}
             <Field>
               <FieldLabel htmlFor="username">Username</FieldLabel>

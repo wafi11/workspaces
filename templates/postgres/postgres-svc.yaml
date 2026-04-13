@@ -5,7 +5,7 @@ metadata:
   namespace: {{.Namespace}}
 spec:
   selector:
-    app: postgres
+    app: {{.Name}}
   ports:
     - port: 5432
       targetPort: 5432

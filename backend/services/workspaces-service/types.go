@@ -2,16 +2,44 @@ package workspaceservice
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/wafi11/workspaces/pkg/proto"
 )
+
+type WorkspaceRepository interface {
+	CreateWorkspace(ctx context.Context, req *CreateWorkspaceRequest, username string) (*CreateWorkspaceResponse, error)
+	ListWorkspacesByUserId(ctx context.Context, req *ListWorkspacesRequest) (*ListWorkspacesResponse, error)
+	ListWorkspaces(ctx context.Context, limit int, offset int, status string) (*ListWorkspacesResponse, error)
+	ListWorkspaceForm(ctx context.Context, userId string) ([]ListWorkspaceForm, error)
+	GetWorkspace(ctx context.Context, req *GetWorkspaceRequest) (*GetWorkspaceResponse, error)
+	DeleteWorkspace(ctx context.Context, req *DeleteWorkspaceRequest) (*DeleteWorkspaceResponse, error)
+	UpdateWorkspaceStatus(ctx context.Context, workspaceId string, status string) error
+	CreateWorkspaceSessions(ctx context.Context, req CreateWorkspaceSessions) error
+	CanStartWorkspace(ctx context.Context, workspaceID string,tx *sql.Tx) (bool, error)
+	AutoStopWorkspace(ctx context.Context, workspaceId string) error 
+}
+
+type WorkspaceService interface {
+	CreateWorkspace(ctx context.Context, req *CreateWorkspaceRequest, username string) (*CreateWorkspaceResponse, error)
+	ListWorkspaces(ctx context.Context, limit int, offset int, status string) (*ListWorkspacesResponse, error)
+	ListWorkspacesByUserId(ctx context.Context, req *ListWorkspacesRequest) (*ListWorkspacesResponse, error)
+	ListWorkspaceForm(ctx context.Context, userId string) ([]ListWorkspaceForm, error)
+	GetWorkspace(ctx context.Context, req *GetWorkspaceRequest) (*GetWorkspaceResponse, error)
+	UpdateWorkspaceStatus(ctx context.Context, workspaceId,userId string, status string) error
+	DeleteWorkspace(ctx context.Context, req *DeleteWorkspaceRequest) (*DeleteWorkspaceResponse, error)
+	StartEventConsumer(ctx context.Context)
+}
 
 const (
 	workspaceCacheKey  = "workspace:%s"
 	workspacesCacheKey = "workspaces:user:%s"
 	cacheTTL           = 5 * time.Minute
+	cooldown = 2
 )
 
 var (
@@ -32,28 +60,29 @@ const (
 	StatusDeleting WorkspaceStatus = "deleting"
 )
 
-type WorkspaceRepository interface {
-	CreateWorkspace(ctx context.Context, req *CreateWorkspaceRequest, username string) (*CreateWorkspaceResponse, error)
-	ListWorkspacesByUserId(ctx context.Context, req *ListWorkspacesRequest) (*ListWorkspacesResponse, error)
-	ListWorkspaces(ctx context.Context, limit int, offset int, status string) (*ListWorkspacesResponse, error)
-	ListWorkspaceForm(ctx context.Context, userId string) ([]ListWorkspaceForm, error)
-	GetWorkspace(ctx context.Context, req *GetWorkspaceRequest) (*GetWorkspaceResponse, error)
-	DeleteWorkspace(ctx context.Context, req *DeleteWorkspaceRequest) (*DeleteWorkspaceResponse, error)
-	UpdateWorkspaceStatus(ctx context.Context, workspaceId string, status WorkspaceStatus) error
-	CreateAddonWorkspace(c context.Context, req CreateWorkspaceAddon) error
-	GetAddonService(c context.Context, workspaceId string) ([]WorkspaceAddonDetails, error)
-}
+type AddonUrl string 
 
-type WorkspaceService interface {
-	CreateWorkspace(ctx context.Context, req *CreateWorkspaceRequest, username string) (*CreateWorkspaceResponse, error)
-	ListWorkspaces(ctx context.Context, limit int, offset int, status string) (*ListWorkspacesResponse, error)
-	ListWorkspacesByUserId(ctx context.Context, req *ListWorkspacesRequest) (*ListWorkspacesResponse, error)
-	ListWorkspaceForm(ctx context.Context, userId string) ([]ListWorkspaceForm, error)
-	GetWorkspace(ctx context.Context, req *GetWorkspaceRequest) (*GetWorkspaceResponse, error)
-	UpdateWorkspaceStatus(ctx context.Context, workspaceId string, status WorkspaceStatus) error
-	DeleteWorkspace(ctx context.Context, req *DeleteWorkspaceRequest) (*DeleteWorkspaceResponse, error)
-	CreateAddonWorkspace(c context.Context, req CreateWorkspaceAddon) error
-	GetAddonService(c context.Context, workspaceId string) ([]WorkspaceAddonDetails, error)
+const (
+	PostgresqlURL  AddonUrl = "postgres"
+	MysqlURL  AddonUrl = "mysql"
+	RedisURL  AddonUrl = "redis"
+)
+
+func ConvertWorkspaceStatus(s proto.WorkspaceStatus) WorkspaceStatus {
+	switch s {
+	case proto.WorkspaceStatus_WORKSPACE_STATUS_PROVISIONING:
+		return StatusPending
+	case proto.WorkspaceStatus_WORKSPACE_STATUS_RUNNING:
+		return StatusRunning
+	case proto.WorkspaceStatus_WORKSPACE_STATUS_STOPPED:
+		return StatusStopped
+	case proto.WorkspaceStatus_WORKSPACE_STATUS_FAILED:
+		return StatusError
+	case proto.WorkspaceStatus_WORKSPACE_STATUS_DELETING:
+		return StatusDeleting
+	default:
+		return StatusPending
+	}
 }
 
 type Workspace struct {
@@ -62,10 +91,20 @@ type Workspace struct {
 	Name      string          `json:"name"`
 	Namespace string          `json:"namespace,omitempty"`
 	Status    WorkspaceStatus `json:"status"`
+	Icon      *string         `json:"icon"`
 	EnvVars   map[string]any  `json:"env_vars"`
 	CreatedAt time.Time       `json:"created_at"`
 	UpdatedAt time.Time       `json:"updated_at"`
 	Url       string          `json:"url"`
+}
+
+type WorkspaceAndSessions struct {
+	Workspace
+	StartedAt *time.Time `json:"started_at"`
+	StoppedAt *time.Time `json:"stopped_at"`
+	ExpiresAt *time.Time `json:"expires_at"`
+	NextStartAt *time.Time `json:"next_start_at"`
+	Timezone  *string    `json:"timezone"`
 }
 
 type CachedWorkspace struct {
@@ -109,16 +148,15 @@ type CreateWorkspaceAddon struct {
 }
 
 type CreateWorkspaceRequest struct {
-	UserId        string         `json:"user_id"`
-	TemplateId    string         `json:"template_id"`
-	Password      string         `json:"password"`
-	Name          string         `json:"name"`
-	LimitRam      int            `json:"limit_ram_mb"`
-	LimitCpuCores float64        `json:"limit_cpu_cores"`
-	ReqRam        int            `json:"req_ram_mb"`
-	ReqCpuCores   float64        `json:"req_cpu_cores"`
-	EnvVars       map[string]any `json:"env_vars"`
-	Addons        []string       `json:"addons"`
+	UserId        string            `json:"user_id"`
+	TemplateId    string            `json:"template_id"`
+	Password      string            `json:"password"`
+	Name          string            `json:"name"`
+	LimitRam      int               `json:"limit_ram_mb"`
+	LimitCpuCores float64           `json:"limit_cpu_cores"`
+	ReqRam        int               `json:"req_ram_mb"`
+	ReqCpuCores   float64           `json:"req_cpu_cores"`
+	EnvVars       map[string]string `json:"env_vars"`
 }
 
 type CreateWorkspaceResponse struct {
@@ -131,7 +169,7 @@ type ListWorkspacesRequest struct {
 }
 
 type ListWorkspacesResponse struct {
-	Workspaces []Workspace `json:"workspaces"`
+	Workspaces []WorkspaceAndSessions `json:"workspaces"`
 }
 
 type GetWorkspaceRequest struct {
@@ -155,4 +193,22 @@ type DeleteWorkspaceResponse struct {
 type ListWorkspaceForm struct {
 	Id   string `json:"id"`
 	Name string `json:"name"`
+}
+
+type CreateWorkspaceSessions struct {
+	WorkspaceId string `json:"workspace_id"`
+	UserId      string `json:"user_id"`
+	Status      string `json:"status"`
+	IpAddress   string `json:"ip_address"`
+	UserAgent   string `json:"user_agent"`
+}
+
+type workspaceRow struct {
+    UserId     string
+    Name       string
+    CurrStatus WorkspaceStatus
+    LimitRAM   int
+    LimitCPU   float64
+    ReqRAM     int
+    ReqCPU     float64
 }

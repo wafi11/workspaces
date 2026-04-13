@@ -9,24 +9,22 @@ import (
 	"log"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/redis/go-redis/v9"
-	"github.com/wafi11/workspaces/pkg/publisher"
+	"github.com/wafi11/workspaces/config"
+	messagebroker "github.com/wafi11/workspaces/pkg/message-broker"
+	"github.com/wafi11/workspaces/pkg/proto"
 	"github.com/wafi11/workspaces/pkg/utils"
+	authservices "github.com/wafi11/workspaces/services/auth-service"
 )
-
-func GenerateNamespace(userId string) string {
-	return fmt.Sprintf("ws-%s", userId)
-}
 
 type Repository struct {
 	db          *sqlx.DB
-	redisClient *redis.Client
+	redis      *config.RedisConnection
 }
 
-func NewRepository(db *sqlx.DB, redis *redis.Client) *Repository {
+func NewRepository(db *sqlx.DB, redis *config.RedisConnection) *Repository {
 	return &Repository{
 		db:          db,
-		redisClient: redis,
+		redis: redis,
 	}
 }
 
@@ -63,12 +61,20 @@ func (r *Repository) CreateWorkspace(ctx context.Context, req *CreateWorkspaceRe
 	}
 	hashedPassword, err := utils.HashPassword(req.Password)
 
+
 	envJSON, _ := json.Marshal(req.EnvVars)
+
+	db_name := utils.GetEnvString(req.EnvVars,"DB_NAME")
+	db_password := utils.GetEnvString(req.EnvVars,"DB_PASSWORD")
+	db_user := utils.GetEnvString(req.EnvVars,"DB_USER")
+
+	url := GenerateAddonConnectionUrl(AddonUrl(req.Name),authservices.GenerateNamespace(req.UserId),req.Name,req.UserId,db_user,db_password,db_name)
+
 	err = tx.QueryRowContext(ctx, `
-        INSERT INTO workspaces (user_id, name, status, env_vars,password)
-        VALUES ($1, $2, $3, $4,$5)
+        INSERT INTO workspaces (user_id,name,status,env_vars,password,url,template_id)
+        VALUES ($1, $2, $3, $4,$5,$6,$7)
         RETURNING id, user_id, name, status`,
-		req.UserId, req.Name, StatusPending, envJSON, hashedPassword,
+		req.UserId, req.Name, StatusPending, envJSON, hashedPassword,url,req.TemplateId,
 	).Scan(&w.Id, &w.UserId, &w.Name, &w.Status)
 
 	if err != nil {
@@ -89,7 +95,7 @@ func (r *Repository) CreateWorkspace(ctx context.Context, req *CreateWorkspaceRe
 		) values (
 			$1,$2,$3,$4,$5,$6,$7
 		) RETURNING id
-		`, w.Id, w.Name, w.Status, req.ReqCpuCores, req.ReqRam, req.LimitRam, req.LimitCpuCores,
+		`, w.Id, w.Name, StatusPending, req.ReqCpuCores, req.ReqRam, req.LimitRam, req.LimitCpuCores,
 	).Scan(&wsResourcesID)
 
 	if err != nil {
@@ -113,17 +119,33 @@ func (r *Repository) CreateWorkspace(ctx context.Context, req *CreateWorkspaceRe
 	}
 
 	if req.TemplateId != "" {
-		publisher.PublishEvent(ctx, r.redisClient, publisher.WorkspaceJob{
-			UserId:        w.UserId,
-			TemplateId:    req.TemplateId,
-			Name:          req.Name,
-			Username:      username,
-			Action:        publisher.JobAdd,
-			EnvVars:       req.EnvVars,
-			CPURequest:    fmt.Sprintf("%.2f", req.ReqCpuCores),
-			MemoryRequest: fmt.Sprintf("%dMi", req.ReqRam),
-			CPULimit:      fmt.Sprintf("%.2f", req.LimitCpuCores),
-			MemoryLimit:   fmt.Sprintf("%dMi", req.LimitRam),
+		messagebroker.PublishEvent(ctx, r.redis.Redis, &proto.WorkspaceEnvelope{
+			Payload: &proto.WorkspaceEnvelope_Add{
+				Add: &proto.AddPodEvent{
+					Identity: &proto.WorkspaceIdentity{
+						WorkspaceId: w.Id,
+						UserId:      w.UserId,
+						Username:    username,
+						Name:        w.Name,
+						Password:    req.Password,
+						Namespace:   w.UserId,
+					},
+					AddOns:  &proto.AddonSpec{
+						Image: "",
+						DbUser: db_user,
+						DbPassword: db_password,
+						DbName: db_name,
+					},
+					TemplateId: req.TemplateId,
+					Resources: &proto.ResourceSpec{
+						CpuRequest:    fmt.Sprintf("%.2f", req.ReqCpuCores),
+						CpuLimit:      fmt.Sprintf("%.2f", req.LimitCpuCores),
+						MemoryRequest: fmt.Sprintf("%dMi", req.ReqRam),
+						MemoryLimit:   fmt.Sprintf("%dMi", req.LimitRam),
+					},
+					Replicas: 1,
+				},
+			},
 		})
 	}
 
@@ -133,25 +155,59 @@ func (r *Repository) CreateWorkspace(ctx context.Context, req *CreateWorkspaceRe
 func (r *Repository) ListWorkspacesByUserId(ctx context.Context, req *ListWorkspacesRequest) (*ListWorkspacesResponse, error) {
 
 	rows, err := r.db.QueryContext(ctx, `
-		SELECT id, user_id, name, status, env_vars, created_at, updated_at
-		FROM workspaces
-		WHERE user_id = $1 AND status != $2
-		ORDER BY created_at DESC
+		SELECT 
+			w.id, 
+			w.url, 
+			w.name, 
+			w.status, 
+			w.env_vars, 
+			w.created_at, 
+			w.updated_at,
+			t.icon,
+			ws.started_at,
+			ws.stopped_at,
+			ws.expires_at,
+			ws.next_start_at,
+			ws.timezone
+		FROM workspaces w
+		LEFT JOIN templates t on t.id = w.template_id
+		LEFT JOIN LATERAL (
+			SELECT started_at, stopped_at, expires_at,next_start_at, timezone
+			FROM workspace_sessions
+			WHERE workspace_id = w.id
+			ORDER BY started_at DESC
+			LIMIT 1
+		) ws ON true
+		WHERE w.user_id = $1 AND w.status != $2
+		ORDER BY w.created_at DESC
 	`, req.UserId, StatusDeleting)
+
 	if err != nil {
+		log.Printf("workspace by user error : %s", err.Error())
 		return nil, err
 	}
 	defer rows.Close()
 
-	var workspaces []Workspace
+	var workspaces []WorkspaceAndSessions
 	for rows.Next() {
-		var w Workspace
+		var w WorkspaceAndSessions
 		var envRaw []byte
 		if err := rows.Scan(
-			&w.Id, &w.UserId,
-			&w.Name, &w.Status,
-			&envRaw, &w.CreatedAt, &w.UpdatedAt,
+			&w.Id,
+			&w.Url,
+			&w.Name,
+			&w.Status,
+			&envRaw,
+			&w.CreatedAt,
+			&w.UpdatedAt,
+			&w.Icon,
+			&w.StartedAt,
+			&w.StoppedAt,
+			&w.ExpiresAt,
+			&w.NextStartAt,
+			&w.Timezone,
 		); err != nil {
+			log.Printf("workspace by user error : %s", err.Error())
 			return nil, err
 		}
 		if err := json.Unmarshal(envRaw, &w.EnvVars); err != nil {
@@ -196,9 +252,29 @@ func (r *Repository) ListWorkspaces(ctx context.Context, limit int, offset int, 
 	}
 
 	rows, err := r.db.QueryContext(ctx, `
-        SELECT id, user_id, name, namespace, status, env_vars, created_at, updated_at
-        FROM workspaces
-        WHERE status = $1
+      SELECT 
+			w.id, 
+			w.url, 
+			w.name, 
+			w.status, 
+			w.env_vars, 
+			w.created_at, 
+			w.updated_at,
+			t.icon,
+			ws.started_at,
+			ws.stopped_at,
+			ws.expires_at,
+			ws.timezone
+		FROM workspaces w
+		LEFT JOIN templates t on t.id = w.template_id
+		LEFT JOIN LATERAL (
+			SELECT started_at, stopped_at, expires_at, timezone
+			FROM workspace_sessions
+			WHERE workspace_id = w.id
+			ORDER BY started_at DESC
+			LIMIT 1
+		) ws ON true
+		WHERE status = $1
         ORDER BY user_id DESC,created_at DESC
         LIMIT $2 OFFSET $3
     `, status, limit, offset)
@@ -207,14 +283,23 @@ func (r *Repository) ListWorkspaces(ctx context.Context, limit int, offset int, 
 	}
 	defer rows.Close()
 
-	var workspaces []Workspace
+	var workspaces []WorkspaceAndSessions
 	for rows.Next() {
-		var w Workspace
+		var w WorkspaceAndSessions
 		var envRaw []byte
 		if err := rows.Scan(
-			&w.Id, &w.UserId,
-			&w.Name, &w.Namespace, &w.Status,
-			&envRaw, &w.CreatedAt, &w.UpdatedAt,
+			&w.Id,
+			&w.Url,
+			&w.Name,
+			&w.Status,
+			&envRaw,
+			&w.CreatedAt,
+			&w.UpdatedAt,
+			&w.Icon,
+			&w.StartedAt,
+			&w.StoppedAt,
+			&w.ExpiresAt,
+			&w.Timezone,
 		); err != nil {
 			return nil, fmt.Errorf("scan workspace: %w", err)
 		}
@@ -284,106 +369,8 @@ func (r *Repository) DeleteWorkspace(ctx context.Context, req *DeleteWorkspaceRe
 		return nil, err
 	}
 
-	publisher.PublishEvent(ctx, r.redisClient, publisher.WorkspaceJob{
-		WorkspaceId: w.Id,
-		UserId:      w.UserId,
-		Namespace:   w.Namespace,
-		Action:      publisher.JobDelete,
-	})
-
 	// 4. invalidate cache
 	r.invalidateWorkspaceCache(ctx, req.WorkspaceId, req.UserId)
 
 	return &DeleteWorkspaceResponse{Message: "workspace is being deleted"}, nil
-}
-
-func (r *Repository) UpdateWorkspaceStatus(ctx context.Context, workspaceId string, status WorkspaceStatus) error {
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	var res struct {
-		UserId     string
-		LimitRAM   int
-		LimitCPU   float64
-		ReqRAM     int
-		ReqCPU     float64
-		CurrStatus WorkspaceStatus
-	}
-	err = tx.QueryRowContext(ctx, `
-		SELECT w.user_id, w.status,
-			wr.limit_ram_mb, wr.limit_cpu_cores,
-			wr.ram_mb_req, wr.cpu_cores_req
-		FROM workspaces w
-		JOIN workspace_resources wr ON wr.workspace_id = w.id
-		WHERE w.id = $1
-		FOR UPDATE`, workspaceId,
-	).Scan(&res.UserId, &res.CurrStatus, &res.LimitRAM, &res.LimitCPU, &res.ReqRAM, &res.ReqCPU)
-	if err != nil {
-		return fmt.Errorf("workspace tidak ditemukan: %w", err)
-	}
-
-	// Guard: jangan proses kalau status sama
-	if res.CurrStatus == status {
-		return fmt.Errorf("workspace sudah dalam status %s", status)
-	}
-
-	if status == "running" {
-		// Ambil quota user + lock
-		var maxCPU, usedCPU float64
-		var maxRAM, usedRAM int
-		err = tx.QueryRowContext(ctx, `
-			SELECT max_cpu_cores, used_cpu_cores, max_ram_mb, used_ram_mb
-			FROM user_quotas WHERE user_id = $1 FOR UPDATE`, res.UserId,
-		).Scan(&maxCPU, &usedCPU, &maxRAM, &usedRAM)
-		if err != nil {
-			return fmt.Errorf("gagal ambil quota: %w", err)
-		}
-
-		// Validasi resource
-		if usedCPU+res.ReqCPU > maxCPU {
-			return fmt.Errorf("quota CPU tidak cukup, matikan workspace lain dulu")
-		}
-		if usedRAM+res.ReqRAM > maxRAM {
-			return fmt.Errorf("quota RAM tidak cukup, matikan workspace lain dulu")
-		}
-
-		// Claim resource
-		_, err = tx.ExecContext(ctx, `
-			UPDATE user_quotas
-			SET used_cpu_cores = used_cpu_cores + $1,
-				used_ram_mb = used_ram_mb + $2
-			WHERE user_id = $3`,
-			res.ReqCPU, res.ReqRAM, res.UserId,
-		)
-		if err != nil {
-			return fmt.Errorf("gagal update quota: %w", err)
-		}
-	}
-
-	if status == "stopped" {
-		_, err = tx.ExecContext(ctx, `
-			UPDATE user_quotas
-			SET used_cpu_cores = GREATEST(used_cpu_cores - $1, 0),
-				used_ram_mb = GREATEST(used_ram_mb - $2, 0)
-			WHERE user_id = $3`,
-			res.ReqCPU, res.ReqRAM, res.UserId,
-		)
-		if err != nil {
-			return fmt.Errorf("gagal release quota: %w", err)
-		}
-	}
-
-	// Update status workspace
-	_, err = tx.ExecContext(ctx,
-		`UPDATE workspaces SET status = $1, updated_at = NOW() WHERE id = $2`,
-		status, workspaceId,
-	)
-	if err != nil {
-		return fmt.Errorf("gagal update status: %w", err)
-	}
-
-	return tx.Commit()
 }

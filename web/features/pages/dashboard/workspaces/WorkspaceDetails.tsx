@@ -1,69 +1,21 @@
 "use client";
 import { TopBarAdmin } from "@/components/layouts/TopBarAdmin";
 import { useGetWorkspace } from "@/features/services/workspaces/api";
+import { useGetMetricsWorkspaces } from "@/features/services/workspaces/sse";
 import { cn } from "@/lib/utils";
-import { useEffect, useRef, useState } from "react";
-import { InfoCard, InfoRow } from "./WorkspaceCard";
-import { WorkspaceLogs } from "./WorkspaceLogs";
-import { formatDate, relativeTime } from "@/utils/relativeTime";
-import { API_URL } from "@/constants";
+import { relativeTime } from "@/utils/relativeTime";
+import { Circle, Clock, ExternalLink, User } from "lucide-react";
+import { MetricCard } from "./WorkspaceMetrics";
+import Link from "next/link";
 
 interface WorkspaceDetailsProps {
   slug: string;
 }
 
-type Tab = "terminal" | "logs";
-
 export function WorkspaceDetails({ slug }: WorkspaceDetailsProps) {
   const { data } = useGetWorkspace(slug);
-  const [activeTab, setActiveTab] = useState<Tab>("terminal");
-  const [followLogs, setFollowLogs] = useState(true);
-  const [logFilter, setLogFilter] = useState("");
-
-  // State untuk menampung list logs
-  const [logs, setLogs] = useState<any[]>([]);
-  const logsEndRef = useRef<HTMLDivElement>(null);
-
-  const workspace = data
-  // --- LOGIC SSE ---
-  useEffect(() => {
-    if (!workspace?.namespace) return;
-
-    const url = `${API_URL}logs/stream?namespace=${workspace.namespace}`;
-    const eventSource = new EventSource(url);
-
-    eventSource.onmessage = (event) => {
-      try {
-        const logData = JSON.parse(event.data);
-        console.log("Received log data:", logData);
-        // Simpan objek utuh, bukan cuma string
-        setLogs((prev) => [...prev.slice(-500), logData]);
-      } catch (e) {
-        console.error("Parse error", e);
-      }
-    };
-
-    eventSource.onerror = (err) => {
-      console.error("SSE Error:", err);
-      eventSource.close();
-    };
-
-    // Cleanup: Tutup koneksi saat user pindah halaman atau komponen unmount
-    return () => {
-      eventSource.close();
-    };
-  }, [workspace?.name]); // Re-connect jika nama workspace berubah
-
-  // --- AUTO SCROLL ---
-  useEffect(() => {
-    if (followLogs && activeTab === "logs") {
-      logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [logs, followLogs, activeTab]);
-
-  const filteredLogs = logs.filter((log) =>
-    logFilter ? log.toLowerCase().includes(logFilter.toLowerCase()) : true
-  );
+  const workspace = data;
+  const { byApp } = useGetMetricsWorkspaces();
 
   const statusColor =
     workspace?.status === "running"
@@ -72,93 +24,69 @@ export function WorkspaceDetails({ slug }: WorkspaceDetailsProps) {
         ? "text-red-400"
         : "text-yellow-400";
 
+  const pods = [data?.name];
+
   return (
-<>
-    <TopBarAdmin
-        title="Workspaces Details"
-        description="Manage your workspace instance"
+    <>
+      <TopBarAdmin
+        title={workspace?.name ?? "Workspace"}
+        description={workspace?.id as string}
       />
 
-      <div className="flex-1 overflow-y-auto p-5 grid grid-cols-2 gap-4 content-start">
-        <InfoCard title="Workspace">
-          <InfoRow label="ID" value={workspace?.id} mono />
-          <InfoRow label="Name" value={workspace?.name} />
-          <InfoRow
-            label="Status"
-            value={workspace?.status}
-            className={statusColor}
-          />
-        </InfoCard>
-
-        <InfoCard title="Timestamps">
-          <InfoRow
-            label="Created"
-            value={formatDate(workspace?.created_at ?? "")}
-          />
-          <InfoRow
-            label="Updated"
-            value={relativeTime(workspace?.updated_at ?? "").toLocaleString()}
-          />
-          <InfoRow label="User ID" value={workspace?.user_id} mono />
-        </InfoCard>
-
-        <InfoCard title="Environment Variables" className="col-span-2">
-          {workspace?.env_vars &&
-          Object.entries(workspace.env_vars).length > 0 ? (
-            Object.entries(workspace.env_vars).map(([k]) => (
-              <InfoRow key={k} label={k} value="••••••••••" />
-            ))
-          ) : (
-            <span className="text-gray-600 italic">
-              No environment variables set
-            </span>
-          )}
-        </InfoCard>
+      {/* Info bar */}
+      <div className="flex items-center gap-6 px-5 py-3 border-b border-[#1a1a1a] text-[11px] font-mono">
+        <div className="flex items-center gap-1.5">
+          <Circle className={cn("w-2 h-2 fill-current", statusColor)} />
+          <span className={cn("font-semibold", statusColor)}>
+            {workspace?.status ?? "—"}
+          </span>
+        </div>
+        <span className="text-[#2a2a2a]">|</span>
+        <div className="flex items-center gap-1.5 text-[#555]">
+          <User className="w-3 h-3" />
+          <span className="text-[#777]">{workspace?.user_id ?? "—"}</span>
+        </div>
+        <span className="text-[#2a2a2a]">|</span>
+        <div className="flex items-center gap-1.5 text-[#555]">
+          <Clock className="w-3 h-3" />
+          <span className="text-[#777]">
+            {workspace?.updated_at
+              ? relativeTime(workspace.updated_at).toLocaleString()
+              : "—"}
+          </span>
+        </div>
+        <span className="text-[#2a2a2a]">|</span>
+        {workspace?.url && workspace.url !== "/" && (
+          <Link
+            href={`https://${workspace.url}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-blue-500 hover:text-blue-400 transition-colors"
+          >
+            <ExternalLink className="w-3 h-3" />
+            <span>open</span>
+          </Link>
+        )}
       </div>
 
-      {/* Tabs Container */}
-      <div className="flex flex-col h-[200px] px-5 border-t border-[#1a1a1a]">
-        <div className="flex bg-[#0d0d0d] shrink-0">
-          {(["terminal", "logs"] as Tab[]).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={cn(
-                "px-4 py-2 text-[11px] uppercase tracking-widest border-b-2 transition-colors",
-                activeTab === tab
-                  ? "text-white border-blue-500"
-                  : "text-[#555] border-transparent hover:text-[#999]"
-              )}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-
-        {/* Panel Content */}
-        <div className="flex-1 bg-[#050505] overflow-hidden">
-          {activeTab === "terminal" ? (
-            workspace?.url && workspace.url !== "/" ? (
-              <iframe
-                src={workspace.url}
-                className="w-full h-full border-0"
-                title="workspace-terminal"
+      {/* Metrics */}
+      <div className="px-5 py-4 border-b border-[#1a1a1a] w-full">
+        <span className="text-[10px] font-mono text-[#444] uppercase tracking-widest mb-3 block">
+          resource usage
+        </span>
+        <div className="flex w-full">
+          {pods.map((app) =>
+            byApp[app as string] ? (
+              <MetricCard
+                key={app}
+                label={app as string}
+                cpu={byApp[app as string].total_cpu_cores}
+                memory={byApp[app as string].total_memory_mb}
               />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center flex-col gap-2 text-[#2a2a2a]">
-                <span className="w-2 h-4 bg-blue-500 animate-pulse" />
-                <span className="text-[11px]">terminal url not available</span>
-              </div>
-            )
-          ) : (
-            <WorkspaceLogs
-              logFilter={logFilter}
-              logs={filteredLogs}
-              logsEndRef={logsEndRef}
-            />
+            ) : null
           )}
         </div>
       </div>
-</>
+    </>
   );
 }

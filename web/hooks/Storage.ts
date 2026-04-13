@@ -1,3 +1,4 @@
+"use client";
 const storage = {
   getAccessToken: () => localStorage.getItem("access_token"),
   getRefreshToken: () => localStorage.getItem("refresh_token"),

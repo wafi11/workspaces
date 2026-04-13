@@ -12,6 +12,8 @@ import (
 	"text/template"
 
 	"github.com/minio/minio-go/v7"
+	messagebroker "github.com/wafi11/workspace-operator/pkg/message-broker"
+	v1 "github.com/wafi11/workspace-operator/pkg/proto"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -51,19 +53,6 @@ func (r *Repository) GetWorkspace(ctx context.Context, workspaceId string) (*Wor
 	r.setWorkspaceCache(ctx, &w)
 
 	return &w, nil
-}
-
-func (r *Repository) UpdateWorkspaceStatus(ctx context.Context, workspaceId string, status WorkspaceStatus) error {
-	_, err := r.db.ExecContext(ctx, `
-		UPDATE workspaces	
-		SET status = $1, updated_at = NOW()
-		WHERE id = $2
-	`, status, workspaceId)
-	if err != nil {
-		return err
-	}
-	r.invalidateWorkspaceCache(ctx, workspaceId, "")
-	return nil
 }
 
 func (repo *Repository) renderManifest(rawYaml string, data interface{}) (string, error) {
@@ -137,6 +126,19 @@ func (repo *Repository) ExecuteDeployment(ctx context.Context, templateName stri
 			log.Printf("failed to apply to k8s : %s", err.Error())
 		}
 
+	}
+
+	if params.WsID != "" {
+		messagebroker.PublishEvent(ctx, repo.redisClient, &v1.WorkspaceEnvelope{
+			Payload: &v1.WorkspaceEnvelope_Update{
+				Update: &v1.UpdateStatusEvent{
+					WorkspaceId: params.WsID,
+					UserId:      *params.User,
+					Status:      v1.WorkspaceStatus_WORKSPACE_STATUS_RUNNING,
+					Reason:      "Workspace running",
+				},
+			},
+		})
 	}
 
 	log.Printf("Semua manifest untuk %s berhasil diproses!", templateName)

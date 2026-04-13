@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
 	"github.com/wafi11/workspaces/pkg/response"
 	workspaceservice "github.com/wafi11/workspaces/services/workspaces-service"
@@ -17,6 +18,12 @@ func NewHandler(svc workspaceservice.WorkspaceService) *Handler {
 	return &Handler{
 		svc: svc,
 	}
+}
+
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
 }
 
 func (h *Handler) Create(c echo.Context) error {
@@ -106,12 +113,13 @@ func (h *Handler) DetailsWorkspaces(c echo.Context) error {
 
 func (h *Handler) StartWorkspaces(c echo.Context) error {
 	workspaceId := c.Param("workspace_id")
+	userId := c.Get("user_id").(string)
 
 	if workspaceId == "" {
 		return response.Error(c, http.StatusBadRequest, "workspace not found", nil)
 	}
 
-	err := h.svc.UpdateWorkspaceStatus(c.Request().Context(), workspaceId, "running")
+	err := h.svc.UpdateWorkspaceStatus(c.Request().Context(), workspaceId,userId, "running")
 	if err != nil {
 		return response.Error(c, http.StatusBadRequest, "failed to start workspaces", nil)
 	}
@@ -119,14 +127,48 @@ func (h *Handler) StartWorkspaces(c echo.Context) error {
 	return response.Success(c, http.StatusOK, "Successfully Start Workspace", nil)
 }
 
-func (h *Handler) StopWorkspaces(c echo.Context) error {
+func (h *Handler) PausedWorkspaces(c echo.Context) error {
 	workspaceId := c.Param("workspace_id")
+	userId := c.Get("user_id").(string)
 
 	if workspaceId == "" {
 		return response.Error(c, http.StatusBadRequest, "workspace not found", nil)
 	}
 
-	err := h.svc.UpdateWorkspaceStatus(c.Request().Context(), workspaceId, "stopped")
+	err := h.svc.UpdateWorkspaceStatus(c.Request().Context(), workspaceId,userId, "paused")
+	if err != nil {
+		return response.Error(c, http.StatusBadRequest, "failed to paused workspaces", nil)
+	}
+
+	return response.Success(c, http.StatusOK, "Successfully Start Workspace", nil)
+}
+
+
+func (h *Handler) ResumedWorkspaces(c echo.Context) error {
+	workspaceId := c.Param("workspace_id")
+	userId := c.Get("user_id").(string)
+
+	if workspaceId == "" {
+		return response.Error(c, http.StatusBadRequest, "workspace not found", nil)
+	}
+
+	err := h.svc.UpdateWorkspaceStatus(c.Request().Context(), workspaceId,userId, "resumed")
+	if err != nil {
+		return response.Error(c, http.StatusBadRequest, "failed to resumed workspaces", nil)
+	}
+
+	return response.Success(c, http.StatusOK, "Successfully Start Workspace", nil)
+}
+
+func (h *Handler) StopWorkspaces(c echo.Context) error {
+	workspaceId := c.Param("workspace_id")
+	userId := c.Get("user_id").(string)
+
+	if workspaceId == "" {
+		return response.Error(c, http.StatusBadRequest, "workspace not found", nil)
+	}
+
+	err := h.svc.UpdateWorkspaceStatus(c.Request().Context(), workspaceId,userId, "stopped")
 	if err != nil {
 		return response.Error(c, http.StatusBadRequest, "failed to start workspaces", nil)
 	}

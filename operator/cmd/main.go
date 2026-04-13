@@ -8,6 +8,8 @@ import (
 	"syscall"
 
 	"github.com/wafi11/workspace-operator/config"
+	messagebroker "github.com/wafi11/workspace-operator/pkg/message-broker"
+	workspacev1 "github.com/wafi11/workspace-operator/pkg/proto"
 	"github.com/wafi11/workspace-operator/services"
 )
 
@@ -31,14 +33,14 @@ func main() {
 		log.Fatal("failed to init k8s client: ", err)
 	}
 
-	jobQueue := make(chan services.WorkspaceJob, 100)
-	repo := services.NewRepository(redisClient, jobQueue, database, minio, k8sClient.DynClient, k8sClient.Mapper)
+	jobQueue := make(chan *workspacev1.WorkspaceEnvelope, 100)
+	repo := services.NewRepository(redisClient, database, minio, k8sClient.DynClient, k8sClient.Mapper)
 
 	// start operator worker
 	services.StartOperator(ctx, jobQueue, k8sClient, repo)
 
 	// start redis subscriber
-	sub := services.NewSubscriber(redisClient, jobQueue)
+	sub := messagebroker.NewSubscriber(redisClient, jobQueue)
 	go sub.Start(ctx)
 
 	// graceful shutdown

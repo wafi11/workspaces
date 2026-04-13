@@ -84,5 +84,6 @@ export function useProfileQuota() {
       const req = await api.get<UserQuota>("/users/quota");
       return req.data;
     },
+    staleTime: 0,
   });
 }

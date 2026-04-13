@@ -4,6 +4,6 @@ import (
 	"fmt"
 )
 
-func generateNamespace(userID string) string {
+func GenerateNamespace(userID string) string {
 	return fmt.Sprintf("ws-%s", userID)
 }

@@ -1,0 +1,36 @@
+@BASE_URL = http://localhost:8080/api/v1
+@TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiYTJkMGRhMWEtN2U1OS00YmFkLTg0ZTYtNjJmNjE0ODhhYTg3IiwidXNlcm5hbWUiOiJhZG1pbiIsInN1YiI6ImEyZDBkYTFhLTdlNTktNGJhZC04NGU2LTYyZjYxNDg4YWE4NyIsImV4cCI6MTc3NjAwODgzNywiaWF0IjoxNzc2MDA1MjM3fQ.jAbxdePiNdJofeX29guWeM5JekWhvsNeYI2nwMbMhrk
+
+POST {{BASE_URL}}/workspaces
+Content-Type: application/json
+Authorization: Bearer {{TOKEN}}
+
+{
+    "name": "development",
+    "password" : "password123",
+    "template_id" : "a347008b-cf85-4f8c-b92b-7fed81e37aae",
+    "limit_ram_mb" : 1024,
+    "limit_cpu_cores" : 1.0,
+    "req_ram_mb" : 512,
+    "req_cpu_cores" : 0.5
+}
+
+###
+POST {{BASE_URL}}/workspaces
+Content-Type: application/json
+Authorization: Bearer {{TOKEN}}
+
+{
+    "name": "postgres",
+    "password" : "password123",
+    "template_id" : "8448f577-a307-417c-b632-fb2b71ff5766",
+    "limit_ram_mb" : 1024,
+    "limit_cpu_cores" : 1.0,
+    "req_ram_mb" : 512,
+    "req_cpu_cores" : 0.5,
+    "env_vars" : {
+        "DB_NAME" : "development",
+        "DB_PASSWORD" : "development",
+        "DB_USER" : "development"
+    }
+}

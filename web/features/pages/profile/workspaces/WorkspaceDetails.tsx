@@ -1,20 +1,14 @@
-"use client"
+"use client";
 
-import { useGetAddonWorkspaces, useGetWorkspace } from "@/features/services/workspaces/api"
-import { WorkspaceCard } from "../../dashboard/workspaces/WorkspaceCard"
-import { WorkspaceDetails } from "../../dashboard/workspaces/WorkspaceDetails"
-import { WorkspaceAddons } from "./WorkspaceAddon"
+import { WorkspaceDetails } from "../../dashboard/workspaces/WorkspaceDetails";
 
 interface WorkspaceDetails {
-    id : string
+  id: string;
 }
-export function WorkspaceDetailsUser({id} : WorkspaceDetails){
-    console.log(id)
-   const {data}  = useGetWorkspace(id)
-   console.log(data) 
-   return (
-        <>
-            {/* {data && <WorkspaceAddons addons={data} />} */}
-        </>
-    )
+export function WorkspaceDetailsUser({ id }: WorkspaceDetails) {
+  return (
+    <>
+      <WorkspaceDetails slug={id} />
+    </>
+  );
 }

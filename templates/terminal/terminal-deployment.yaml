@@ -2,9 +2,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: terminal
-  namespace: { { .Namespace } }
+  namespace: {{.Namespace}}
 spec:
-  replicas: { { .Replicas } }
+  replicas: {{.Replicas}}
   selector:
     matchLabels:
       app: terminal
@@ -14,20 +14,20 @@ spec:
         app: terminal
     spec:
       securityContext:
-        runAsUser: { { .RunAsUser } }
-        runAsGroup: { { .RunAsGroup } }
-        fsGroup: { { .FsGroup } }
+        runAsUser: {{.RunAsUser}}
+        runAsGroup: {{.RunAsGroup}}
+        fsGroup: {{.FsGroup}}
         runAsNonRoot: true
       containers:
         - name: terminal
           image: 192.168.1.31:5050/workspaces/workspace-terminal:latest
           env:
-            - name: WS_TOKEN
-              value: "{{.WS_TOKEN}}"
-            - name: WS_REFRESH_TOKEN
-              value: "{{.WS_REFRESH_TOKEN}}"
-            - name: WS_API_URL
-              value: "{{.WS_API_URL}}"
+          - name: WS_TOKEN
+            value: "{{.WS_TOKEN}}"
+          - name: WS_REFRESH_TOKEN
+            value: "{{.WS_REFRESH_TOKEN}}"
+          - name: WS_API_URL
+            value: "{{.WS_API_URL}}"
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: false
@@ -42,19 +42,25 @@ spec:
             - -p
             - "7681"
             - -c
-            - "admin:{{.Password}}"
-            - bash
+            - "{{.Username}}:{{.Password}}"
+            - /bin/bash
+            - -c
+            - |
+              export PS1='\[\033[01;32m\]{{.Username}}@kubespace\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
+              cd /data
+              exec /bin/bash --login
           resources:
             requests:
-              cpu: "100m"
-              memory: "64Mi"
+              cpu: "100m"         
+              memory: "128Mi"    
             limits:
-              cpu: { { .CPULimit } }
-              memory: { { .MemLimit } }
+              cpu: "500m"         
+              memory: "512Mi"     
           volumeMounts:
-            - name: terminal-storage
-              mountPath: /home/ttyd
+            - name: user-data
+              mountPath: /data
+              subPath: home
       volumes:
-        - name: terminal-storage
+        - name: user-data
           persistentVolumeClaim:
-            claimName: terminal-pvc
+            claimName: shared-storage-pvc

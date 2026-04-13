@@ -152,6 +152,44 @@ async function request<T = any>(
 }
 
 export const api = {
+  sse: async (endpoint: string, onMessage: (data: any) => void) => {
+    const token = storage.getAccessToken();
+    const url = endpoint.startsWith("http")
+      ? endpoint
+      : `${API_URL}${endpoint}`;
+
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "text/event-stream",
+      },
+    });
+
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder();
+
+    const controller = new AbortController();
+
+    (async () => {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const text = decoder.decode(value);
+        const lines = text.split("\n");
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            try {
+              onMessage(JSON.parse(line.slice(6)));
+            } catch {}
+          }
+        }
+      }
+    })();
+
+    return () => {
+      reader.cancel();
+    };
+  },
   get: <T = any>(
     url: string,
     config?: Omit<RequestConfig, "method" | "body">

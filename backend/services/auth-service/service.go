@@ -4,22 +4,19 @@ import (
 	"context"
 
 	"github.com/wafi11/workspaces/config"
-	"github.com/wafi11/workspaces/pkg/models"
 	userservices "github.com/wafi11/workspaces/services/user-service"
 )
 
-
-
 type Services struct {
-	repo *Repository
-	conf *config.Config
-	userRepo  userservices.UserRepository
+	repo     *Repository
+	conf     *config.Config
+	userRepo userservices.UserRepository
 }
 
 func NewServices(repo *Repository, conf *config.Config, userRepo userservices.UserRepository) *Services {
 	return &Services{
-		repo: repo,
-		conf: conf,
+		repo:     repo,
+		conf:     conf,
 		userRepo: userRepo,
 	}
 }
@@ -35,19 +32,5 @@ func (services *Services) RefreshToken(c context.Context, req *RefreshTokenReque
 }
 
 func (services *Services) Register(c context.Context, req *RegisterRequest) (*RegisterResponse, error) {
-	resp,err := services.repo.Register(c, req)
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = services.userRepo.CreateUserQuota(c,&models.UserQuota{
-		UserID:        resp.UserId,
-		MaxWorkspaces: 2,
-		MaxStorageGB:  10,
-		MaxRamMB:      4096,
-		MaxCpuCores:   4,
-	})
-
-	return resp, nil
+	return services.repo.Register(c, req)
 }

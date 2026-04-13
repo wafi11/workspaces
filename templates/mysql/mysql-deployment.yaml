@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{.Name}}
+  namespace: {{.Namespace}}
+spec:
+  replicas: {{.Replicas}}
+  selector:
+    matchLabels:
+      app: {{.Name}}
+  template:
+    metadata:
+      labels:
+        app: {{.Name}}
+    spec:
+      securityContext:
+        runAsUser: 70
+        runAsGroup: 70
+        fsGroup: 70
+      initContainers:
+        - name: init-pgdata
+          image: busybox
+          securityContext:
+            runAsUser: 0
+          command: ["sh", "-c", "mkdir -p /mnt/mysql/mysql/data && chmod 700 /mnt/mysql/mysql/data && chown -R 70:70 /mnt/mysql"]
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "64Mi"
+            limits:
+              cpu: "100m"
+              memory: "64Mi"
+          volumeMounts:
+            - name: user-data
+              mountPath: /mnt
+      containers:
+        - name: {{.Name}}
+          image: mysql:16-alpine
+          env:
+            - name: mysql_USER
+              value: {{.DB_USER}}
+            - name: mysql_PASSWORD
+              value: {{.DB_PASSWORD}}
+            - name: mysql_DB
+              value: {{.DB_NAME}}
+            - name: PGDATA
+              value: /data/mysql/data
+          resources:
+            requests:
+              cpu: {{.CPURequest}}
+              memory: {{.MemRequest}}
+            limits:
+              cpu: {{.CPULimit}}
+              memory: {{.MemLimit}}
+          volumeMounts:
+            - name: user-data
+              mountPath: /data
+              subPath: mysql
+      volumes:
+        - name: user-data
+          persistentVolumeClaim:
+            claimName: shared-storage-pvc

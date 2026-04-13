@@ -11,7 +11,9 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
 	"github.com/wafi11/workspaces/config"
-	"github.com/wafi11/workspaces/pkg/publisher"
+	messagebroker "github.com/wafi11/workspaces/pkg/message-broker"
+	"github.com/wafi11/workspaces/pkg/models"
+	"github.com/wafi11/workspaces/pkg/proto"
 	"github.com/wafi11/workspaces/pkg/utils"
 )
 
@@ -28,13 +30,20 @@ func NewRepository(db *sqlx.DB, redis *redis.Client, conf *config.Config) *Repos
 		conf:  conf,
 	}
 }
-func (repo *Repository) Register(c context.Context, req *RegisterRequest) (*RegisterResponse, error) {
-	var userId, username string
 
-	// Insert user
+func (repo *Repository) Register(c context.Context, req *RegisterRequest) (*RegisterResponse, error) {
+	tx, err := repo.db.BeginTx(c, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	var userId, username string
+	userId = uuid.New().String()
+
 	query := `
-		INSERT INTO users (id, username, email, password)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO users (id, username, email, password, terminal_url)
+		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id, username
 	`
 	hashedPassword, err := utils.HashPassword(req.Password)
@@ -42,12 +51,36 @@ func (repo *Repository) Register(c context.Context, req *RegisterRequest) (*Regi
 		return nil, fmt.Errorf("failed to process password: %w", err)
 	}
 
-	err = repo.db.QueryRowContext(c, query, uuid.New(), req.Username, req.Email, hashedPassword).Scan(&userId, &username)
+	err = tx.QueryRowContext(c, query, userId, req.Username, req.Email, hashedPassword, utils.GenerateUrl(userId, models.DOMAIN)).Scan(&userId, &username)
 	if err != nil {
 		return nil, fmt.Errorf("username or email already registered: %w", err)
 	}
 
-	// Generate access token
+	const (
+		maxQuota   = 5
+		maxStorage = 20
+		maxRam     = 4096
+		maxCpu     = 4.0
+
+		cpuTerminalLimit    = 0.5
+		memTerminalLimitMi  = 512
+		storTerminalLimitGi = 1
+	)
+
+	quotaQuery := `
+		INSERT INTO user_quotas (id, user_id, max_workspaces, max_storage_gb, max_ram_mb, max_cpu_cores)
+		VALUES ($1, $2, $3, $4, $5, $6)
+	`
+	_, err = tx.ExecContext(c, quotaQuery, uuid.New().String(), userId, maxQuota, maxStorage-storTerminalLimitGi, maxRam-memTerminalLimitMi, maxCpu-cpuTerminalLimit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create user quota: %w", err)
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	// Generate tokens setelah commit (di luar transaction)
 	accessToken, err := config.GenerateToken(c, &config.TokenRequest{
 		UserID:    userId,
 		Username:  username,
@@ -58,9 +91,8 @@ func (repo *Repository) Register(c context.Context, req *RegisterRequest) (*Regi
 		return nil, fmt.Errorf("failed to generate access token: %w", err)
 	}
 
-	// Generate refresh token
 	refreshToken, err := config.GenerateToken(c, &config.TokenRequest{
-		UserID:    userId, // fix: sebelumnya username
+		UserID:    userId,
 		Username:  username,
 		Exp:       24,
 		TokenName: "refresh_token",
@@ -69,51 +101,39 @@ func (repo *Repository) Register(c context.Context, req *RegisterRequest) (*Regi
 		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 
-	// Insert user quota
-	const (
-		maxQuota   = 5
-		maxStorage = 20
-		maxRam     = 4096
-		maxCpu     = 4.0
-
-		cpuTerminalLimit    = 0.10
-		memTerminalLimitMi  = 128
-		storTerminalLimitGi = 1
-	)
-
-	quotaQuery := `
-		INSERT INTO user_quotas (id, user_id, max_workspaces, max_storage_gb, max_ram_mb, max_cpu_cores)
-		VALUES ($1, $2, $3, $4, $5, $6)
-	`
-	_, err = repo.db.ExecContext(c, quotaQuery, userId, userId, maxQuota, maxStorage-storTerminalLimitGi, maxRam-memTerminalLimitMi, maxCpu-cpuTerminalLimit)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create user quota: %w", err)
-	}
-
-	// Publish event ke operator
 	cpuReq := fmt.Sprintf("%.2f", maxCpu)
 	memReq := fmt.Sprintf("%dMi", maxRam)
 	storReq := fmt.Sprintf("%dGi", maxStorage)
 
-	publisher.PublishEvent(c, repo.redis, publisher.WorkspaceJob{
-		UserId:     userId,
-		Namespace:  generateNamespace(userId),
-		TemplateId: "a7fda0ee-092c-40dc-be9f-8917784764b2",
-		Username:   username,
-		Action:     publisher.JobCreate,
-		EnvVars: map[string]any{
-			"WS_TOKEN":         accessToken,
-			"WS_REFRESH_TOKEN": refreshToken,
-			"WS_API_URL":       "http://192.168.1.49:8080",
+	messagebroker.PublishEvent(c, repo.redis, &proto.WorkspaceEnvelope{
+		Payload: &proto.WorkspaceEnvelope_Create{
+			Create: &proto.CreateWorkspaceEvent{
+				Identity: &proto.WorkspaceIdentity{
+					UserId:    userId,
+					Username:  username,
+					Namespace: GenerateNamespace(userId),
+					Password:  req.Password,
+				},
+				TemplateId: "a7fda0ee-092c-40dc-be9f-8917784764b2",
+				Resources: &proto.ResourceSpec{
+					CpuRequest:          cpuReq,
+					CpuLimit:            cpuReq,
+					MemoryRequest:       memReq,
+					MemoryLimit:         memReq,
+					StorageRequest:      storReq,
+					StorageLimit:        storReq,
+					CpuTerminalLimit:    fmt.Sprintf("%.2f", cpuTerminalLimit),
+					MemoryTerminalLimit: fmt.Sprintf("%dMi", memTerminalLimitMi),
+				},
+				EnvVars: map[string]string{
+					"WS_TOKEN":         accessToken,
+					"WS_REFRESH_TOKEN": refreshToken,
+					"WS_API_URL":       "http://192.168.1.49:8080",
+				},
+				Timezone: "UTC",
+				Replicas: 1,
+			},
 		},
-		CPURequest:          cpuReq,
-		CPULimit:            cpuReq,
-		MemoryRequest:       memReq,
-		MemoryLimit:         memReq,
-		StorageRequest:      storReq,
-		StorageLimit:        storReq,
-		CpuTerminalLimit:    fmt.Sprintf("%.2f", cpuTerminalLimit),
-		MemoryTerminalLimit: fmt.Sprintf("%dMi", memTerminalLimitMi),
 	})
 
 	return &RegisterResponse{
@@ -139,6 +159,17 @@ func (repo *Repository) Login(c context.Context, req *LoginRequest, userAgent, i
 
 	if !utils.VerifyPassword(password, req.Password) {
 		return nil, fmt.Errorf("invalid credentials")
+	}
+
+	// simpan session ke database
+	sessionId := uuid.New().String()
+	sessionQuery := `
+		INSERT INTO sessions (id, user_id, is_active, user_agent, ip_address)
+		VALUES ($1, $2, true, $3, $4)
+	`
+	_, err = repo.db.ExecContext(c, sessionQuery, sessionId, id, userAgent, ipAddress)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create session: %w", err)
 	}
 
 	// generate access token
@@ -167,17 +198,6 @@ func (repo *Repository) Login(c context.Context, req *LoginRequest, userAgent, i
 	err = repo.redis.Set(c, redisKey, refreshToken, 24*time.Hour).Err()
 	if err != nil {
 		return nil, fmt.Errorf("failed to store refresh token: %w", err)
-	}
-
-	// simpan session ke database
-	sessionId := uuid.New().String()
-	sessionQuery := `
-		INSERT INTO sessions (id, user_id, is_active, user_agent, ip_address)
-		VALUES ($1, $2, true, $3, $4)
-	`
-	_, err = repo.db.ExecContext(c, sessionQuery, sessionId, id, userAgent, ipAddress)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create session: %w", err)
 	}
 
 	return &LoginResponse{

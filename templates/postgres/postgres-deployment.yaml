@@ -4,20 +4,38 @@ metadata:
   name: {{.Name}}
   namespace: {{.Namespace}}
 spec:
-  replicas:
+  replicas: {{.Replicas}}
   selector:
     matchLabels:
-      app: postgres
+      app: {{.Name}}
   template:
     metadata:
       labels:
-        app: postgres
+        app: {{.Name}}
     spec:
-      nodeSelector:
-        node-role.kubernetes.io/storage: "true"
+      securityContext:
+        runAsUser: 70
+        runAsGroup: 70
+        fsGroup: 70
+      initContainers:
+        - name: init-pgdata
+          image: busybox
+          securityContext:
+            runAsUser: 0
+          command: ["sh", "-c", "mkdir -p /mnt/postgres/pgdata/data && chmod 700 /mnt/postgres/pgdata/data && chown -R 70:70 /mnt/postgres"]
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "64Mi"
+            limits:
+              cpu: "100m"
+              memory: "64Mi"
+          volumeMounts:
+            - name: user-data
+              mountPath: /mnt
       containers:
-        - name: postgres
-          image: {{.Image}}
+        - name: {{.Name}}
+          image: postgres:16-alpine
           env:
             - name: POSTGRES_USER
               value: {{.DB_USER}}
@@ -26,18 +44,19 @@ spec:
             - name: POSTGRES_DB
               value: {{.DB_NAME}}
             - name: PGDATA
-              value: /var/lib/postgresql/data/pgdata
+              value: /data/pgdata/data
           resources:
             requests:
-              cpu: "100m"
-              memory: "128Mi"
+              cpu: {{.CPURequest}}
+              memory: {{.MemRequest}}
             limits:
               cpu: {{.CPULimit}}
               memory: {{.MemLimit}}
           volumeMounts:
-            - name: postgres-storage
-              mountPath: /var/lib/postgresql/data
+            - name: user-data
+              mountPath: /data
+              subPath: postgres
       volumes:
-        - name: postgres-storage
+        - name: user-data
           persistentVolumeClaim:
-            claimName: {{.Name}}-pvc
+            claimName: shared-storage-pvc

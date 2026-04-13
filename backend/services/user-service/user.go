@@ -3,7 +3,6 @@ package userservices
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -25,93 +24,6 @@ func NewRepository(db *sqlx.DB, redis *redis.Client) *Repository {
 	}
 }
 
-func (r *Repository) setUserCache(ctx context.Context, userId string, u *User) {
-	data := CachedUser{
-		Id:        u.Id,
-		Username:  u.Username,
-		Email:     u.Email,
-		CreatedAt: u.CreatedAt,
-		UpdatedAt: u.UpdatedAt,
-	}
-	b, err := json.Marshal(data)
-	if err != nil {
-		return
-	}
-	r.redisClient.Set(ctx, fmt.Sprintf(userCacheKey, userId), b, cacheTTL)
-}
-
-func (r *Repository) getUserCache(ctx context.Context, userId string) (*User, error) {
-	val, err := r.redisClient.Get(ctx, fmt.Sprintf(userCacheKey, userId)).Bytes()
-	if err != nil {
-		return nil, err
-	}
-
-	var cached CachedUser
-	if err := json.Unmarshal(val, &cached); err != nil {
-		return nil, err
-	}
-
-	return &User{
-		Id:        cached.Id,
-		Username:  cached.Username,
-		Email:     cached.Email,
-		CreatedAt: cached.CreatedAt,
-		UpdatedAt: cached.UpdatedAt,
-	}, nil
-}
-
-func (r *Repository) invalidateUserCache(ctx context.Context, userId string) {
-	r.redisClient.Del(ctx, fmt.Sprintf(userCacheKey, userId))
-}
-
-func (r *Repository) setSessionsCache(ctx context.Context, userId string, sessions []Session) {
-	var data []CachedSession
-	for _, s := range sessions {
-		data = append(data, CachedSession{
-			Id:        s.Id,
-			UserId:    s.UserId,
-			IsActive:  s.IsActive,
-			UserAgent: s.UserAgent,
-			IpAddress: s.IpAddress,
-			CreatedAt: s.CreatedAt,
-		})
-	}
-	b, err := json.Marshal(data)
-	if err != nil {
-		return
-	}
-	r.redisClient.Set(ctx, fmt.Sprintf(sessionCacheKey, userId), b, cacheTTL)
-}
-
-func (r *Repository) getSessionsCache(ctx context.Context, userId string) ([]Session, error) {
-	val, err := r.redisClient.Get(ctx, fmt.Sprintf(sessionCacheKey, userId)).Bytes()
-	if err != nil {
-		return nil, err // cache miss
-	}
-
-	var data []CachedSession
-	if err := json.Unmarshal(val, &data); err != nil {
-		return nil, err
-	}
-
-	var sessions []Session
-	for _, s := range data {
-		sessions = append(sessions, Session{
-			Id:        s.Id,
-			UserId:    s.UserId,
-			IsActive:  s.IsActive,
-			UserAgent: s.UserAgent,
-			IpAddress: s.IpAddress,
-			CreatedAt: s.CreatedAt,
-		})
-	}
-	return sessions, nil
-}
-
-func (r *Repository) invalidateSessionsCache(ctx context.Context, userId string) {
-	r.redisClient.Del(ctx, fmt.Sprintf(sessionCacheKey, userId))
-}
-
 // ─── Repository Methods ───────────────────────────────────────────────────────
 
 func (r *Repository) GetProfile(ctx context.Context, req *GetUserRequest) (*GetUserResponse, error) {
@@ -126,7 +38,9 @@ func (r *Repository) GetProfile(ctx context.Context, req *GetUserRequest) (*GetU
 	)
 
 	query := `
-		SELECT id, email, username,terminal_url,created_at, updated_at 
+		SELECT 
+			id, 
+			email, username,terminal_url,created_at, updated_at 
 		FROM users 
 		WHERE id = $1
 	`
@@ -135,6 +49,7 @@ func (r *Repository) GetProfile(ctx context.Context, req *GetUserRequest) (*GetU
 		Scan(&profile.Id, &profile.Email, &profile.Username, &profile.TerminalUrl, &profile.CreatedAt, &profile.UpdatedAt)
 
 	if err != nil {
+		fmt.Printf("error : %s", err.Error())
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errors.New("user not found")
 		}

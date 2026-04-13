@@ -4,6 +4,7 @@ frontend-workspace/tests/*
 frontend-workspace/.next/*
 operator/.env
 operator/config/config
+log-services
 operator/.air.toml
 operator/tmp/*
 backend/tmp/*

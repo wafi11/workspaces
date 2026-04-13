@@ -103,7 +103,7 @@ type User struct {
 	Id          string    `json:"id"`
 	Username    string    `json:"username"`
 	Email       string    `json:"email"`
-	TerminalUrl string    `json:"terminal_url"`
+	TerminalUrl *string   `json:"terminal_url"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
