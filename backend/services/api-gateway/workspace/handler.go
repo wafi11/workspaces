@@ -1,10 +1,10 @@
 package workspace
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
-	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
 	"github.com/wafi11/workspaces/pkg/response"
 	workspaceservice "github.com/wafi11/workspaces/services/workspaces-service"
@@ -20,11 +20,7 @@ func NewHandler(svc workspaceservice.WorkspaceService) *Handler {
 	}
 }
 
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
-}
+
 
 func (h *Handler) Create(c echo.Context) error {
 	username := c.Get("username").(string)
@@ -140,7 +136,7 @@ func (h *Handler) PausedWorkspaces(c echo.Context) error {
 		return response.Error(c, http.StatusBadRequest, "failed to paused workspaces", nil)
 	}
 
-	return response.Success(c, http.StatusOK, "Successfully Start Workspace", nil)
+	return response.Success(c, http.StatusOK, "Successfully Paused Workspace", nil)
 }
 
 
@@ -154,10 +150,11 @@ func (h *Handler) ResumedWorkspaces(c echo.Context) error {
 
 	err := h.svc.UpdateWorkspaceStatus(c.Request().Context(), workspaceId,userId, "resumed")
 	if err != nil {
-		return response.Error(c, http.StatusBadRequest, "failed to resumed workspaces", nil)
+		log.Printf("error : %s",err.Error())
+		return response.Error(c, http.StatusBadRequest, "failed to resumed workspaces", err)
 	}
 
-	return response.Success(c, http.StatusOK, "Successfully Start Workspace", nil)
+	return response.Success(c, http.StatusOK, "Successfully Resumed Workspace", nil)
 }
 
 func (h *Handler) StopWorkspaces(c echo.Context) error {
@@ -170,8 +167,8 @@ func (h *Handler) StopWorkspaces(c echo.Context) error {
 
 	err := h.svc.UpdateWorkspaceStatus(c.Request().Context(), workspaceId,userId, "stopped")
 	if err != nil {
-		return response.Error(c, http.StatusBadRequest, "failed to start workspaces", nil)
+		return response.Error(c, http.StatusBadRequest, "failed to stop workspaces", nil)
 	}
 
-	return response.Success(c, http.StatusOK, "Successfully Start Workspace", nil)
+	return response.Success(c, http.StatusOK, "Successfully Stop Workspace", nil)
 }

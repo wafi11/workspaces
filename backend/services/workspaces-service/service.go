@@ -66,13 +66,34 @@ func (s *Service) DeleteWorkspace(ctx context.Context, req *DeleteWorkspaceReque
 
 func (s *Service) UpdateWorkspaceStatus(ctx context.Context, workspaceId,userId string, status string) error {
 	log.Printf("[consumer] sending to userID=%s clients=%v", userId, s.hub)
-		s.hub.SendToUser(userId, map[string]any{
-			"type":         fmt.Sprintf("workspace.%s",status),
-			"workspace_id": workspaceId,
-			"status":       status,
-		})
+	s.hub.SendToUser(userId, map[string]string{
+		"type":         fmt.Sprintf("workspace.%s",status),
+		"workspace_id": workspaceId,
+		"status":       status,
+	})
 
 	return s.repo.UpdateWorkspaceStatus(ctx, workspaceId, status)
+}
+
+func (s *Service)  ListWorkspacePorts(ctx context.Context, workspaceID string) ([]WorkspacePort, error){
+	return s.repo.ListWorkspacePorts(ctx,workspaceID)
+}
+
+
+func (s *Service) CreateWorkspacePort(ctx context.Context, workspaceID string, port int, userID string)(*WorkspacePort, error){
+	
+	return s.repo.CreateWorkspacePort(ctx,workspaceID,port,userID)
+}
+func (s *Service) ValidateWorkspaceOwner(ctx context.Context, workspaceID, userID string) error{
+	return s.repo.ValidateWorkspaceOwner(ctx,workspaceID,userID)
+}
+
+func (s *Service) DeleteWorkspacePort(ctx context.Context, workspaceID string, port int) error{
+	return s.repo.DeleteWorkspacePort(ctx,workspaceID,port)
+}
+
+func (s *Service)  GetWorkspacePort(ctx context.Context, workspaceID string, port int) (*WorkspacePort, error){
+	return s.repo.GetWorkspacePort(ctx,workspaceID,port)
 }
 
 func (s *Service) StartEventConsumer(ctx context.Context) {

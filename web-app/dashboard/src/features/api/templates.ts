@@ -1,7 +1,7 @@
 import { api } from "@/lib/api";
 import type {
   CreateTemplateRequest,
-  EditState,
+  TemplateAddonEdit,
   TemplateAddOn,
   TemplateForm,
   Templates,
@@ -13,7 +13,7 @@ export const templateKeys = {
   all: ["templates"] as const,
   lists: () => [...templateKeys.all, "list"] as const,
   detail: (id: string) => [...templateKeys.all, "detail", id] as const,
-  form: (id: string) => [...templateKeys.all, "form", id] as const,
+  form: (id?: string) => [...templateKeys.all, "form", id] as const,
   workspace_form: () => [...templateKeys.all, "workspace-form"] as const,
 };
 
@@ -38,7 +38,7 @@ export function useTemplateDetails(id: string) {
   });
 }
 
-export function useTemplateForm(id: string) {
+export function useTemplateForm(id?: string) {
   return useQuery({
     queryKey: templateKeys.form(id),
     queryFn: async () => {
@@ -61,7 +61,7 @@ export function useFindTemplateWorkspaceForm() {
   });
 }
 
-export function useCreateTemplate() {
+export function useCreateTemplates() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (req: CreateTemplateRequest) => {
@@ -106,7 +106,7 @@ export function useCreateTemplateAddOn(templateId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ["template-add-ons"],
-    mutationFn: async (req: EditState) => {
+    mutationFn: async (req: TemplateAddonEdit) => {
       const response = await api.post(`/templates/${templateId}/add-ons`, req);
       return response.data;
     },
@@ -118,11 +118,10 @@ export function useCreateTemplateAddOn(templateId: string) {
   });
 }
 
-export function useUpdateTemplateAddOn(id: string, templateId: string) {
+export function useUpdateTemplateAddOn(templateId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationKey: ["template-add-ons", id],
-    mutationFn: async (req: EditState) => {
+    mutationFn: async ({id,req} : {id: string,req: TemplateAddonEdit}) => {
       const response = await api.put(`/templates/add-ons/${id}`, req);
       return response.data;
     },
@@ -133,11 +132,11 @@ export function useUpdateTemplateAddOn(id: string, templateId: string) {
     },
   });
 }
-export function useDeleteTemplateAddOn(id: string, templateId: string) {
+export function useDeleteTemplateAddOn( templateId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationKey: ["template-add-ons", id],
-    mutationFn: async () => {
+    mutationKey: ["template-add-ons"],
+    mutationFn: async (id: string) => {
       const response = await api.delete(`/templates/add-ons/${id}`);
       return response.data;
     },

@@ -28,8 +28,8 @@ func validateCreateTemplate(req *CreateTemplateRequest) error {
 	if req.Name == "" {
 		return fmt.Errorf("%w: name is required", ErrValidation)
 	}
-	if req.Image == "" {
-		return fmt.Errorf("%w: image is required", ErrValidation)
+	if req.Icon == "" {
+		return fmt.Errorf("%w: icon is required", ErrValidation)
 	}
 	for i, v := range req.Variables {
 		if v.Key == "" {

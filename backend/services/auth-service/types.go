@@ -7,6 +7,7 @@ type IServices interface {
 	Logout(c context.Context, req *LogoutRequest) (*LogoutResponse, error)
 	RefreshToken(c context.Context, req *RefreshTokenRequest) (*RefreshTokenResponse, error)
 	Register(c context.Context, req *RegisterRequest) (*RegisterResponse, error)
+	Validate(c context.Context,req string) (bool,error)
 }
 
 type RegisterRequest struct {
@@ -26,6 +27,7 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
+	Role 		 string `json:"role"`
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 	UserId       string `json:"user_id"`

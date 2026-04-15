@@ -61,8 +61,20 @@ export interface TemplateAddOn {
   description: string;
 }
 
-export type EditState = {
+export type TemplateAddonEdit = {
   name: string;
   image: string;
   description: string;
+};
+
+export interface Templatefiles {
+  id: string;
+  template_id: string;
+  filename: string;
+  sort_order: number;
+}
+
+export type TemplateFilesEdit = {
+  filename: string;
+  sort_order: number;
 };

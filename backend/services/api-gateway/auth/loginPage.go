@@ -1,0 +1,191 @@
+package auth
+
+import (
+	"net/http"
+
+	"github.com/labstack/echo/v4"
+)
+
+func (h *Handler) LoginPage(c echo.Context) error {
+	return c.HTML(http.StatusOK, loginHTML)
+}
+
+var loginHTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vscode Login</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: #0a0a0a;
+            color: #e0e0e0;
+            font-family: 'IBM Plex Mono', monospace;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            padding: 2rem;
+        }
+
+        .logo {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 2rem;
+            letter-spacing: -0.5px;
+        }
+
+        .logo span { color: #666; }
+
+        h1 {
+            font-size: 1rem;
+            font-weight: 400;
+            color: #888;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.75rem;
+            color: #666;
+            margin-bottom: 0.4rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: #111;
+            border: 1px solid #222;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus { border-color: #444; }
+
+        button {
+            width: 100%;
+            padding: 0.75rem;
+            margin-top: 1.5rem;
+            background: #fff;
+            color: #000;
+            border: none;
+            border-radius: 4px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover { background: #ddd; }
+        button:disabled { background: #333; color: #666; cursor: not-allowed; }
+
+        .error {
+            margin-top: 1rem;
+            padding: 0.75rem 1rem;
+            background: #1a0a0a;
+            border: 1px solid #3a1010;
+            border-radius: 4px;
+            color: #ff6b6b;
+            font-size: 0.8rem;
+            display: none;
+        }
+
+        .error.visible { display: block; }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="logo">KubeSpace<span></span></div>
+        <h1>Sign in to your workspace</h1>
+
+        <div class="form-group">
+            <label>email</label>
+            <input type="text" id="email" placeholder="email" autocomplete="email" />
+        </div>
+
+        <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" />
+        </div>
+
+        <button id="submit-btn" onclick="handleLogin()">Sign in</button>
+        <div class="error" id="error-msg"></div>
+    </div>
+
+    <script>
+        // Auto focus
+        document.getElementById('email').focus();
+
+        // Enter key support
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') handleLogin();
+        });
+
+        async function handleLogin() {
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const btn = document.getElementById('submit-btn');
+            const errEl = document.getElementById('error-msg');
+
+            if (!email || !password) {
+                showError('email and password required');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Signing in...';
+            errEl.classList.remove('visible');
+
+            try {
+                const res = await fetch('/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password }),
+                });
+
+                if (res.ok) {
+                    // Redirect ke workspace setelah login
+						const rd = new URLSearchParams(window.location.search).get('rd');
+						const redirect = rd ? decodeURIComponent(rd) : '/';
+						window.location.href = redirect;
+                } else {
+                    const data = await res.json();
+                    showError(data.message || 'Invalid credentials');
+                }
+            } catch {
+                showError('Connection error, please try again');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Sign in';
+            }
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('error-msg');
+            el.textContent = msg;
+            el.classList.add('visible');
+        }
+    </script>
+</body>
+</html>`

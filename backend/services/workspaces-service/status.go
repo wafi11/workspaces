@@ -60,6 +60,7 @@ func (r *Repository) UpdateWorkspaceStatus(ctx context.Context, workspaceId stri
 
 	case "paused":
 		if res.CurrStatus != "running" {
+			log.Printf("paused calling")
 			return fmt.Errorf("pause hanya bisa saat running, status saat ini: %s", res.CurrStatus)
 		}
 		if err := r.handlePause(ctx, tx, workspaceId, res); err != nil {
@@ -252,7 +253,7 @@ func (r *Repository) handlePause(ctx context.Context, tx *sql.Tx, workspaceId st
 		SET status     = 'paused',
 		    paused_at  = NOW(),
 		    updated_at = NOW()
-		WHERE workspace_id = $1 AND status = 'active'
+		WHERE workspace_id = $1 AND status = 'running'
 	`, workspaceId)
 	if err != nil {
 		return fmt.Errorf("gagal update session saat pause: %w", err)
@@ -269,6 +270,7 @@ func (r *Repository) handlePause(ctx context.Context, tx *sql.Tx, workspaceId st
 func (r *Repository) handleResume(ctx context.Context, tx *sql.Tx, workspaceId string, res *workspaceRow) error {
 	// Cek dan klaim quota kembali
 	if err := r.claimQuota(ctx, tx, res); err != nil {
+		log.Printf("failed to resume workspaces : %s",err.Error())
 		return err
 	}
 
@@ -283,6 +285,7 @@ func (r *Repository) handleResume(ctx context.Context, tx *sql.Tx, workspaceId s
 		LIMIT 1
 	`, workspaceId).Scan(&sessionId, &pausedAt, &expiresAt)
 	if err != nil {
+		log.Printf("failed to resumed workspaces : %s",err.Error())
 		return fmt.Errorf("session paused tidak ditemukan: %w", err)
 	}
 
@@ -297,13 +300,14 @@ func (r *Repository) handleResume(ctx context.Context, tx *sql.Tx, workspaceId s
 
 	_, err = tx.ExecContext(ctx, `
 		UPDATE workspace_sessions
-		SET status     = 'active',
+		SET status     = 'running',
 		    paused_at  = NULL,
 		    expires_at = $1,
 		    updated_at = NOW()
 		WHERE id = $2
 	`, newExpiresAt, sessionId)
 	if err != nil {
+		log.Printf("failed to resumed workspaces : %s",err.Error())
 		return fmt.Errorf("gagal resume session: %w", err)
 	}
 
@@ -334,7 +338,7 @@ func (r *Repository) handleStop(ctx context.Context, tx *sql.Tx, workspaceId str
 		    paused_at    = NULL,
 		    next_start_at = $1,
 		    updated_at   = NOW()
-		WHERE workspace_id = $2 AND status = 'active'
+		WHERE workspace_id = $2 AND status = 'running'
 	`, nextStartAt, workspaceId)
 	if err != nil {
 		return fmt.Errorf("gagal update session: %w", err)

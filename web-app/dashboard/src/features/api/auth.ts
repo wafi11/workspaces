@@ -1,4 +1,5 @@
 "use client";
+import { ADMIN_ROLE } from "@/constants";
 import { storage } from "@/hooks";
 import { api } from "@/lib/api";
 import type { User, UserQuota } from "@/types";
@@ -29,16 +30,21 @@ export function useLogin() {
       const req = await api.post<{
         access_token: string;
         refresh_token: string;
+        role : string
       }>("/auth/login", data);
-      const { access_token, refresh_token } = req.data;
+      const { access_token,role, refresh_token } = req.data;
       storage.setAccessToken(access_token);
       storage.setRefreshToken(refresh_token);
-
+       if (role === ADMIN_ROLE) {
+        router.navigate({to : "/dashboard"})
+      }else {
+        router.navigate({to : "/workspaces"})
+      }
       return req.data;
     },
-    onSuccess: () => {
-      //   router.push("/dashboard");
-    },
+    // onSuccess: (data) => {
+     
+    // },
   });
 }
 

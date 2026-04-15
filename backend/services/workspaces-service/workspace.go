@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/wafi11/workspaces/config"
@@ -55,11 +56,12 @@ func (r *Repository) CreateWorkspace(ctx context.Context, req *CreateWorkspaceRe
 
 	// 1. Insert ke tabel Workspaces
 	var w Workspace
+	var template_name string
 
-	if req.Password == "" {
-		return nil, fmt.Errorf("password must be required")
-	}
-	hashedPassword, err := utils.HashPassword(req.Password)
+	// if req.Password == "" {
+	// 	return nil, fmt.Errorf("password must be required")
+	// }
+	// hashedPassword, err := utils.HashPassword(req.Password)
 
 
 	envJSON, _ := json.Marshal(req.EnvVars)
@@ -68,13 +70,19 @@ func (r *Repository) CreateWorkspace(ctx context.Context, req *CreateWorkspaceRe
 	db_password := utils.GetEnvString(req.EnvVars,"DB_PASSWORD")
 	db_user := utils.GetEnvString(req.EnvVars,"DB_USER")
 
-	url := GenerateAddonConnectionUrl(AddonUrl(req.Name),authservices.GenerateNamespace(req.UserId),req.Name,req.UserId,db_user,db_password,db_name)
+	err = tx.QueryRowContext(ctx,`select name from templates where id = $1`,req.TemplateId).Scan(&template_name)
+
+	if err != nil {
+		return nil,fmt.Errorf("failed to create workspaces")
+	}
+
+	url := GenerateAddonConnectionUrl(AddonUrl(strings.ToLower(template_name)),authservices.GenerateNamespace(req.UserId),req.Name,req.UserId,db_user,db_password,db_name)
 
 	err = tx.QueryRowContext(ctx, `
-        INSERT INTO workspaces (user_id,name,status,env_vars,password,url,template_id)
-        VALUES ($1, $2, $3, $4,$5,$6,$7)
+        INSERT INTO workspaces (user_id,name,status,env_vars,url,template_id)
+        VALUES ($1, $2, $3, $4,$5,$6)
         RETURNING id, user_id, name, status`,
-		req.UserId, req.Name, StatusPending, envJSON, hashedPassword,url,req.TemplateId,
+		req.UserId, req.Name, StatusPending, envJSON, url,req.TemplateId,
 	).Scan(&w.Id, &w.UserId, &w.Name, &w.Status)
 
 	if err != nil {
@@ -322,16 +330,28 @@ func (r *Repository) GetWorkspace(ctx context.Context, req *GetWorkspaceRequest)
 	var w Workspace
 	var envRaw []byte
 	err := r.db.QueryRowContext(ctx, `
-		SELECT id, user_id, name,status,url, env_vars, created_at, updated_at
-		FROM workspaces
-		WHERE id = $1
-	`, req.WorkspaceId,
-	).Scan(
-		&w.Id, &w.UserId,
-		&w.Name, &w.Status, &w.Url,
-		&envRaw, &w.CreatedAt, &w.UpdatedAt,
-	)
+    SELECT 
+        w.name,
+        w.status,
+        w.url,
+        t.name, 
+        t.icon, 
+        w.env_vars, 
+        t.created_at
+    FROM workspaces w 
+    LEFT JOIN templates t ON t.id = w.template_id
+    WHERE w.id = $1
+`, req.WorkspaceId).Scan(
+    &w.Name,         
+    &w.Status,      
+    &w.Url,          
+    &w.TemplateName, 
+    &w.Icon,         
+    &envRaw,        
+    &w.CreatedAt,   
+)
 	if err != nil {
+		log.Printf("template error : %s",err.Error())
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrWorkspaceNotFound
 		}
@@ -350,9 +370,9 @@ func (r *Repository) DeleteWorkspace(ctx context.Context, req *DeleteWorkspaceRe
 	// 1. cek ownership
 	var w Workspace
 	err := r.db.QueryRowContext(ctx,
-		`SELECT id, namespace FROM workspaces WHERE id = $1 AND user_id = $2`,
+		`SELECT id FROM workspaces WHERE id = $1 AND user_id = $2`,
 		req.WorkspaceId, req.UserId,
-	).Scan(&w.Id, &w.Namespace)
+	).Scan(&w.Id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrWorkspaceNotFound

@@ -40,8 +40,8 @@ export function Sidebar({
   return (
     <aside
       className={[
-        "flex flex-col min-h-screen shrink-0",
-        "transition-[width] duration-200 ease-in-out overflow-hidden",
+        "flex flex-col relative min-h-screen h-full shrink-0",
+        "transition-[width] duration-200 ease-in-out",
         collapsed ? "w-16" : "w-56",
       ].join(" ")}
       style={{
@@ -49,34 +49,51 @@ export function Sidebar({
         borderRight: "1px solid var(--color-sidebar-border)",
       }}
     >
-      {/* Logo */}
-      <div
-        className={[
-          "flex items-center h-14 shrink-0",
-          collapsed ? "justify-center" : "px-4 gap-3",
-        ].join(" ")}
-        style={{ borderBottom: "1px solid var(--color-sidebar-border)" }}
-      >
-        <div
-          className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
-          style={{ background: "var(--color-sidebar-text-active)" }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="#000">
-            <rect x="3" y="3" width="8" height="8" rx="1.5" />
-            <rect x="13" y="3" width="8" height="8" rx="1.5" />
-            <rect x="3" y="13" width="8" height="8" rx="1.5" />
-            <rect x="13" y="13" width="8" height="8" rx="1.5" />
-          </svg>
-        </div>
-        {!collapsed && (
-          <span
-            className="text-sm font-medium tracking-tight truncate"
-            style={{ color: "var(--color-sidebar-text-active)" }}
-          >
-            Workspaces
-          </span>
-        )}
-      </div>
+       
+      {/* Logo Area */}
+<div
+  className={[
+    "flex items-center h-14 shrink-0",
+    collapsed ? "justify-center" : "px-4 gap-3",
+  ].join(" ")}
+  style={{ borderBottom: "1px solid var(--color-sidebar-border)" }}
+>
+  {/* TOMBOL COLLAPSE - Posisi nempel di garis */}
+  <button
+    onClick={() => setCollapsed((c) => !c)}
+    className={[
+      "absolute z-50 flex items-center justify-center transition-all",
+      "top-4 -right-3 w-6 h-6 rounded-full border shadow-sm cursor-pointer",
+    ].join(" ")}
+    style={{ 
+      color: "var(--color-sidebar-text-active)",
+      background: "var(--color-sidebar-bg)", // Harus sama dengan background sidebar agar seamless
+      borderColor: "var(--color-sidebar-border)"
+    }}
+  >
+    <Ico
+      d2="12"
+      d={
+        collapsed
+          ? "M9 5l7 7-7 7" // Icon panah ke kanan saja (lebih clean)
+          : "M15 19l-7-7 7-7" // Icon panah ke kiri
+      }
+    />
+  </button>
+
+  {/* Logo Icon & Text */}
+  <div
+    className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
+    style={{ background: "var(--color-sidebar-text-active)" }}
+  >
+    {/* SVG Logo Anda */}
+  </div>
+  {!collapsed && (
+    <span className="text-sm font-medium tracking-tight truncate" style={{ color: "var(--color-sidebar-text-active)" }}>
+      Workspaces
+    </span>
+  )}
+</div>
 
       {/* Nav */}
       <nav className="flex-1 py-2 flex flex-col gap-0.5 overflow-hidden">
@@ -221,38 +238,7 @@ export function Sidebar({
           </button>
         )}
 
-        <button
-          onClick={() => setCollapsed((c) => !c)}
-          className={[
-            "flex items-center gap-2 px-3 py-2 rounded-md w-full transition-colors",
-            collapsed ? "justify-center" : "",
-          ].join(" ")}
-          style={{ color: "var(--color-sidebar-text-muted)" }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "var(--color-sidebar-surface)";
-            e.currentTarget.style.color = "var(--color-sidebar-text)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.color = "var(--color-sidebar-text-muted)";
-          }}
-        >
-          <Ico
-            d={
-              collapsed
-                ? "M13 5l7 7-7 7M6 5l7 7-7 7"
-                : "M11 19l-7-7 7-7M18 19l-7-7 7-7"
-            }
-          />
-          {!collapsed && (
-            <span
-              className="text-xs"
-              style={{ color: "var(--color-sidebar-text-muted)" }}
-            >
-              Collapse
-            </span>
-          )}
-        </button>
+      
       </div>
     </aside>
   );

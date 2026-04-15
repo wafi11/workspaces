@@ -5,7 +5,7 @@ POST {{BASE_URL}}/auth/login
 Content-Type: application/json
 
 {
-    "email" : "admin40@gmail.com",
+    "email" : "admin70@gmail.com",
     "password" : "node1234"
 }
 
@@ -15,6 +15,6 @@ Content-Type: application/json
 
 {
     "username" : "admin",
-    "email" : "admin40@gmail.com",
+    "email" : "admin70@gmail.com",
     "password" : "node1234"
 }

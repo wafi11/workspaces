@@ -1,11 +1,10 @@
 import { useGetWorkspacesUsers } from "@/features/api/workspace";
 import { EmptyState } from "./EmptyState";
 import { WorkspaceCard } from "./WorkspaceCard";
-import { DialogCreateWorkspaces } from "@/features/components/workspaces/DialogCreateWorkspaces";
+import { ButtonCreate } from "@/features/components/ButtonCreate";
 
 export function SectionWorkspace() {
   const { data: workspaceData, isLoading } = useGetWorkspacesUsers();
-
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -21,7 +20,23 @@ export function SectionWorkspace() {
   }
 
   if (!workspaceData || workspaceData.length === 0) {
-    return <EmptyState />;
+    return (<>
+    <div className="flex justify-between items-center gap-2">
+        <div className="flex items-center gap-2">
+          <h2
+            className="text-xs font-semibold uppercase tracking-wider"
+            style={{ color: "var(--color-sidebar-text)" }}
+          >
+            Your Workspaces
+          </h2>
+          
+        </div>
+        <ButtonCreate label="+ Create Workspace" to="workspaces"  />
+      </div>
+
+    <EmptyState />
+    </>
+  )
   }
 
   return (
@@ -45,10 +60,10 @@ export function SectionWorkspace() {
             {workspaceData.length} instances
           </span>
         </div>
-        <DialogCreateWorkspaces />
+        <ButtonCreate label="+ Create Workspace" to="workspaces"  />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         {workspaceData.map((ws) => (
           <WorkspaceCard ws={ws} key={ws.id} />
         ))}

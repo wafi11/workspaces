@@ -53,7 +53,7 @@ func (s *Service) DeleteTemplate(ctx context.Context, id string) error {
 
 // template-variables
 func (s *Service) CreateTemplateVariable(ctx context.Context, req *CreateVariableRequest, templateId string) error {
-	return s.repo.CreateTemplateVariable(ctx, req, templateId)
+	return s.repo.CreateTemplateVariable(ctx, req, templateId,nil)
 }
 func (s *Service) DeleteTemplateVariable(ctx context.Context, id string) error {
 	return s.repo.DeleteTemplateVariable(ctx, id)
@@ -67,7 +67,7 @@ func (s *Service) UpdateTemplateVariable(ctx context.Context, id string, req *Cr
 
 // template-addons
 func (s *Service) CreateTemplateAddon(ctx context.Context, req *CreateAddonRequest, templateId string) error {
-	return s.repo.CreateTemplateAddon(ctx, req, templateId)
+	return s.repo.CreateTemplateAddon(ctx, req, templateId,nil)
 }
 func (s *Service) DeleteTemplateAddon(ctx context.Context, id string) error {
 	return s.repo.DeleteTemplateAddon(ctx, id)
@@ -81,7 +81,7 @@ func (s *Service) UpdateTemplateAddon(ctx context.Context, id string, req *Creat
 
 // template-files
 func (s *Service) CreateTemplateFiles(ctx context.Context, req *CreateTemplateFilesRequest, templateId string) error {
-	return s.repo.CreateTemplateFiles(ctx, req, templateId)
+	return s.repo.CreateTemplateFiles(ctx, req, templateId,nil)
 }
 
 func (s *Service) DeleteTemplateFiles(ctx context.Context, id string) error {

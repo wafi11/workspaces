@@ -106,7 +106,7 @@ export function SectionQuotaUser() {
   const q = quota;
 
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div className="grid grid-cols-1  sm:grid-cols-2 md::grid-cols-3 gap-3 lg:grid-cols-4">
       <MetricCard
         label="Workspaces"
         used={String(q.used_workspaces)}

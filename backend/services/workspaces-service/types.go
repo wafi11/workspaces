@@ -22,6 +22,12 @@ type WorkspaceRepository interface {
 	CreateWorkspaceSessions(ctx context.Context, req CreateWorkspaceSessions) error
 	CanStartWorkspace(ctx context.Context, workspaceID string,tx *sql.Tx) (bool, error)
 	AutoStopWorkspace(ctx context.Context, workspaceId string) error 
+	ListWorkspacePorts(ctx context.Context, workspaceID string) ([]WorkspacePort, error)
+	DeleteWorkspacePort(ctx context.Context, workspaceID string, port int) error
+	GetWorkspacePort(ctx context.Context, workspaceID string, port int) (*WorkspacePort, error)
+	CreateWorkspacePort(ctx context.Context, workspaceID string, port int, subDomain string) (*WorkspacePort, error)
+	ValidateWorkspaceOwner(ctx context.Context, workspaceID, userID string) error
+
 }
 
 type WorkspaceService interface {
@@ -33,13 +39,19 @@ type WorkspaceService interface {
 	UpdateWorkspaceStatus(ctx context.Context, workspaceId,userId string, status string) error
 	DeleteWorkspace(ctx context.Context, req *DeleteWorkspaceRequest) (*DeleteWorkspaceResponse, error)
 	StartEventConsumer(ctx context.Context)
+	ListWorkspacePorts(ctx context.Context, workspaceID string) ([]WorkspacePort, error)
+	DeleteWorkspacePort(ctx context.Context, workspaceID string, port int) error
+	GetWorkspacePort(ctx context.Context, workspaceID string, port int) (*WorkspacePort, error)
+	CreateWorkspacePort(ctx context.Context, workspaceID string, port int, subDomain string) (*WorkspacePort, error)
+	ValidateWorkspaceOwner(ctx context.Context, workspaceID, userID string) error
+
 }
 
 const (
 	workspaceCacheKey  = "workspace:%s"
 	workspacesCacheKey = "workspaces:user:%s"
 	cacheTTL           = 5 * time.Minute
-	cooldown = 2
+	cooldown = 30
 )
 
 var (
@@ -63,7 +75,7 @@ const (
 type AddonUrl string 
 
 const (
-	PostgresqlURL  AddonUrl = "postgres"
+	PostgresqlURL  AddonUrl = "postgresql"
 	MysqlURL  AddonUrl = "mysql"
 	RedisURL  AddonUrl = "redis"
 )
@@ -89,7 +101,7 @@ type Workspace struct {
 	Id        string          `json:"id"`
 	UserId    string          `json:"user_id"`
 	Name      string          `json:"name"`
-	Namespace string          `json:"namespace,omitempty"`
+	TemplateName string       `json:"template_name,omitempty"`
 	Status    WorkspaceStatus `json:"status"`
 	Icon      *string         `json:"icon"`
 	EnvVars   map[string]any  `json:"env_vars"`

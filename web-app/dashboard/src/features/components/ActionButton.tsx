@@ -1,3 +1,5 @@
+import { cn } from "@/lib/utils";
+
 type Variant = "default" | "warn" | "danger";
 
 export function ActionBtn({
@@ -34,7 +36,7 @@ export function ActionBtn({
       type={type ?? "button"}
       disabled={disabled}
       onClick={onClick}
-      className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-colors ${className ?? ""}`}
+      className={cn("flex-1 py-1.5 rounded-md text-xs font-medium transition-colors",className)}
       style={{
         color: disabled ? "var(--color-sidebar-text-muted)" : s.color,
         border: `1px solid ${s.border}`,

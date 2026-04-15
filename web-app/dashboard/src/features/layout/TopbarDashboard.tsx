@@ -1,22 +1,22 @@
 import type { ReactNode } from "react";
-
+import { cn } from "@/lib/utils"
 interface TopBarAdminProps {
   title: string;
   children?: ReactNode;
+  className? : string
+  classNameFont? : string
 }
 
-export function TopbarAdmin({ title, children }: TopBarAdminProps) {
+export function TopbarAdmin({ title, children ,className,classNameFont}: TopBarAdminProps) {
   return (
     <div
-      className="flex items-center justify-between px-6 py-4"
+      className={cn("flex items-center justify-between px-6 py-4",className)}
       style={{ borderBottom: "1px solid var(--color-sidebar-border)" }}
     >
       <div className="flex flex-col gap-1.5">
-        {/* Label pill */}
-
         {/* Heading */}
         <h1
-          className="text-xl font-semibold tracking-tight leading-tight"
+          className={cn("text-xl font-semibold tracking-tight leading-tight",classNameFont)}
           style={{ color: "var(--color-sidebar-text-active)" }}
         >
           {title}

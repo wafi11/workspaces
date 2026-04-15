@@ -29,7 +29,7 @@ func NewRepository(db *sqlx.DB, redis *redis.Client, minioClient *minio.Client) 
 
 func (r *Repository) ListTemplates(ctx context.Context, req *ListTemplatesRequest) (*ListTemplatesResponse, error) {
 	query := `
-		SELECT id, name, description,icon, image, category, is_public, created_at,template_url
+		SELECT id, name, description,icon, category, is_public, created_at,template_url
 		FROM templates
 		WHERE is_public = true
 	`
@@ -53,7 +53,7 @@ func (r *Repository) ListTemplates(ctx context.Context, req *ListTemplatesReques
 		var t Template
 		if err := rows.Scan(
 			&t.Id, &t.Name, &t.Description, &t.Icon,
-			&t.Image, &t.Category, &t.IsPublic, &t.CreatedAt, &t.TemplateUrl,
+		 &t.Category, &t.IsPublic, &t.CreatedAt, &t.TemplateUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -67,12 +67,11 @@ func (r *Repository) GetTemplate(ctx context.Context, req *GetTemplateRequest) (
 	// 2. cache miss → hit db
 	var t Template
 	err := r.db.QueryRowContext(ctx, `
-		SELECT id, name, description, image, category, is_public, created_at,template_url,icon
+		SELECT id, name, description, category, is_public, created_at,template_url,icon
 		FROM templates
 		WHERE id = $1
 	`, req.TemplateId).Scan(
-		&t.Id, &t.Name, &t.Description,
-		&t.Image, &t.Category, &t.IsPublic, &t.CreatedAt, &t.TemplateUrl, &t.Icon,
+		&t.Id, &t.Name, &t.Description, &t.Category, &t.IsPublic, &t.CreatedAt, &t.TemplateUrl, &t.Icon,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -94,37 +93,44 @@ func (r *Repository) CreateTemplate(ctx context.Context, req *CreateTemplateRequ
 	// 1. insert template
 	var t Template
 	err = tx.QueryRowContext(ctx, `
-		INSERT INTO templates (name, description, image, category, is_public,icon)
+		INSERT INTO templates (name, description, category, is_public,icon,template_url)
 		VALUES ($1, $2, $3, $4, $5,$6)
-		RETURNING id, name, description, image, category, is_public, created_at,icon
-	`, req.Name, req.Description, req.Image, req.Category, req.IsPublic, req.Icon,
-	).Scan(&t.Id, &t.Name, &t.Description, &t.Image, &t.Category, &t.IsPublic, &t.CreatedAt, &req.Icon)
+		RETURNING id, name, description, category, is_public, created_at,icon
+	`, req.Name, req.Description, req.Category, req.IsPublic, req.Icon,fmt.Sprintf("templates/%s",req.Name),
+	).Scan(&t.Id, &t.Name, &t.Description, &t.Category, &t.IsPublic, &t.CreatedAt, &req.Icon)
 
 	if err != nil {
+		log.Printf("error create templates : %s",err)
 		return nil, fmt.Errorf("failed to insert template: %w", err)
 	}
 
 	for _, v := range req.Variables {
-		r.CreateTemplateVariable(ctx, &v, t.Id)
+		err = r.CreateTemplateVariable(ctx, &v, t.Id,tx.Tx)
+		if err != nil {
+			log.Printf("insert template error  : %s",err.Error())
+			return nil,fmt.Errorf("failed to create variables template")
+		}
 	}
 
 	for _, v := range req.Files {
-		r.CreateTemplateFiles(ctx, &v, t.Id)
+		err = r.CreateTemplateFiles(ctx, &v, t.Id,tx.Tx)
+		
+		if err != nil {
+						log.Printf("insert template files errr  : %s",err.Error())
+
+			return nil,fmt.Errorf("failed to insert addon  template")
+		}
 	}
 
 	// 3. insert addons
 	for _, a := range req.Addons {
-		configJSON, err := json.Marshal(a.DefaultConfig)
-		if err != nil {
-			return nil, err
-		}
-		a.DefaultConfig = map[string]any{}
-		if err := json.Unmarshal(configJSON, &a.DefaultConfig); err != nil {
-			return nil, err
-		}
-		r.CreateTemplateAddon(ctx, &a, t.Id)
-	}
+ 
 
+    if err := r.CreateTemplateAddon(ctx, &a, t.Id, tx.Tx); err != nil {
+        log.Printf("insert template addon error: %s", err.Error())
+        return nil, fmt.Errorf("failed to create addon template")
+    }
+}
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
@@ -154,17 +160,15 @@ func (repo *Repository) UpdateTemplate(ctx context.Context, id string, req *Upda
 		SET 
 			name         = $1,
 			description  = $2,
-			image        = $3,
-			category     = $4,
-			is_public    = $5,
-			template_url = $6,
-			icon         = $7
-		WHERE id = $8
+			category     = $3,
+			is_public    = $4,
+			template_url = $5,
+			icon         = $6
+		WHERE id = $7
 	`
 	_, err = repo.db.ExecContext(ctx, query,
 		existing.Template.Name,
 		existing.Template.Description,
-		existing.Template.Image,
 		existing.Template.Category,
 		existing.Template.IsPublic,
 		existing.Template.TemplateUrl,
@@ -283,7 +287,7 @@ func (repo *Repository)  FindTemplateWorkspaceForm(c context.Context)([]Template
 	for rows.Next() {
 		var template TemplateWorkspaceForm
 		err := rows.Scan(
-			&template.ID,template.Name,&template.Icon,
+			&template.ID,&template.Name,&template.Icon,
 		)
 
 		if err != nil {

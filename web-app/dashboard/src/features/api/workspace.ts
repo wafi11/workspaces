@@ -19,7 +19,7 @@ export function useCreateWorkspaces() {
   return useMutation({
     mutationKey: ["workspaces"],
     mutationFn: async (req: WorkspaceRequest) => {
-      const request = await api.post<Workspaces[]>("/workspaces", req);
+      const request = await api.post<{workspace : Workspaces}>("/workspaces", req);
       return request.data;
     },
   });

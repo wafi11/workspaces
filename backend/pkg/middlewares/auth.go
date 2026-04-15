@@ -1,7 +1,6 @@
 package middlewares
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -10,39 +9,43 @@ import (
 )
 
 func AuthMiddleware(conf *config.Config) echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+    return func(next echo.HandlerFunc) echo.HandlerFunc {
+        return func(c echo.Context) error {
+            var tokenString string
 
-			// Ambil dari header
-			authHeader := c.Request().Header.Get("Authorization")
-			if authHeader == "" {
-				return c.JSON(http.StatusUnauthorized, map[string]string{
-					"message": "missing authorization header",
-				})
-			}
+            // Coba dari header dulu
+            authHeader := c.Request().Header.Get("Authorization")
+            if authHeader != "" {
+                tokenString = strings.TrimPrefix(authHeader, "Bearer ")
+                if tokenString == authHeader {
+                    return c.JSON(http.StatusUnauthorized, map[string]string{
+                        "message": "invalid authorization format",
+                    })
+                }
+            } else {
+                // Fallback ke cookie
+                cookie, err := c.Cookie("ws_session")
+                if err != nil {
+                    return c.JSON(http.StatusUnauthorized, map[string]string{
+                        "message": "missing authorization",
+                    })
+                }
+                tokenString = cookie.Value
+            }
 
-			// Strip "Bearer "
-			tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-			if tokenString == authHeader {
-				return c.JSON(http.StatusUnauthorized, map[string]string{
-					"message": "invalid authorization format",
-				})
-			}
+            // Verify token
+            claims, err := config.ValidationToken(tokenString, conf)
+            if err != nil {
+                return c.JSON(http.StatusUnauthorized, map[string]string{
+                    "message": err.Error(),
+                })
+            }
 
-			// Verify token
-			claims, err := config.ValidationToken(tokenString, conf)
-			if err != nil {
-				return c.JSON(http.StatusUnauthorized, map[string]string{
-					"message": err.Error(),
-				})
-			}
-			fmt.Printf("%s", claims.UserID)
+            c.Set("user_id", claims.UserID)
+            c.Set("username", claims.Username)
+            c.Set("role", claims.Role)
 
-			// Inject claims ke context biar bisa dipakai handler
-			c.Set("user_id", claims.UserID)
-			c.Set("username", claims.Username)
-
-			return next(c)
-		}
-	}
+            return next(c)
+        }
+    }
 }

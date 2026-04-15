@@ -9,16 +9,27 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+type UserRole string
+
+
+const (
+	RoleUser UserRole = "user"
+	RoleAdmin UserRole = "admin"
+)
 type TokenRequest struct {
 	UserID    string
+	SessionID string
 	Username  string
 	Exp       int
+	Role string
 	TokenName string
 }
 
 type Claims struct {
 	UserID   string `json:"user_id"`
 	Username string `json:"username"`
+	SessionID string `json:"session_id"`
+	Role string `json:"role"`
 	jwt.RegisteredClaims
 }
 
@@ -30,6 +41,8 @@ func GenerateToken(c context.Context, req *TokenRequest, conf *Config) (string, 
 	claims := Claims{
 		UserID:   req.UserID,
 		Username: req.Username,
+		SessionID: req.SessionID,
+		Role: req.Role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(req.Exp) * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

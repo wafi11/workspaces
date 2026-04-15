@@ -15,7 +15,7 @@ build-operator:
 
 run-web:
 	@echo "Running web locally..."
-	@cd web && npm run dev
+	@cd web-app/dashboard && npm run dev
 
 run-backend:
 	@echo "Running backend locally..."
@@ -28,3 +28,10 @@ remote-github:
 remote-gitlab:
 	@echo "Remote to GitLab..."
 	@git remote set-url origin http://192.168.1.31/root/workspaces.git
+
+gen-proto:
+	@echo "Generating Go code from proto..."
+	protoc --proto_path=proto/workspace \
+	       --go_out=proto/workspace \
+	       --go_opt=paths=source_relative \
+	       proto/workspace/workspace.proto

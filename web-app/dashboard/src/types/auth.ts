@@ -1,6 +1,9 @@
+import type { Role } from "./nav-items";
+
 export type User = {
   created_at: string;
   email: string;
+  role : Role
   terminal_url: string;
   id: string;
   updated_at: string;

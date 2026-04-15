@@ -2,20 +2,37 @@ package templateservice
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
+	"log"
 
 	"github.com/google/uuid"
 )
 
 
-func (r *Repository) CreateTemplateVariable(ctx context.Context, req *CreateVariableRequest,templateId string) (error) {
-	_, err := r.db.ExecContext(ctx, `
+func (r *Repository) CreateTemplateVariable(ctx context.Context, req *CreateVariableRequest,templateId string,tx *sql.Tx) (error) {
+	
+	if tx != nil {
+		_, err := tx.ExecContext(ctx, `
 		INSERT INTO template_variables (id, template_id, key, default_value, required, description)
 		VALUES ($1, $2, $3, $4, $5, $6)
 	`, uuid.New().String(), templateId, req.Key, req.DefaultValue, req.Required, req.Description)
 
 	if err != nil {
+		log.Printf("error : %s",err.Error())
 		return fmt.Errorf("failed to create template variable: %w", err)
+	}
+	}else {
+			
+			_, err := r.db.ExecContext(ctx, `
+			INSERT INTO template_variables (id, template_id, key, default_value, required, description)
+			VALUES ($1, $2, $3, $4, $5, $6)
+		`, uuid.New().String(), templateId, req.Key, req.DefaultValue, req.Required, req.Description)
+
+		if err != nil {
+			log.Printf("error : %s",err.Error())
+			return fmt.Errorf("failed to create template variable: %w", err)
+		}
 	}
 
 	return nil

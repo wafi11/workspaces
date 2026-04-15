@@ -28,11 +28,10 @@ func NewRepository(db *sqlx.DB, redis *redis.Client) *Repository {
 
 func (r *Repository) GetProfile(ctx context.Context, req *GetUserRequest) (*GetUserResponse, error) {
 	// 1. check cache
-	if cached, err := r.getUserCache(ctx, req.UserId); err == nil {
-		return &GetUserResponse{User: cached}, nil
-	}
+	// if cached, err := r.getUserCache(ctx, req.UserId); err == nil {
+	// 	return &GetUserResponse{User: cached}, nil
+	// }
 
-	// 2. cache miss → hit db
 	var (
 		profile User
 	)
@@ -40,13 +39,18 @@ func (r *Repository) GetProfile(ctx context.Context, req *GetUserRequest) (*GetU
 	query := `
 		SELECT 
 			id, 
-			email, username,terminal_url,created_at, updated_at 
+			email,
+			role, 
+			username,
+			terminal_url,
+			created_at,
+			updated_at
 		FROM users 
 		WHERE id = $1
 	`
 
 	err := r.db.QueryRowContext(ctx, query, req.UserId).
-		Scan(&profile.Id, &profile.Email, &profile.Username, &profile.TerminalUrl, &profile.CreatedAt, &profile.UpdatedAt)
+		Scan(&profile.Id, &profile.Email,&profile.Role, &profile.Username, &profile.TerminalUrl, &profile.CreatedAt, &profile.UpdatedAt)
 
 	if err != nil {
 		fmt.Printf("error : %s", err.Error())
@@ -57,7 +61,7 @@ func (r *Repository) GetProfile(ctx context.Context, req *GetUserRequest) (*GetU
 	}
 
 	// 3. store to cache
-	r.setUserCache(ctx, req.UserId, &profile)
+	// r.setUserCache(ctx, req.UserId, &profile)
 
 	return &GetUserResponse{User: &profile}, nil
 }

@@ -2,19 +2,31 @@ package templateservice
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 
 	"github.com/google/uuid"
 )
 
-func (r *Repository) CreateTemplateAddon(ctx context.Context, req *CreateAddonRequest, templateId string) error {
-	_, err := r.db.ExecContext(ctx, `
-		INSERT INTO template_addons (id, template_id, name, description, default_config)
-		VALUES ($1, $2, $3, $4, $5)
-	`, uuid.New().String(), templateId, req.Name, req.Description, req.DefaultConfig)
-	if err != nil {
-		return fmt.Errorf("failed to create template addon: %w", err)
+func (r *Repository) CreateTemplateAddon(ctx context.Context, req *CreateAddonRequest, templateId string,Tx *sql.Tx) error {
+	if Tx != nil {
+
+		_, err := Tx.ExecContext(ctx, `
+		INSERT INTO template_addons (id, template_id,image, name, description)
+		VALUES ($1, $2, $3, $4,$5)
+		`, uuid.New().String(), templateId,req.Image, req.Name, req.Description)
+		if err != nil {
+			return fmt.Errorf("failed to create template addon: %w", err)
+		}
+	}else {
+		_, err := r.db.ExecContext(ctx, `
+		INSERT INTO template_addons (id, template_id,image, name, description)
+		VALUES ($1, $2, $3, $4,$5)
+		`, uuid.New().String(), templateId,req.Image, req.Name, req.Description)
+		if err != nil {
+			return fmt.Errorf("failed to create template addon: %w", err)
+		}
 	}
 	return nil
 }

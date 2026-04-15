@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -31,6 +32,16 @@ func (h *Handler) Login(c echo.Context) error {
 	if err != nil {
 		return response.Error(c, http.StatusUnauthorized, "login failed", err)
 	}
+
+	c.SetCookie(&http.Cookie{
+		Name:     "ws_session",
+		Value:    resp.AccessToken,
+		HttpOnly: true,
+		Secure:   true,
+		Path:     "/",
+		Domain:   fmt.Sprintf(".%s","wfdnstore.online"),
+		SameSite: http.SameSiteLaxMode,
+	})
 
 	return response.Success(c, http.StatusOK, "login success", resp)
 }
@@ -75,4 +86,19 @@ func (h *Handler) RefreshToken(c echo.Context) error {
 	}
 
 	return response.Success(c, http.StatusOK, "token refreshed", resp)
+}
+
+// Handler
+func (h *Handler) Validate(c echo.Context) error {
+    cookie, err := c.Cookie("ws_session")
+    if err != nil {
+        return c.NoContent(http.StatusUnauthorized)
+    }
+
+    valid, err := h.services.Validate(c.Request().Context(), cookie.Value)
+    if err != nil || !valid {
+        return c.NoContent(http.StatusUnauthorized)
+    }
+
+    return c.NoContent(http.StatusOK)
 }

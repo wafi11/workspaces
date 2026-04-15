@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"strings"
 
 	"github.com/hibiken/asynq"
 	"github.com/labstack/echo/v4"
@@ -47,11 +48,14 @@ func main() {
 	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"http://*"},
-		AllowHeaders: []string{"Content-type", "Authorization"},
-		AllowMethods: []string{"POST", "GET", "PATCH", "DELETE", "OPTIONS", "PUT"},
-		MaxAge:       2000,
-	}))
+    AllowOriginFunc: func(origin string) (bool, error) {
+        return strings.HasSuffix(origin, ".wfdnstore.online"), nil
+    },
+    AllowHeaders:     []string{"Content-Type", "Authorization"},
+    AllowMethods:     []string{"POST", "GET", "PATCH", "DELETE", "OPTIONS", "PUT"},
+    AllowCredentials: true,
+    MaxAge:           2000,
+}))
 	
 	srv := asynq.NewServer(asynq.RedisClientOpt{
 		Addr: conf.REDISURL,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/wafi11/workspaces/config"
 	"github.com/wafi11/workspaces/pkg/models"
 )
 
@@ -12,6 +13,7 @@ const (
 	sessionCacheKey = "sessions:%s"
 	cacheTTL        = 5 * time.Minute
 )
+
 
 type UserRepository interface {
 	GetProfile(ctx context.Context, req *GetUserRequest) (*GetUserResponse, error)
@@ -40,6 +42,7 @@ type CachedUser struct {
 	Id          string    `json:"id"`
 	Username    string    `json:"username"`
 	Email       string    `json:"email"`
+	Role 		config.UserRole   `json:"role"`
 	TerminalUrl string    `json:"terminal_url"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
@@ -104,6 +107,7 @@ type User struct {
 	Username    string    `json:"username"`
 	Email       string    `json:"email"`
 	TerminalUrl *string   `json:"terminal_url"`
+	Role 		string   `json:"role"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }

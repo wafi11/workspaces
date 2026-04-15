@@ -2,6 +2,7 @@ package templateservice
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"time"
 )
@@ -16,19 +17,19 @@ type TemplateRepository interface {
 	FindTemplateWorkspaceForm(c context.Context)([]TemplateWorkspaceForm,error)
 
 	// template-variables
-	CreateTemplateVariable(ctx context.Context, req *CreateVariableRequest, templateId string) error
+	CreateTemplateVariable(ctx context.Context, req *CreateVariableRequest, templateId string,Tx *sql.Tx) error
 	DeleteTemplateVariable(ctx context.Context, id string) error
 	GetTemplateVariables(ctx context.Context, templateID string) ([]TemplateVariable, error)
 	UpdateTemplateVariable(ctx context.Context, id string, req *CreateVariableRequest) error
 
 	// template-addons
-	CreateTemplateAddon(ctx context.Context, req *CreateAddonRequest, templateId string) error
+	CreateTemplateAddon(ctx context.Context, req *CreateAddonRequest, templateId string,Tx *sql.Tx) error
 	DeleteTemplateAddon(ctx context.Context, id string) error
 	GetTemplateAddons(ctx context.Context, templateID string) ([]TemplateAddon, error)
 	UpdateTemplateAddon(ctx context.Context, id string, req *CreateAddonRequest) error
 
 	// template-files
-	CreateTemplateFiles(ctx context.Context, req *CreateTemplateFilesRequest, templateId string) error
+	CreateTemplateFiles(ctx context.Context, req *CreateTemplateFilesRequest, templateId string,Tx *sql.Tx) error
 	DeleteTemplateFiles(ctx context.Context, id string) error
 	GetTemplateFiles(ctx context.Context, templateID string) ([]TemplateFiles, error)
 	UpdateTemplateFiles(ctx context.Context, id string, req *CreateTemplateFilesRequest) error
@@ -77,7 +78,6 @@ type Template struct {
 	Id          string             `json:"id"`
 	Name        string             `json:"name"`
 	Description string             `json:"description"`
-	Image       string             `json:"image"`
 	Icon        string             `json:"icon"`
 	Category    string             `json:"category"`
 	IsPublic    bool               `json:"is_public"`
@@ -242,9 +242,6 @@ func (req *UpdateTemplateRequest) merge(t *Template) {
 	}
 	if req.Description != nil {
 		t.Description = *req.Description
-	}
-	if req.Image != nil {
-		t.Image = *req.Image
 	}
 	if req.Category != nil {
 		t.Category = *req.Category

@@ -22,6 +22,9 @@ func (h *Handler) CreateTemplateVariable(c echo.Context) error {
 
 func (h *Handler) GetTemplateVariables(c echo.Context) error {
 	templateId := c.Param("template_id")
+	if templateId == "" {
+		return response.Error(c,http.StatusBadRequest,"template must be required",nil)
+	}
 	variables, err := h.svc.GetTemplateVariables(c.Request().Context(), templateId)
 	if err != nil {
 		return response.Error(c, http.StatusInternalServerError, "Failed to retrieve template variables", nil)

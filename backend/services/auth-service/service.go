@@ -34,3 +34,7 @@ func (services *Services) RefreshToken(c context.Context, req *RefreshTokenReque
 func (services *Services) Register(c context.Context, req *RegisterRequest) (*RegisterResponse, error) {
 	return services.repo.Register(c, req)
 }
+
+func (service *Services)  Validate(c context.Context,req string) (bool,error){
+	return service.repo.Validate(c,req)
+}

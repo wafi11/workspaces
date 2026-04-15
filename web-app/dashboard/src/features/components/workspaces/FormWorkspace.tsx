@@ -1,43 +1,47 @@
-import { useFindTemplateWorkspaceForm, useTemplateForm } from "@/features/api";
+import { useFindTemplateWorkspaceForm, useGetTemplateVariables } from "@/features/api";
 import type { WorkspaceRequest } from "@/types";
-import * as Dialog from "@radix-ui/react-dialog";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { ActionBtn } from "../ActionButton";
 import { Field } from "../Fields";
 import { inputStyle } from "../InputStyle";
 
 interface FormWorkspacesProps {
-  onSuccess: () => void;
+  onSuccess: (ws : WorkspaceRequest) => void;
+  templateId? : string
 }
 
-export function FormWorkspaces({ onSuccess }: FormWorkspacesProps) {
+export function FormWorkspaces({ onSuccess,templateId }: FormWorkspacesProps) {
   const { data: templates, isLoading } = useFindTemplateWorkspaceForm();
-  const [selectedTemplateId, setSelectedTemplateId] = useState("");
-  const { data: templateDetail } = useTemplateForm(selectedTemplateId);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | undefined>(templateId);
+  const {data : templateVariables}  = useGetTemplateVariables(selectedTemplateId)
 
-  const {
-    register,
-    handleSubmit,
-    control,
-    formState: { errors, isSubmitting },
-  } = useForm<WorkspaceRequest>({
-    defaultValues: {
-      name: "",
-      description: "",
-      password: "",
-      env_vars: {},
-    },
-  });
+const { register, handleSubmit, control, setValue, formState: { errors, isSubmitting } } =useForm<WorkspaceRequest>({
+  defaultValues: {
+    name: "",
+    description: "",
+    template_id: "",
+    limit_ram_mb: 1024,
+    limit_cpu_cores: 1.0,
+    req_ram_mb: 512,
+    req_cpu_cores: 0.5,
+    env_vars: {},
+  },
+})
+
+// update keduanya sekaligus
+const handleTemplateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const id = e.target.value
+  setSelectedTemplateId(id)
+  setValue("template_id", id)  // sync ke RHF
+}
 
   const onSubmit = async (data: WorkspaceRequest) => {
-    console.log({ ...data, template_id: selectedTemplateId });
-    // TODO: mutation POST /workspaces
-    onSuccess?.();
+    onSuccess?.(data);
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col w-full gap-4">
       {/* Template */}
       <Field label="Template">
         {isLoading ? (
@@ -52,7 +56,7 @@ export function FormWorkspaces({ onSuccess }: FormWorkspacesProps) {
         ) : (
           <select
             value={selectedTemplateId}
-            onChange={(e) => setSelectedTemplateId(e.target.value)}
+            onChange={(e) =>handleTemplateChange(e)}
             style={inputStyle}
           >
             <option value="">Select a template</option>
@@ -74,6 +78,7 @@ export function FormWorkspaces({ onSuccess }: FormWorkspacesProps) {
         />
       </Field>
 
+
       {/* Description */}
       <Field label="Description">
         <input
@@ -83,8 +88,50 @@ export function FormWorkspaces({ onSuccess }: FormWorkspacesProps) {
         />
       </Field>
 
+      <Field label="Password" error={errors.password?.message}>
+      <input
+          {...register("password", { required: "Password is required" })}
+          placeholder="******"
+          style={inputStyle}
+      />
+      </Field>
+
+      <Field label="RAM Limit (MB)">
+  <input
+    type="number"
+    {...register("limit_ram_mb", { valueAsNumber: true })}
+    style={inputStyle}
+  />
+</Field>
+
+<Field label="CPU Limit (cores)">
+  <input
+    type="number"
+    step="0.1"
+    {...register("limit_cpu_cores", { valueAsNumber: true })}
+    style={inputStyle}
+  />
+</Field>
+
+<Field label="RAM Request (MB)">
+  <input
+    type="number"
+    {...register("req_ram_mb", { valueAsNumber: true })}
+    style={inputStyle}
+  />
+</Field>
+
+<Field label="CPU Request (cores)">
+  <input
+    type="number"
+    step="0.1"
+    {...register("req_cpu_cores", { valueAsNumber: true })}
+    style={inputStyle}
+  />
+</Field>
+
       {/* Template Variables */}
-      {templateDetail?.variables && templateDetail.variables.length > 0 && (
+      {templateVariables && templateVariables.length > 0 && (
         <>
           <div
             className="text-[11px] pt-1"
@@ -92,16 +139,16 @@ export function FormWorkspaces({ onSuccess }: FormWorkspacesProps) {
           >
             Template Variables
           </div>
-          {/* {templateDetail.variables.map((v) => (
+          {templateVariables.map((v) => (
             <Field
-              key={v.name}
-              label={`${v.display_name || v.name}${v.required ? " *" : ""}`}
+              key={v.key}
+              label={`${v.key}${v.required ? " *" : ""}`}
             >
               <Controller
                 control={control}
-                name={`env_vars.${v.name}` as any}
+                name={`env_vars.${v.key}` as any}
                 rules={{
-                  required: v.required ? `${v.name} is required` : false,
+                  required: v.required ? `${v.key} is required` : false,
                 }}
                 render={({ field }) => (
                   <input
@@ -112,15 +159,12 @@ export function FormWorkspaces({ onSuccess }: FormWorkspacesProps) {
                 )}
               />
             </Field>
-          ))} */}
+          ))}
         </>
       )}
 
       {/* Actions */}
       <div className="flex gap-2 justify-end pt-2">
-        <Dialog.Close asChild>
-          <ActionBtn label="Cancel" variant="default" />
-        </Dialog.Close>
         <ActionBtn
           label={isSubmitting ? "Creating..." : "Create"}
           variant="default"

@@ -2,14 +2,15 @@ package templateservice
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"github.com/google/uuid"
 )
 
 func (r *Repository) GetTemplateFiles(ctx context.Context, templateID string) ([]TemplateFiles, error) {
-	
 	var variables []TemplateFiles
+
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT id, template_id, filename, sort_order
 		FROM template_files
@@ -18,7 +19,9 @@ func (r *Repository) GetTemplateFiles(ctx context.Context, templateID string) ([
 	if err != nil {
 		return nil, fmt.Errorf("template files not found")
 	}
+	
 	defer rows.Close()
+	
 	for rows.Next() {
 		var v TemplateFiles
 		if err := rows.Scan(&v.Id, &v.TemplateId, &v.Filename, &v.SortOrder); err != nil {
@@ -26,16 +29,28 @@ func (r *Repository) GetTemplateFiles(ctx context.Context, templateID string) ([
 		}
 		variables = append(variables, v)
 	}
+
 	return variables, nil
 }
 
-func (r *Repository) CreateTemplateFiles(ctx context.Context, req *CreateTemplateFilesRequest, templateId string) error {
-	_, err := r.db.ExecContext(ctx, `
+func (r *Repository) CreateTemplateFiles(ctx context.Context, req *CreateTemplateFilesRequest, templateId string,tx *sql.Tx) error {
+	if tx != nil {
+
+		_, err := tx.ExecContext(ctx, `
 		INSERT INTO template_files (id, template_id, filename, sort_order)
 		VALUES ($1, $2, $3, $4)
-	`, uuid.New().String(), templateId, req.Filename, req.SortOrder)
-	if err != nil {
-		return fmt.Errorf("failed to create template files: %w", err)
+		`, uuid.New().String(), templateId, req.Filename, req.SortOrder)
+		if err != nil {
+			return fmt.Errorf("failed to create template files: %w", err)
+		}
+	}else {
+		_, err := r.db.ExecContext(ctx, `
+		INSERT INTO template_files (id, template_id, filename, sort_order)
+		VALUES ($1, $2, $3, $4)
+		`, uuid.New().String(), templateId, req.Filename, req.SortOrder)
+		if err != nil {
+			return fmt.Errorf("failed to create template files: %w", err)
+		}
 	}
 	return nil
 }

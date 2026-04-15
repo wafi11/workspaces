@@ -63,6 +63,7 @@ async function request<T = any>(
 
   try {
     response = await fetch(url, {
+      credentials : "include",
       method: config.method || "GET",
       headers,
       body: config.body ? JSON.stringify(config.body) : undefined,

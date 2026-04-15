@@ -1,10 +1,14 @@
 import { useUpdateStatusWorkspace } from "@/features/api/workspace";
 import { ActionBtn } from "@/features/components/ActionButton";
 import { StatusBadge } from "@/features/components/statusBadge";
-import type { WorkspaceSessions } from "@/types";
+import { useWorkspaceSocket } from "@/hooks/useWebSocket";
+import type { Workspaces, WorkspaceSessions } from "@/types";
 import { formatDate } from "@/utils/formatDate";
+import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "@tanstack/react-router";
 
 export function WorkspaceCard({ ws }: { ws: WorkspaceSessions }) {
+  const queryClient = useQueryClient()
   const isRunning = ws.status === "running";
   const isPaused = ws.status === "paused";
   const isStopped = ws.status === "stopped";
@@ -15,7 +19,21 @@ export function WorkspaceCard({ ws }: { ws: WorkspaceSessions }) {
   const { mutate: resumeWs } = useUpdateStatusWorkspace(ws.id, "resumed");
   const { mutate: pauseWs } = useUpdateStatusWorkspace(ws.id, "paused");
 
+  const {navigate}  = useRouter()
+useWorkspaceSocket((data) => {
+  if (["workspace.running", "workspace.stopped", "workspace.resumed", "workspace.paused"].includes(data.type)) {
+    queryClient.setQueryData(["workspace-users"], (old: Workspaces[]) => {
+      if (!old) return old
+      return old.map((w) =>
+        w.id === data.workspace_id
+          ? { ...w, status: data.type === "workspace.resumed" ? "running" : data.status }
+          : w
+      )
+    })
+  }
+})
   return (
+       
     <div
       className="flex flex-col gap-4 p-4 rounded-lg transition-colors"
       style={{
@@ -23,7 +41,6 @@ export function WorkspaceCard({ ws }: { ws: WorkspaceSessions }) {
         border: "1px solid var(--color-sidebar-border)",
       }}
     >
-      {/* Header: icon + name + status */}
       <div className="flex items-center gap-3">
         <div className="w-9 h-9 rounded-md flex items-center justify-center shrink-0 select-none overflow-hidden">
           {ws.icon ? (
@@ -100,7 +117,7 @@ export function WorkspaceCard({ ws }: { ws: WorkspaceSessions }) {
             <ActionBtn
               label="Open"
               variant="default"
-              onClick={() => window.open(ws.url, "_blank")}
+              onClick={() => window.open(`https://${ws.url}`, "_blank")}
             />
           </>
         )}
@@ -129,6 +146,7 @@ export function WorkspaceCard({ ws }: { ws: WorkspaceSessions }) {
           />
         )}
       </div>
+      <ActionBtn label="More Details"  variant="default" onClick={() => navigate({to : "/workspaces/$workspaceId",params : {workspaceId : ws.id}})} />
     </div>
   );
 }

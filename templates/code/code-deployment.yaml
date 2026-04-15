@@ -18,12 +18,16 @@ spec:
         runAsGroup: {{.RunAsGroup}}
         fsGroup: {{.FsGroup}}
       containers:
-        - name: code
+        - name: {{.Name}}
           image: codercom/code-server:4.91.1
-          args: ["--auth", "password", "--bind-addr", "0.0.0.0:8080", "/data"]
-          env:
-            - name: PASSWORD
-              value: "{{.Password}}"
+          args: 
+          - "--auth"
+          - "none"
+          - "--bind-addr"
+          - "0.0.0.0:8080"
+          - "--disable-telemetry"
+          - "--disable-update-check"
+          - "/data"
           ports:
             - containerPort: 8080
           resources:
