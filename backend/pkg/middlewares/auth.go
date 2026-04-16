@@ -44,6 +44,8 @@ func AuthMiddleware(conf *config.Config) echo.MiddlewareFunc {
             c.Set("user_id", claims.UserID)
             c.Set("username", claims.Username)
             c.Set("role", claims.Role)
+            c.Set("session_id", claims.SessionID)
+            
 
             return next(c)
         }
