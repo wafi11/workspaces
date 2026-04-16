@@ -1,5 +1,7 @@
 import { api } from "@/lib/api";
+import type { TemplatePort } from "@/types";
 import { useMutation, useQuery } from "@tanstack/react-query";
+
 
 export function useCreateWorkspacePort({workspaceId} : {workspaceId : string}){
     return useMutation({
@@ -15,7 +17,7 @@ export function useGetWorkspacesPort({workspaceId} : {workspaceId : string}){
       return useQuery({
         queryKey : ["port",workspaceId],
         queryFn : async ()  => {
-            const req = await api.get(`/workspaces/${workspaceId}/port`)
+            const req = await api.get<TemplatePort[]>(`/workspaces/${workspaceId}/port`)
             return req.data
         }
     })

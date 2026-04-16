@@ -4,7 +4,8 @@ import { ActionBtn } from "../ActionButton"
 
 interface WorkspacePortProps {
     workspaceId : string
-}export function WorkspacePort({ workspaceId }: WorkspacePortProps) {
+}
+export function WorkspacePort({ workspaceId }: WorkspacePortProps) {
   const { mutate: createPort } = useCreateWorkspacePort({ workspaceId })
   const { data: ports } = useGetWorkspacesPort({ workspaceId })
   const [selected, setSelected] = useState("")
@@ -49,7 +50,7 @@ interface WorkspacePortProps {
             No ports published yet
           </p>
         )}
-        {ports?.map((p : any) => (
+        {ports?.map((p) => (
           <div key={p.port} className="flex items-center justify-between px-3 py-2 rounded-md"
             style={{ background: "var(--color-sidebar-bg)", border: "1px solid var(--color-sidebar-border)" }}>
             <div className="flex items-center gap-3">
@@ -57,10 +58,9 @@ interface WorkspacePortProps {
                 style={{ background: "var(--color-sidebar-surface)", color: "var(--color-sidebar-text-active)" }}>
                 :{p.port}
               </span>
-              <span className="text-xs" style={{ color: "var(--color-sidebar-text-muted)" }}>{p.sub_domain}</span>
             </div>
             <div className="flex gap-2">
-              <ActionBtn label="Open" variant="default" onClick={() => window.open(`https://${p.sub_domain}`, "_blank")} />
+              <ActionBtn label="Open" variant="default" className="px-2" onClick={() => window.open(`https://${p.subdomain}`, "_blank")} />
               {/* <ActionBtn label="Remove" variant="danger" onClick={() => deletePort({ port: p.port })} /> */}
             </div>
           </div>

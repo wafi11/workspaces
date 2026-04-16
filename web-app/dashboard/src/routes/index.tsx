@@ -1,7 +1,10 @@
 import { useLogout, useProfile } from "@/features/api/auth";
+import { MainContainer } from "@/features/layout/MainContainer";
 import { Sidebar } from "@/features/layout/Sidebar";
 import { SectionHeader } from "@/features/pages/home";
+import { EmptyState } from "@/features/pages/home/EmptyState";
 import { SectionQuotaUser } from "@/features/pages/home/SectionCardQuotaUser";
+import { SectionTerminal } from "@/features/pages/home/SectionTerminal";
 import { SectionWorkspace } from "@/features/pages/home/SectionWorkspace";
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -13,22 +16,27 @@ function RouteComponent() {
   const { mutate } = useLogout();
   const { data: profileData } = useProfile();
 
+  if (!profileData){
+    return <EmptyState />
+  }
+
   return (
     <div
       className="flex  w-full h-full"
       style={{ background: "var(--color-app-bg)" }}
     >
       <Sidebar
-        role="admin"
+        role={profileData?.role}
         userEmail={profileData?.email}
         userName={profileData?.username}
         onLogout={mutate}
       />
-      <main className="flex flex-col space-y-4 p-4 flex-1 min-w-0 h-full">
+      <MainContainer>
         <SectionHeader />
         <SectionQuotaUser />
         <SectionWorkspace />
-      </main>
+        <SectionTerminal terminal_url={profileData.terminal_url}/>
+      </MainContainer>
     </div>
   );
 }

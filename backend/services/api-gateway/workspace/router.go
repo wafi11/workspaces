@@ -17,7 +17,7 @@ import (
 
 func RegisterRoutes(e *echo.Echo, db *sqlx.DB, redis *config.RedisConnection, conf *config.Config, minioClient *minio.Client, ctx context.Context, sub *messagebroker.Subscriber, jobQueue <-chan *proto.WorkspaceEnvelope, hub *websocket.Hub,mux *asynq.ServeMux) {
 
-	repo := workspaceservice.NewRepository(db, redis)
+	repo := workspaceservice.NewRepository(db, redis,hub)
 	svc := workspaceservice.NewService(repo, jobQueue, hub)
 	h := NewHandler(svc)
 	mux.HandleFunc(string(messagebroker.EventStopWorkspace), repo.HandleStopWorkspace())

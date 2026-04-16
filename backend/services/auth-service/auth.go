@@ -106,7 +106,7 @@ func (repo *Repository) Register(c context.Context, req *RegisterRequest) (*Regi
 		INSERT INTO sessions (id, user_id, is_active, user_agent, ip_address,refresh_token)
 		VALUES ($1, $2, true, $3, $4,$5)
 	`
-	_, err = repo.db.ExecContext(c, sessionQuery, sessionId, userId, "","",refreshToken)
+	_, err = tx.ExecContext(c, sessionQuery, sessionId, userId, "","",refreshToken)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create session: %w", err)
 	}

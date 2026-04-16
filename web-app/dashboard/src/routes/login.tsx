@@ -4,6 +4,8 @@ import * as Label from "@radix-ui/react-label";
 import { AuthContainer } from "../features/components/AuthContainer";
 import { useLogin } from "@/features/api/auth";
 import type { LoginForm } from "@/types";
+import { inputStyle } from "@/features/components/InputStyle";
+import { ActionBtn } from "@/features/components/ActionButton";
 
 export const Route = createFileRoute("/login")({
   component: RouteComponent,
@@ -57,9 +59,7 @@ function RouteComponent() {
                 id="email"
                 type="email"
                 placeholder="name@company.com"
-                className={`flex h-11 w-full rounded-xl border bg-zinc-950 px-4 py-2 text-sm text-white transition-all placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-[var(--blue-9)]/40 focus:border-[var(--blue-9)] ${
-                  errors.email ? "border-red-500/50" : "border-zinc-800"
-                }`}
+                style={inputStyle}
               />
               {errors.email && (
                 <span className="text-[10px] text-red-400 ml-1">
@@ -77,21 +77,15 @@ function RouteComponent() {
                 >
                   Password
                 </Label.Root>
-                <Link
-                  to="/register"
-                  className="text-[11px] text-[var(--blue-11)] hover:text-[var(--blue-9)] hover:underline transition-colors"
-                >
-                  Forgot?
-                </Link>
+             
               </div>
               <input
                 {...register("password", { required: "Password is required" })}
                 id="password"
                 type="password"
                 placeholder="••••••••"
-                className={`flex h-11 w-full rounded-xl border bg-zinc-950 px-4 py-2 text-sm text-white transition-all placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-[var(--blue-9)]/40 focus:border-[var(--blue-9)] ${
-                  errors.password ? "border-red-500/50" : "border-zinc-800"
-                }`}
+                               style={inputStyle}
+
               />
               {errors.password && (
                 <span className="text-[10px] text-red-400 ml-1">
@@ -101,13 +95,7 @@ function RouteComponent() {
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={isPending}
-            className="w-full inline-flex items-center justify-center rounded-xl bg-[var(--blue-9)] h-11 text-sm font-bold text-[var(--blue-contrast)] transition-all hover:bg-[var(--blue-10)] active:scale-[0.98] disabled:opacity-50 shadow-[0_0_20px_var(--blue-a3)] mt-2"
-          >
-            {isPending ? "Connecting to Node..." : "Sign In to Cluster"}
-          </button>
+          <ActionBtn label="Login" variant="default" onClick={() => {}} type="submit" disabled={isPending} className="w-full bg-sidebar-accent/20 py-2"/>
         </form>
 
         {/* Divider */}
@@ -136,7 +124,7 @@ function RouteComponent() {
           New to KubeSpace?{" "}
           <Link
             to="/register"
-            className="font-semibold text-[var(--blue-11)] hover:text-[var(--blue-9)] hover:underline transition-colors"
+            className="font-semibold text-(--blue-11) hover:text-(--blue-9) hover:underline transition-colors"
           >
             Create Account
           </Link>

@@ -21,7 +21,7 @@ export function SectionWorkspace() {
 
   if (!workspaceData || workspaceData.length === 0) {
     return (<>
-    <div className="flex justify-between items-center gap-2">
+    <div className="flex justify-between items-center gap-2 p-4">
         <div className="flex items-center gap-2">
           <h2
             className="text-xs font-semibold uppercase tracking-wider"
@@ -34,32 +34,20 @@ export function SectionWorkspace() {
         <ButtonCreate label="+ Create Workspace" to="workspaces"  />
       </div>
 
-    <EmptyState />
+    <EmptyState className=""/>
     </>
   )
   }
 
   return (
-    <section className="space-y-4 mt-8">
+    <section className="m-8 space-y-2">
       <div className="flex justify-between items-center gap-2">
-        <div className="flex items-center gap-2">
           <h2
             className="text-xs font-semibold uppercase tracking-wider"
             style={{ color: "var(--color-sidebar-text)" }}
           >
             Your Workspaces
-          </h2>
-          <span
-            className="text-[10px] font-mono px-1.5 py-0.5 rounded"
-            style={{
-              color: "var(--color-sidebar-text)",
-              background: "var(--color-sidebar-surface)",
-              border: "1px solid var(--color-sidebar-border)",
-            }}
-          >
-            {workspaceData.length} instances
-          </span>
-        </div>
+          </h2>          
         <ButtonCreate label="+ Create Workspace" to="workspaces"  />
       </div>
 

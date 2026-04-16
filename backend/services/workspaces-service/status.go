@@ -191,6 +191,13 @@ func (r *Repository) AutoStopWorkspace(ctx context.Context, workspaceId string) 
 		return err
 	}
 
+	log.Printf("[consumer] sending to userID=%s clients=%v", res.UserId, r.hub)
+	r.hub.SendToUser(res.UserId, map[string]string{
+		"type":         fmt.Sprintf("workspace.%s","stopped"),
+		"workspace_id": workspaceId,
+		"status":       "stopped",
+	})
+
 	log.Printf("[autostop] selesai workspace %s berhasil distop", workspaceId)
 	return nil
 }
@@ -328,6 +335,26 @@ func (r *Repository) handleStop(ctx context.Context, tx *sql.Tx, workspaceId str
 		return fmt.Errorf("gagal release quota: %w", err)
 	}
 
+	// var pausedAt, expiresAt time.Time
+	// err := tx.QueryRowContext(ctx, `
+	// 	SELECT  expires_at
+	// 	FROM workspace_sessions
+	// 	WHERE workspace_id = $1 AND status = 'running'
+	// 	ORDER BY created_at DESC
+	// 	LIMIT 1
+	// `, workspaceId).Scan(&expiresAt)
+	// if err != nil {
+	// 	log.Printf("failed to resumed workspaces : %s",err.Error())
+	// 	return fmt.Errorf("session paused tidak ditemukan: %w", err)
+	// }
+
+
+	// // Sisa waktu = waktu yang belum terpakai sebelum di-pause
+	// remainingTime := expiresAt.Sub(pausedAt)
+	// if remainingTime <= 0 {
+	// 	// Waktu sudah habis saat di-pause, beri grace period minimal
+	// 	remainingTime = 1 * time.Minute
+	// }
 	// Set cooldown next_start_at — ini yang membedakan manual stop vs auto stop
 	// User harus tunggu cooldown sebelum bisa start lagi
 	nextStartAt := time.Now().UTC().Add(cooldown)

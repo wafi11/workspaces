@@ -14,18 +14,22 @@ import (
 	messagebroker "github.com/wafi11/workspaces/pkg/message-broker"
 	"github.com/wafi11/workspaces/pkg/proto"
 	"github.com/wafi11/workspaces/pkg/utils"
+	"github.com/wafi11/workspaces/pkg/websocket"
 	authservices "github.com/wafi11/workspaces/services/auth-service"
 )
 
 type Repository struct {
 	db          *sqlx.DB
 	redis      *config.RedisConnection
+	hub      *websocket.Hub
+
 }
 
-func NewRepository(db *sqlx.DB, redis *config.RedisConnection) *Repository {
+func NewRepository(db *sqlx.DB, redis *config.RedisConnection,	hub      *websocket.Hub) *Repository {
 	return &Repository{
 		db:          db,
 		redis: redis,
+		hub: hub,
 	}
 }
 

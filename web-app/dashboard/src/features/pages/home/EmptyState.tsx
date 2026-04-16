@@ -1,7 +1,9 @@
-export function EmptyState() {
+import { cn } from "@/lib/utils"
+
+export function EmptyState({className} : {className? : string}) {
   return (
     <div
-      className="flex flex-col items-center justify-center gap-3 py-16 rounded-lg"
+      className={cn("flex flex-col items-center justify-center gap-3 py-16 rounded-lg",className)}
       style={{ border: "1px dashed var(--color-sidebar-border)" }}
     >
       <div

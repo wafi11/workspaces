@@ -78,3 +78,10 @@ export type TemplateFilesEdit = {
   filename: string;
   sort_order: number;
 };
+
+export type TemplatePort = {
+  id: string
+  port: number
+  subdomain: string
+  created_at: string
+}

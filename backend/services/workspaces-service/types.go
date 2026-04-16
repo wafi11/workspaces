@@ -51,7 +51,7 @@ const (
 	workspaceCacheKey  = "workspace:%s"
 	workspacesCacheKey = "workspaces:user:%s"
 	cacheTTL           = 5 * time.Minute
-	cooldown = 30
+	cooldown = 1
 )
 
 var (
