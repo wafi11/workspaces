@@ -94,6 +94,14 @@ log.Printf("[operator] envelope type=%T payload=%+v", envelope.Payload, envelope
 		log.Printf("[operator] start workspace_id=%s", p.Start.Identity.WorkspaceId)
 		return handleStart(ctx, p.Start, k8sClient)
 
+	case *workspacev1.WorkspaceEnvelope_CreatePort:
+		log.Printf("[operator] create port workspace_name=%s", p.CreatePort.WorkspaceName)
+		return  handleCreatePort(ctx,p.CreatePort,k8sClient)
+	
+	case *workspacev1.WorkspaceEnvelope_DeletePort:
+		log.Printf("[operator] delete port workspace_name=%s", p.DeletePort.WorkspaceName)
+		return handleDeletePort(ctx,p.DeletePort,k8sClient)
+
 	default:
 		return fmt.Errorf("unknown payload type: %T", envelope.Payload)
 	}
@@ -176,5 +184,37 @@ func handleStart(ctx context.Context, e *workspacev1.StartWorkspaceEvent, k8sCli
 		return fmt.Errorf("scale up: %w", err)
 	}
 	log.Printf("[operator] workspace %s started", e.Identity.WorkspaceId)
+	return nil
+}
+
+
+func handleCreatePort(ctx context.Context, e *workspacev1.CreatePort, k8sClient IK8SClient) error{
+	if err := k8sClient.CreatePort(ctx,e.UserId,e.WorkspaceName,int(e.Port)); err != nil {
+		return fmt.Errorf("failed to create port : %s",err.Error())
+	}
+
+	serviceName := fmt.Sprintf("%s-%d-svc", e.WorkspaceName, e.Port)
+
+	if err := k8sClient.ExposeToIngress(ctx,e.UserId,e.WorkspaceName,serviceName,e.Domain,e.Port); err != nil {
+		return fmt.Errorf("failed to expose port : %s",err.Error())
+	}
+
+	log.Printf("[operator] update  port %s started", e.WorkspaceName)
+
+	return  nil
+}
+
+func handleDeletePort(ctx context.Context,e *workspacev1.DeletePort, k8sClient IK8SClient) error {
+	if err := k8sClient.DeletePort(ctx,e.UserId,e.WorkspaceName,int(e.Port)); err != nil {
+		return fmt.Errorf("failed to delete port : %s",err.Error())
+	}
+
+	domain :=  fmt.Sprintf("%d-%s-%s.wfdnstore.online",e.Port,e.WorkspaceName,e.UserId)
+
+	if err :=  k8sClient.RemoveFromIngress(ctx,e.UserId,e.WorkspaceName,domain); err != nil {
+		return fmt.Errorf("failed to remove ingress : %s",err.Error())
+	}
+
+	log.Printf("[operator] delete port %s started", e.WorkspaceName)
 	return nil
 }

@@ -62,6 +62,10 @@ func (s *Subscriber) handle(ctx context.Context, payload string) {
 		log.Printf("[subscriber] stop workspace_id=%s", p.Stop.Identity.WorkspaceId)
 	case *workspacev1.WorkspaceEnvelope_Start:
 		log.Printf("[subscriber] start workspace_id=%s", p.Start.Identity.WorkspaceId)
+	case *workspacev1.WorkspaceEnvelope_CreatePort:
+		log.Printf("[subscriber] create port on workspace_name=%s", p.CreatePort.WorkspaceName)
+	case *workspacev1.WorkspaceEnvelope_DeletePort:
+		log.Printf("[subscriber] delete port on workspace_name=%s", p.DeletePort.WorkspaceName)
 	default:
 		log.Println("[subscriber] unknown payload type")
 		return
