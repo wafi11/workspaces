@@ -1,6 +1,5 @@
 @BASE_URL = http://localhost:8080/api/v1
-@TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiYzYzNDg3ZDMtOTcxNi00YmM4LTkyZWMtZjQzZjc3ZGQ0MjY3IiwidXNlcm5hbWUiOiJhZG1pbiIsInN1YiI6ImM2MzQ4N2QzLTk3MTYtNGJjOC05MmVjLWY0M2Y3N2RkNDI2NyIsImV4cCI6MTc3NjE0MDM5MCwiaWF0IjoxNzc2MTM2NzkwfQ.8SX62mUALWKBFG47rSOjhdx1IT5fDRFeUbI8GO7QEJY
-
+@TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNmVhZWE3NzItNmY4YS00OTVlLThkNzEtOThmMGJmM2VjZTlmIiwidXNlcm5hbWUiOiJhZG1pbiIsInNlc3Npb25faWQiOiIiLCJyb2xlIjoidXNlciIsInN1YiI6IjZlYWVhNzcyLTZmOGEtNDk1ZS04ZDcxLTk4ZjBiZjNlY2U5ZiIsImV4cCI6MTc3NjQzOTMxNywiaWF0IjoxNzc2NDM1NzE3fQ.kP8xNfVO8qBIJ-HYBudKsXLlqlVb4Ef_Nbr_R63l7Ug
 
 ###
 POST {{BASE_URL}}/workspaces
@@ -8,7 +7,7 @@ Content-Type: application/json
 Authorization: Bearer {{TOKEN}}
 
 {
-    "name": "development",
+    "name": "test",
     "password" : "password123",
     "template_id" : "a347008b-cf85-4f8c-b92b-7fed81e37aae",
     "limit_ram_mb" : 1024,
@@ -35,4 +34,15 @@ Authorization: Bearer {{TOKEN}}
         "DB_PASSWORD" : "development",
         "DB_USER" : "development"
     }
+}
+
+
+###
+POST {{BASE_URL}}/workspaces/78d93aa4-c47e-4d30-9fcd-f7ef359e1703/invite
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNmVhZWE3NzItNmY4YS00OTVlLThkNzEtOThmMGJmM2VjZTlmIiwidXNlcm5hbWUiOiJhZG1pbiIsInNlc3Npb25faWQiOiIiLCJyb2xlIjoidXNlciIsInN1YiI6IjZlYWVhNzcyLTZmOGEtNDk1ZS04ZDcxLTk4ZjBiZjNlY2U5ZiIsImV4cCI6MTc3NjQzOTUxNCwiaWF0IjoxNzc2NDM1OTE0fQ.NU79wrmt_iCrUFarna1tT7aKELZSnQjQ_lM6feXXD88
+
+{
+   "user_id" : "0de67cb6-26cc-42e5-9964-8f4c695c5ed4",
+   "role" : "editor"
 }

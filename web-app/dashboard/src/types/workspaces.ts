@@ -29,6 +29,16 @@ export type WorkspaceSessions = {
   url: string;
 };
 
+export type WorkspaceCollaborations = {
+    workspace_id: string
+    workspace_name: string
+    workspace_url : string
+    role: "viewer" | "editor"
+    status: string
+    invited_at: string
+    template_name: string
+    template_icon: string
+}
 export interface WorkspaceRequest {
   name: string
   description?: string

@@ -1,4 +1,5 @@
 frontend-workspace/.env
+.claude
 frontend-workspace/node_modules/*
 frontend-workspace/tests/*
 frontend-workspace/.next/*
@@ -8,8 +9,10 @@ log-services
 operator/.air.toml
 operator/tmp/*
 backend/tmp/*
+hoscopus-server
 backend/config/config
 backend/.env
+templates/code
 web-app/dashboard/.tanstack
 web-app/dashboard/node_modules
 ws-cli

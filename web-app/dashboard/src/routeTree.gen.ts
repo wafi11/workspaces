@@ -12,11 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as WorkspacesRouteImport } from './routes/workspaces'
 import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WorkspacesIndexRouteImport } from './routes/workspaces/index'
 import { Route as TemplatesIndexRouteImport } from './routes/templates/index'
+import { Route as NotificationsIndexRouteImport } from './routes/notifications/index'
 import { Route as WorkspacesCreateRouteImport } from './routes/workspaces/create'
 import { Route as WorkspacesWorkspaceIdRouteImport } from './routes/workspaces/$workspaceId'
 import { Route as TemplatesCreateRouteImport } from './routes/templates/create'
@@ -35,6 +37,11 @@ const TemplatesRoute = TemplatesRouteImport.update({
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -62,6 +69,11 @@ const TemplatesIndexRoute = TemplatesIndexRouteImport.update({
   path: '/',
   getParentRoute: () => TemplatesRoute,
 } as any)
+const NotificationsIndexRoute = NotificationsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => NotificationsRoute,
+} as any)
 const WorkspacesCreateRoute = WorkspacesCreateRouteImport.update({
   id: '/create',
   path: '/create',
@@ -87,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRouteWithChildren
   '/register': typeof RegisterRoute
   '/templates': typeof TemplatesRouteWithChildren
   '/workspaces': typeof WorkspacesRouteWithChildren
@@ -94,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/templates/create': typeof TemplatesCreateRoute
   '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdRoute
   '/workspaces/create': typeof WorkspacesCreateRoute
+  '/notifications/': typeof NotificationsIndexRoute
   '/templates/': typeof TemplatesIndexRoute
   '/workspaces/': typeof WorkspacesIndexRoute
 }
@@ -106,6 +120,7 @@ export interface FileRoutesByTo {
   '/templates/create': typeof TemplatesCreateRoute
   '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdRoute
   '/workspaces/create': typeof WorkspacesCreateRoute
+  '/notifications': typeof NotificationsIndexRoute
   '/templates': typeof TemplatesIndexRoute
   '/workspaces': typeof WorkspacesIndexRoute
 }
@@ -114,6 +129,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRouteWithChildren
   '/register': typeof RegisterRoute
   '/templates': typeof TemplatesRouteWithChildren
   '/workspaces': typeof WorkspacesRouteWithChildren
@@ -121,6 +137,7 @@ export interface FileRoutesById {
   '/templates/create': typeof TemplatesCreateRoute
   '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdRoute
   '/workspaces/create': typeof WorkspacesCreateRoute
+  '/notifications/': typeof NotificationsIndexRoute
   '/templates/': typeof TemplatesIndexRoute
   '/workspaces/': typeof WorkspacesIndexRoute
 }
@@ -130,6 +147,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/login'
+    | '/notifications'
     | '/register'
     | '/templates'
     | '/workspaces'
@@ -137,6 +155,7 @@ export interface FileRouteTypes {
     | '/templates/create'
     | '/workspaces/$workspaceId'
     | '/workspaces/create'
+    | '/notifications/'
     | '/templates/'
     | '/workspaces/'
   fileRoutesByTo: FileRoutesByTo
@@ -149,6 +168,7 @@ export interface FileRouteTypes {
     | '/templates/create'
     | '/workspaces/$workspaceId'
     | '/workspaces/create'
+    | '/notifications'
     | '/templates'
     | '/workspaces'
   id:
@@ -156,6 +176,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/login'
+    | '/notifications'
     | '/register'
     | '/templates'
     | '/workspaces'
@@ -163,6 +184,7 @@ export interface FileRouteTypes {
     | '/templates/create'
     | '/workspaces/$workspaceId'
     | '/workspaces/create'
+    | '/notifications/'
     | '/templates/'
     | '/workspaces/'
   fileRoutesById: FileRoutesById
@@ -171,6 +193,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
+  NotificationsRoute: typeof NotificationsRouteWithChildren
   RegisterRoute: typeof RegisterRoute
   TemplatesRoute: typeof TemplatesRouteWithChildren
   WorkspacesRoute: typeof WorkspacesRouteWithChildren
@@ -197,6 +220,13 @@ declare module '@tanstack/react-router' {
       path: '/register'
       fullPath: '/register'
       preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -234,6 +264,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TemplatesIndexRouteImport
       parentRoute: typeof TemplatesRoute
     }
+    '/notifications/': {
+      id: '/notifications/'
+      path: '/'
+      fullPath: '/notifications/'
+      preLoaderRoute: typeof NotificationsIndexRouteImport
+      parentRoute: typeof NotificationsRoute
+    }
     '/workspaces/create': {
       id: '/workspaces/create'
       path: '/create'
@@ -264,6 +301,18 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface NotificationsRouteChildren {
+  NotificationsIndexRoute: typeof NotificationsIndexRoute
+}
+
+const NotificationsRouteChildren: NotificationsRouteChildren = {
+  NotificationsIndexRoute: NotificationsIndexRoute,
+}
+
+const NotificationsRouteWithChildren = NotificationsRoute._addFileChildren(
+  NotificationsRouteChildren,
+)
 
 interface TemplatesRouteChildren {
   TemplatesTemplateIdRoute: typeof TemplatesTemplateIdRoute
@@ -301,6 +350,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
+  NotificationsRoute: NotificationsRouteWithChildren,
   RegisterRoute: RegisterRoute,
   TemplatesRoute: TemplatesRouteWithChildren,
   WorkspacesRoute: WorkspacesRouteWithChildren,

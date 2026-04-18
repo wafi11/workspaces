@@ -27,7 +27,11 @@ type WorkspaceRepository interface {
 	GetWorkspacePort(ctx context.Context, workspaceID string, port int) (*WorkspacePort, error)
 	CreateWorkspacePort(ctx context.Context, workspaceID string, port int, subDomain string) (*WorkspacePort, error)
 	ValidateWorkspaceOwner(ctx context.Context, workspaceID, userID string) error
-
+	AddCollaborators(c context.Context, req WorkspaceCollaborator) (*WorkspaceCollaboratorResponse, error) 
+	UpdateCollaborator(c context.Context, req UpdateCollaboratorRequest) error
+	RemoveCollaborator(c context.Context, req RemoveCollaboratorRequest) error
+	 GetCollaboratedWorkspaces(ctx context.Context, userID string) ([]CollaboratedWorkspace, error)
+	AcceptOrDeniedInvitationCollborator(ctx context.Context, types, notificationID string) error
 }
 
 type WorkspaceService interface {
@@ -44,14 +48,20 @@ type WorkspaceService interface {
 	GetWorkspacePort(ctx context.Context, workspaceID string, port int) (*WorkspacePort, error)
 	CreateWorkspacePort(ctx context.Context, workspaceID string, port int, subDomain string) (*WorkspacePort, error)
 	ValidateWorkspaceOwner(ctx context.Context, workspaceID, userID string) error
-
+	AddCollaborators(c context.Context, req WorkspaceCollaborator) (*WorkspaceCollaboratorResponse, error) 
+	UpdateCollaborator(c context.Context, req UpdateCollaboratorRequest) error
+	RemoveCollaborator(c context.Context, req RemoveCollaboratorRequest) error 
+	AcceptOrDeniedInvitationCollborator(ctx context.Context, types, notificationID string) error
+	 GetCollaboratedWorkspaces(ctx context.Context, userID string) ([]CollaboratedWorkspace, error)
 }
 
 const (
 	workspaceCacheKey  = "workspace:%s"
 	workspacesCacheKey = "workspaces:user:%s"
 	cacheTTL           = 5 * time.Minute
-	cooldown = 1
+	timeExpCollaborators = 60
+	timeExpSessionCollaborator = 60
+	cooldown = 5300
 )
 
 var (
@@ -63,6 +73,7 @@ var (
 )
 
 type WorkspaceStatus string
+type WorkspaceCollaboratorStatus string
 
 const (
 	StatusPending  WorkspaceStatus = "pending"
@@ -70,6 +81,12 @@ const (
 	StatusStopped  WorkspaceStatus = "stopped"
 	StatusError    WorkspaceStatus = "error"
 	StatusDeleting WorkspaceStatus = "deleting"
+)
+const (
+	CollaboratorPending  WorkspaceCollaboratorStatus = "pending"
+	CollaboratorAccepted WorkspaceCollaboratorStatus = "accepted"
+	CollaboratorRejected WorkspaceCollaboratorStatus = "rejected"
+	CollaboratorRevoked  WorkspaceCollaboratorStatus = "revoked"
 )
 
 type AddonUrl string 
@@ -215,6 +232,23 @@ type CreateWorkspaceSessions struct {
 	UserAgent   string `json:"user_agent"`
 }
 
+
+type CreateWorkspacesResources struct {
+	WsID   string `json:"wsId"`
+	Kind   string `json:"kind"`
+	Name   string `json:"name"`
+	Status string `json:"status"`
+}
+
+type WorkspacesResources struct {
+	Id        string    `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	WsID      string    `json:"wsId"`
+	Kind      string    `json:"kind"`
+	Name      string    `json:"name"`
+	Status    string    `json:"status"`
+}
+
 type workspaceRow struct {
     UserId     string
     Name       string
@@ -223,4 +257,53 @@ type workspaceRow struct {
     LimitCPU   float64
     ReqRAM     int
     ReqCPU     float64
+}
+
+
+type WorkspaceCollaborator struct {
+	UserID      string `json:"user_id"`
+	Role        string `json:"role"`
+	InvitedBy   string `json:"invited_by"`
+	WorkspaceId string `json:"workspace_id"`
+}
+
+type WorkspaceCollaboratorResponse struct {
+	WorkspaceId string `json:"workspace_id"`
+	Status      string `json:"status"`
+	Token       string `json:"token"`
+}
+// UpdateCollaborator — update role atau status collaborator
+type UpdateCollaboratorRequest struct {
+	CollaboratorID string `json:"collaborator_id"`
+	WorkspaceID    string `json:"workspace_id"`
+	Role           string `json:"role,omitempty"`
+	Status         string `json:"status,omitempty"`
+	RequestedBy    string `json:"requested_by"` // harus owner workspace
+}
+
+// RemoveCollaborator — hapus collaborator dari workspace
+type RemoveCollaboratorRequest struct {
+	CollaboratorID string `json:"collaborator_id"`
+	WorkspaceID    string `json:"workspace_id"`
+	RequestedBy    string `json:"requested_by"` // owner atau collaborator itu sendiri
+}
+
+type ValidateTokenWorkspaceReq struct {
+	WorkspaceID  string
+	Token string
+}
+
+type ValidateTokenWorkspaceRes struct {
+	UserID string `json:"userId"`
+	Role string `json:"role"`
+}
+type CollaboratedWorkspace struct {
+    WorkspaceID   string    `json:"workspace_id"`
+    WorkspaceName string    `json:"workspace_name"`
+	WorkspaceUrl string `json:"workspace_url"`
+    Role          string    `json:"role"`
+    Status        string    `json:"status"`
+    InvitedAt     time.Time `json:"invited_at"`
+	TemplateName  string `json:"template_name"`
+	TemplateIcon string `json:"template_icon"`
 }

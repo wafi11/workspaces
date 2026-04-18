@@ -1,0 +1,63 @@
+@BASE_URL = http://localhost:8080/api/v1
+@owner_token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOTIwNmEzYjgtMjk4OC00NDVjLTkyNGMtZmFlNzlhMmNhYjc0IiwidXNlcm5hbWUiOiJhZG1pbiIsInNlc3Npb25faWQiOiIiLCJyb2xlIjoidXNlciIsInN1YiI6IjkyMDZhM2I4LTI5ODgtNDQ1Yy05MjRjLWZhZTc5YTJjYWI3NCIsImV4cCI6MTc3NjQ1MjI4MCwiaWF0IjoxNzc2NDQ4NjgwfQ.4jYj2BTl8WW-Na9VoaFjuxDVUR116ftB7MuBLB7pR9M
+@collab_token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMGRlNjdjYjYtMjZjYy00MmU1LTk5NjQtOGY0YzY5NWM1ZWQ0IiwidXNlcm5hbWUiOiJhZG1pbiIsInNlc3Npb25faWQiOiIiLCJyb2xlIjoidXNlciIsInN1YiI6IjBkZTY3Y2I2LTI2Y2MtNDJlNS05OTY0LThmNGM2OTVjNWVkNCIsImV4cCI6MTc3NjQ0MTgwNCwiaWF0IjoxNzc2NDM4MjA0fQ.IKJxmbs2lTDBfHErvocg4jiPavYG6WfN_g_5yK5wrZ0
+@invite_token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMGRlNjdjYjYtMjZjYy00MmU1LTk5NjQtOGY0YzY5NWM1ZWQ0Iiwicm9sZSI6ImVkaXRvciIsIndvcmtzcGFjZV9pZCI6ImIxOTdlZDk5LTllYTgtNDYwYy1iYmRlLTNiMGJjNDMxNTVlMSIsInN1YiI6IjBkZTY3Y2I2LTI2Y2MtNDJlNS05OTY0LThmNGM2OTVjNWVkNCIsImV4cCI6MTc3NjQzODc0NiwiaWF0IjoxNzc2NDM4NDQ2fQ.QPEAo2KUMCzMnBNzcY989oCqlXoPnErY4f6yjSYh-_s
+@workspace_id = b197ed99-9ea8-460c-bbde-3b0bc43155e123a506f5-55b6-4e30-b74e-e783eb495073
+
+###
+POST {{BASE_URL}}/auth/login
+Content-Type: application/json
+
+{
+    "email" : "admin85@gmail.com",
+    "password" : "node1234"
+}
+
+###
+POST {{BASE_URL}}/auth/login
+Content-Type: application/json
+
+{
+    "email" : "admin82@gmail.com",
+    "password" : "node1234"
+}
+
+###
+POST {{BASE_URL}}/workspaces
+Content-Type: application/json
+Authorization: Bearer {{owner_token}}
+
+{
+    "name": "test",
+    "password" : "password123",
+    "template_id" : "a347008b-cf85-4f8c-b92b-7fed81e37aae",
+    "limit_ram_mb" : 1024,
+    "limit_cpu_cores" : 1.0,
+    "req_ram_mb" : 512,
+    "req_cpu_cores" : 0.5
+}
+
+###
+POST {{BASE_URL}}/workspaces/46da6832-02e2-4ced-a951-0247d73a36a7/invite
+Content-Type: application/json
+Authorization: Bearer {{owner_token}}
+
+{
+   "user_id" : "283d942d-7012-4aed-9d03-684ad9d28206",
+   "role" : "editor"
+}
+
+
+###
+GET {{BASE_URL}}/workspaces/{{workspace_id}}/collab/token?token={{invite_token}}
+Authorization: Bearer {{collab_token}}
+
+
+###
+POST {{BASE_URL}}/workspaces/78d93aa4-c47e-4d30-9fcd-f7ef359e1703/collab
+Authorization: Bearer {{collab_token}}
+Content-Type: application/json
+
+{
+    "token": "<session_token>"
+}

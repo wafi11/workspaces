@@ -16,20 +16,25 @@ import (
 	"github.com/wafi11/workspaces/pkg/utils"
 	"github.com/wafi11/workspaces/pkg/websocket"
 	authservices "github.com/wafi11/workspaces/services/auth-service"
+	notificationservices "github.com/wafi11/workspaces/services/notifications-service"
 )
 
 type Repository struct {
 	db          *sqlx.DB
-	redis      *config.RedisConnection
-	hub      *websocket.Hub
+	redis       *config.RedisConnection
+	hub         *websocket.Hub
+	conf        *config.Config
+	notifRepo   notificationservices.NotificationRepository
 
 }
 
-func NewRepository(db *sqlx.DB, redis *config.RedisConnection,	hub      *websocket.Hub) *Repository {
+func NewRepository(db *sqlx.DB, redis *config.RedisConnection,hub *websocket.Hub,conf *config.Config) *Repository {
 	return &Repository{
 		db:          db,
 		redis: redis,
 		hub: hub,
+		conf: conf,
+		notifRepo: notificationservices.NewRepository(db.DB,redis.Redis),
 	}
 }
 

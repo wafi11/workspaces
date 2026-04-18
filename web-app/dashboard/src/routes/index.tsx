@@ -1,11 +1,10 @@
 import { useLogout, useProfile } from "@/features/api/auth";
+import { SectionHeader } from "@/features/components/workspaces";
+import { EmptyState } from "@/features/components/workspaces/EmptyState";
+import { SectionQuotaUser } from "@/features/components/workspaces/SectionCardQuotaUser";
+import { SectionTerminal } from "@/features/components/workspaces/SectionTerminal";
 import { MainContainer } from "@/features/layout/MainContainer";
 import { Sidebar } from "@/features/layout/Sidebar";
-import { SectionHeader } from "@/features/pages/home";
-import { EmptyState } from "@/features/pages/home/EmptyState";
-import { SectionQuotaUser } from "@/features/pages/home/SectionCardQuotaUser";
-import { SectionTerminal } from "@/features/pages/home/SectionTerminal";
-import { SectionWorkspace } from "@/features/pages/home/SectionWorkspace";
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
@@ -34,8 +33,8 @@ function RouteComponent() {
       <MainContainer>
         <SectionHeader />
         <SectionQuotaUser />
-        <SectionWorkspace />
-        <SectionTerminal terminal_url={profileData.terminal_url}/>
+        {/* <SectionWorkspace /> */}
+        <SectionTerminal terminal_url={`https://${profileData.terminal_url}`}/>
       </MainContainer>
     </div>
   );

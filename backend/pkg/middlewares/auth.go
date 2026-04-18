@@ -51,3 +51,4 @@ func AuthMiddleware(conf *config.Config) echo.MiddlewareFunc {
         }
     }
 }
+

@@ -22,3 +22,4 @@ spec:
             name: terminal
             port:
               number: 80
+              targetPort: 7681

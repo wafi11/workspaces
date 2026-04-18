@@ -7,4 +7,5 @@ export const DOCS_URL = BASE_URL + "/docs";
 export const HOMEPAGE_URL = BASE_URL;
 export const ADMIN_ROLE = "admin"
 export const USER_ROLE = "user"
+export const WS_SERVER_URL = "wss://hoscopus.wfdnstore.online"
 

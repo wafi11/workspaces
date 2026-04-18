@@ -1,18 +1,17 @@
 import { useGetWorkspace } from "@/features/api"
-import { EmptyState } from "@/features/pages/home/EmptyState"
+import { MainContainer } from "@/features/layout/MainContainer"
+import { TopbarAdmin } from "@/features/layout/TopbarDashboard"
 import { useGetMetricsWorkspaces } from "@/hooks/useGetWorkspaceMatrics"
 import { formatDate } from "@/utils/formatDate"
 import { InfoRow } from "./InfoRow"
 import { MetricCard } from "./MetricCard"
-import { WorkspacePort } from "./WorkspacePort"
-import { MainContainer } from "@/features/layout/MainContainer"
-import { TopbarAdmin } from "@/features/layout/TopbarDashboard"
+import { EmptyState } from "./EmptyState"
 
 export type WorkspaceDetailsProps = {
     id : string
 }
 
-export function WorkspaceDetails({id} : {id : string}){
+export function WorkspaceDetails({id} : WorkspaceDetailsProps){
   const {data}  = useGetWorkspace(id)
   const {byApp} = useGetMetricsWorkspaces()
   const pods = [data?.name];
@@ -60,7 +59,7 @@ export function WorkspaceDetails({id} : {id : string}){
             <InfoRow label="created" value={formatDate(data.created_at)} />
           </div>
         </section>
-        <WorkspacePort workspaceId={id}/>
+        {/* <WorkspacePort workspaceId={id}/> */}
 
         {/* Env vars */}
         <section className="px-5 py-4">

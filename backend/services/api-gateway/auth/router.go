@@ -21,6 +21,6 @@ func RegisterRoutes(e *echo.Echo, db *sqlx.DB, redisClient *redis.Client, conf *
 	auth.POST("/login", h.Login)
 	auth.GET("/login", h.LoginPage)
 	auth.POST("/logout", h.Logout)
-	auth.POST("/refresh", h.RefreshToken)
 	auth.GET("/validate",h.Validate)
+	auth.POST("/refresh", h.RefreshToken)
 }

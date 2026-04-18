@@ -9,7 +9,7 @@ export function StatusBadge({ status }: { status: string }) {
   const s = map[status] ?? map.stopped;
   return (
     <span
-      className="flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full"
+      className="flex items-center w-fit gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full"
       style={{
         background: s.bg,
         color: s.color,

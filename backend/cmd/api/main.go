@@ -55,7 +55,7 @@ func main() {
     AllowMethods:     []string{"POST", "GET", "PATCH", "DELETE", "OPTIONS", "PUT"},
     AllowCredentials: true,
     MaxAge:           2000,
-}))
+	}))
 	
 	srv := asynq.NewServer(asynq.RedisClientOpt{
 		Addr: conf.REDISURL,

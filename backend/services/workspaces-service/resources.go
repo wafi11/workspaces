@@ -4,24 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
 )
 
-type CreateWorkspacesResources struct {
-	WsID   string `json:"wsId"`
-	Kind   string `json:"kind"`
-	Name   string `json:"name"`
-	Status string `json:"status"`
-}
-
-type WorkspacesResources struct {
-	Id        string    `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	WsID      string    `json:"wsId"`
-	Kind      string    `json:"kind"`
-	Name      string    `json:"name"`
-	Status    string    `json:"status"`
-}
 
 func (repo *Repository) CreateWorkspaceResources(c context.Context, req *CreateWorkspacesResources) error {
 	query := `

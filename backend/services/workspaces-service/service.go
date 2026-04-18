@@ -96,6 +96,30 @@ func (s *Service)  GetWorkspacePort(ctx context.Context, workspaceID string, por
 	return s.repo.GetWorkspacePort(ctx,workspaceID,port)
 }
 
+
+func (s *Service)  AddCollaborators(c context.Context, req WorkspaceCollaborator) (*WorkspaceCollaboratorResponse, error){
+	return s.repo.AddCollaborators(c,req)
+}
+
+func (s *Service)  UpdateCollaborator(c context.Context, req UpdateCollaboratorRequest) error {
+	return s.repo.UpdateCollaborator(c,req)
+}
+
+func (s *Service) RemoveCollaborator(c context.Context, req RemoveCollaboratorRequest) error {
+	return s.repo.RemoveCollaborator(c,req)
+}
+
+
+func (s *Service)  GetCollaboratedWorkspaces(ctx context.Context, userID string) ([]CollaboratedWorkspace, error){
+	return s.repo.GetCollaboratedWorkspaces(ctx,userID)
+}
+
+
+
+func (s *Service) AcceptOrDeniedInvitationCollborator(c context.Context,types,notificationID string) error{
+	return s.repo.AcceptOrDeniedInvitationCollborator(c,types,notificationID)
+}
+
 func (s *Service) StartEventConsumer(ctx context.Context) {
 	go func() {
 		for {

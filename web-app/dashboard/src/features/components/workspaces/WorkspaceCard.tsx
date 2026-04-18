@@ -1,6 +1,7 @@
 import { useUpdateStatusWorkspace } from "@/features/api/workspace";
 import { ActionBtn } from "@/features/components/ActionButton";
 import { StatusBadge } from "@/features/components/statusBadge";
+import { DropdownChoice } from "@/features/components/workspaces/DropdownChoice";
 import { useWorkspaceSocket } from "@/hooks/useWebSocket";
 import type { Workspaces, WorkspaceSessions } from "@/types";
 import { formatDate } from "@/utils/formatDate";
@@ -20,18 +21,18 @@ export function WorkspaceCard({ ws }: { ws: WorkspaceSessions }) {
   const { mutate: pauseWs } = useUpdateStatusWorkspace(ws.id, "paused");
 
   const {navigate}  = useRouter()
-useWorkspaceSocket((data) => {
-  if (["workspace.running", "workspace.stopped", "workspace.resumed", "workspace.paused"].includes(data.type)) {
-    queryClient.setQueryData(["workspace-users"], (old: Workspaces[]) => {
-      if (!old) return old
-      return old.map((w) =>
-        w.id === data.workspace_id
-          ? { ...w, status: data.type === "workspace.resumed" ? "running" : data.status }
-          : w
-      )
-    })
-  }
-})
+  useWorkspaceSocket((data) => {
+    if (["workspace.running", "workspace.stopped", "workspace.resumed", "workspace.paused"].includes(data.type)) {
+      queryClient.setQueryData(["workspace-users"], (old: Workspaces[]) => {
+        if (!old) return old
+        return old.map((w) =>
+          w.id === data.workspace_id
+            ? { ...w, status: data.type === "workspace.resumed" ? "running" : data.status }
+            : w
+        )
+      })
+    }
+  })
   return (
        
     <div
@@ -62,7 +63,8 @@ useWorkspaceSocket((data) => {
             <span className="text-lg">🖥</span>
           )}
         </div>
-        <div className="flex flex-col min-w-0 flex-1">
+        <div className="flex flex-col gap-1 min-w-0 flex-1">
+          <StatusBadge status={ws.status} />
           <span
             className="text-sm font-semibold truncate"
             style={{ color: "var(--color-sidebar-text-active)" }}
@@ -70,7 +72,8 @@ useWorkspaceSocket((data) => {
             {ws.name}
           </span>
         </div>
-        <StatusBadge status={ws.status} />
+              <DropdownChoice wsId={ws.id}/>
+
       </div>
 
       {/* Timestamps */}
@@ -113,7 +116,6 @@ useWorkspaceSocket((data) => {
         {isRunning && (
           <>
             <ActionBtn label="Pause" variant="warn" onClick={() => pauseWs()} />
-            <ActionBtn label="Stop" variant="danger" onClick={() => stopWs()} />
             <ActionBtn
               label="Open"
               variant="default"

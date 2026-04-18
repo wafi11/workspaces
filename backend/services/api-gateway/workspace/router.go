@@ -17,7 +17,7 @@ import (
 
 func RegisterRoutes(e *echo.Echo, db *sqlx.DB, redis *config.RedisConnection, conf *config.Config, minioClient *minio.Client, ctx context.Context, sub *messagebroker.Subscriber, jobQueue <-chan *proto.WorkspaceEnvelope, hub *websocket.Hub,mux *asynq.ServeMux) {
 
-	repo := workspaceservice.NewRepository(db, redis,hub)
+	repo := workspaceservice.NewRepository(db, redis,hub,conf)
 	svc := workspaceservice.NewService(repo, jobQueue, hub)
 	h := NewHandler(svc)
 	mux.HandleFunc(string(messagebroker.EventStopWorkspace), repo.HandleStopWorkspace())
@@ -37,6 +37,11 @@ func RegisterRoutes(e *echo.Echo, db *sqlx.DB, redis *config.RedisConnection, co
 	ws.POST("/:workspace_id/port", h.CreateWorkspacePort)
 	ws.GET("/:workspace_id/port", h.ListWorkspacePorts)
 
+	ws.POST("/:workspace_id/invite",h.AddCollaborators)
+	ws.POST("/collaborator/permissions",h.AcceptInvite)
+	ws.GET("/collaboration/teams",h.GetWorkspaceCollaboration)
+
+	
 	svc.StartEventConsumer(ctx)
 
 }

@@ -7,5 +7,6 @@ export const Route = createFileRoute('/workspaces/$workspaceId')({
 
 function RouteComponent() {
   const { workspaceId } = Route.useParams()
-  return <WorkspaceDetails id={workspaceId}/>
+
+  return <WorkspaceDetails id={workspaceId} />
 }

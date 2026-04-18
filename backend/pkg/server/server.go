@@ -12,6 +12,7 @@ import (
 	"github.com/wafi11/workspaces/pkg/proto"
 	"github.com/wafi11/workspaces/pkg/websocket"
 	"github.com/wafi11/workspaces/services/api-gateway/auth"
+	"github.com/wafi11/workspaces/services/api-gateway/notifications"
 	"github.com/wafi11/workspaces/services/api-gateway/template"
 	"github.com/wafi11/workspaces/services/api-gateway/user"
 	"github.com/wafi11/workspaces/services/api-gateway/workspace"
@@ -22,4 +23,5 @@ func NewServer(e *echo.Echo, db *sqlx.DB, redis *config.RedisConnection, minioCl
 	user.RegisterRoutes(e, db, redis.Redis, conf)
 	template.NewTemplateRouter(e, db, redis.Redis, minioClient,conf)
 	workspace.RegisterRoutes(e, db, redis, conf, minioClient, context.Background(), sub, jobQueue, hub,mux)
+	notifications.NewNotificationRoutesfunc(e,db,redis.Redis,conf)
 }

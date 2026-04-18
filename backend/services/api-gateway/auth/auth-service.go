@@ -2,6 +2,7 @@ package auth
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -82,6 +83,7 @@ func (h *Handler) RefreshToken(c echo.Context) error {
 
 	resp, err := h.services.RefreshToken(c.Request().Context(), &req)
 	if err != nil {
+		log.Printf("failed to refresh token %s",err.Error())
 		return response.Error(c, http.StatusUnauthorized, "refresh token failed", err)
 	}
 

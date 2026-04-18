@@ -158,6 +158,7 @@ func handleAdd(ctx context.Context, e *workspacev1.AddPodEvent, r *Repository) e
 		Username:   e.Identity.Username,
 		Domain:     "wfdnstore.online",
 	}); err != nil {
+		log.Printf("err : %s",err.Error())
 		return fmt.Errorf("deploy: %w", err)
 	}
 	return nil
