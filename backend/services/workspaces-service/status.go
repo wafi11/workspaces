@@ -75,13 +75,13 @@ func (r *Repository) UpdateWorkspaceStatus(ctx context.Context, workspaceId stri
 			return err
 		}
 
-	case "stopped":
-		if res.CurrStatus != "running" {
-			return fmt.Errorf("stop hanya bisa saat running, status saat ini: %s", res.CurrStatus)
-		}
-		if err := r.handleStop(ctx, tx, workspaceId, res); err != nil {
-			return err
-		}
+	// case "stopped":
+	// 	if res.CurrStatus != "running" {
+	// 		return fmt.Errorf("stop hanya bisa saat running, status saat ini: %s", res.CurrStatus)
+	// 	}
+	// 	if err := r.handleStop(ctx, tx, workspaceId, res); err != nil {
+	// 		return err
+	// 	}
 
 	default:
 		return fmt.Errorf("status tidak valid: %s", status)
@@ -324,58 +324,6 @@ func (r *Repository) handleResume(ctx context.Context, tx *sql.Tx, workspaceId s
 	return nil
 }
 
-// handleStop: running → stopped (manual oleh user)
-// Cancel timer, release quota, set cooldown next_start_at, publish stop.
-func (r *Repository) handleStop(ctx context.Context, tx *sql.Tx, workspaceId string, res *workspaceRow) error {
-	// Cancel timer — selalu, tidak perlu guard status
-	messagebroker.CancelAutoStop(workspaceId, r.redis.Inceptor)
-
-	// Release quota
-	if err := r.releaseQuota(ctx, tx, res); err != nil {
-		return fmt.Errorf("gagal release quota: %w", err)
-	}
-
-	// var pausedAt, expiresAt time.Time
-	// err := tx.QueryRowContext(ctx, `
-	// 	SELECT  expires_at
-	// 	FROM workspace_sessions
-	// 	WHERE workspace_id = $1 AND status = 'running'
-	// 	ORDER BY created_at DESC
-	// 	LIMIT 1
-	// `, workspaceId).Scan(&expiresAt)
-	// if err != nil {
-	// 	log.Printf("failed to resumed workspaces : %s",err.Error())
-	// 	return fmt.Errorf("session paused tidak ditemukan: %w", err)
-	// }
-
-
-	// // Sisa waktu = waktu yang belum terpakai sebelum di-pause
-	// remainingTime := expiresAt.Sub(pausedAt)
-	// if remainingTime <= 0 {
-	// 	// Waktu sudah habis saat di-pause, beri grace period minimal
-	// 	remainingTime = 1 * time.Minute
-	// }
-	// Set cooldown next_start_at — ini yang membedakan manual stop vs auto stop
-	// User harus tunggu cooldown sebelum bisa start lagi
-	nextStartAt := time.Now().UTC().Add(cooldown)
-	_, err := tx.ExecContext(ctx, `
-		UPDATE workspace_sessions
-		SET status       = 'stopped',
-		    stopped_at   = NOW(),
-		    paused_at    = NULL,
-		    next_start_at = $1,
-		    updated_at   = NOW()
-		WHERE workspace_id = $2 AND status = 'running'
-	`, nextStartAt, workspaceId)
-	if err != nil {
-		return fmt.Errorf("gagal update session: %w", err)
-	}
-
-	r.publishStop(ctx, workspaceId, res)
-
-	return nil
-}
-
 // ---------------------------------------------------------------------------
 // Quota helpers
 // ---------------------------------------------------------------------------
@@ -420,3 +368,57 @@ func (r *Repository) releaseQuota(ctx context.Context, tx *sql.Tx, res *workspac
 	return err
 }
 
+
+
+
+// // handleStop: running → stopped (manual oleh user)
+// // Cancel timer, release quota, set cooldown next_start_at, publish stop.
+// func (r *Repository) handleStop(ctx context.Context, tx *sql.Tx, workspaceId string, res *workspaceRow) error {
+// 	// Cancel timer — selalu, tidak perlu guard status
+// 	messagebroker.CancelAutoStop(workspaceId, r.redis.Inceptor)
+
+// 	// Release quota
+// 	if err := r.releaseQuota(ctx, tx, res); err != nil {
+// 		return fmt.Errorf("gagal release quota: %w", err)
+// 	}
+
+// 	// var pausedAt, expiresAt time.Time
+// 	// err := tx.QueryRowContext(ctx, `
+// 	// 	SELECT  expires_at
+// 	// 	FROM workspace_sessions
+// 	// 	WHERE workspace_id = $1 AND status = 'running'
+// 	// 	ORDER BY created_at DESC
+// 	// 	LIMIT 1
+// 	// `, workspaceId).Scan(&expiresAt)
+// 	// if err != nil {
+// 	// 	log.Printf("failed to resumed workspaces : %s",err.Error())
+// 	// 	return fmt.Errorf("session paused tidak ditemukan: %w", err)
+// 	// }
+
+
+// 	// // Sisa waktu = waktu yang belum terpakai sebelum di-pause
+// 	// remainingTime := expiresAt.Sub(pausedAt)
+// 	// if remainingTime <= 0 {
+// 	// 	// Waktu sudah habis saat di-pause, beri grace period minimal
+// 	// 	remainingTime = 1 * time.Minute
+// 	// }
+// 	// Set cooldown next_start_at — ini yang membedakan manual stop vs auto stop
+// 	// User harus tunggu cooldown sebelum bisa start lagi
+// 	nextStartAt := time.Now().UTC().Add(cooldown)
+// 	_, err := tx.ExecContext(ctx, `
+// 		UPDATE workspace_sessions
+// 		SET status       = 'stopped',
+// 		    stopped_at   = NOW(),
+// 		    paused_at    = NULL,
+// 		    next_start_at = $1,
+// 		    updated_at   = NOW()
+// 		WHERE workspace_id = $2 AND status = 'running'
+// 	`, nextStartAt, workspaceId)
+// 	if err != nil {
+// 		return fmt.Errorf("gagal update session: %w", err)
+// 	}
+
+// 	r.publishStop(ctx, workspaceId, res)
+
+// 	return nil
+// }

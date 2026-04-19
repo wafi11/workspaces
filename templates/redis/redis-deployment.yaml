@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{.Name}}
+  namespace: {{.Namespace}}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{.Name}}
+  template:
+    metadata:
+      labels:
+        app: {{.Name}}
+    spec:
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+      initContainers:
+        - name: init-redis-data
+          image: busybox
+          securityContext:
+            runAsUser: 0
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /mnt/redis/data && \
+              chmod 700 /mnt/redis/data && \
+              chown -R 999:999 /mnt/redis
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "64Mi"
+            limits:
+              cpu: "100m"
+              memory: "64Mi"
+          volumeMounts:
+            - name: user-data
+              mountPath: /mnt
+      containers:
+        - name: {{.Name}}
+          image: {{.Image}}
+          command:
+            - redis-server
+            - --requirepass
+            - {{.RedisPassword}}
+            - --appendonly
+            - "yes"
+            - --dir
+            - /data/redis/data
+          resources:
+            requests:
+              cpu: {{.CPURequest}}
+              memory: {{.MemRequest}}
+            limits:
+              cpu: {{.CPULimit}}
+              memory: {{.MemLimit}}
+          volumeMounts:
+            - name: user-data
+              mountPath: /data
+              subPath: redis
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                - -a
+                - {{.RedisPassword}}
+                - ping
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: user-data
+          persistentVolumeClaim:
+            claimName: shared-storage-pvc

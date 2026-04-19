@@ -20,11 +20,11 @@ func NewService(repo WorkspaceRepository, jobQueue <-chan *proto.WorkspaceEnvelo
 	return &Service{repo: repo, jobQueue: jobQueue, hub: hub}
 }
 
-func (s *Service) CreateWorkspace(ctx context.Context, req *CreateWorkspaceRequest, username string) (*CreateWorkspaceResponse, error) {
+func (s *Service) CreateWorkspace(ctx context.Context, req *CreateWorkspaceRequest) (*CreateWorkspaceResponse, error) {
 	if err := validateCreateWorkspace(req); err != nil {
 		return nil, err
 	}
-	return s.repo.CreateWorkspace(ctx, req, username)
+	return s.repo.CreateWorkspace(ctx, req)
 }
 
 func (s *Service) ListWorkspacesByUserId(ctx context.Context, req *ListWorkspacesRequest) (*ListWorkspacesResponse, error) {

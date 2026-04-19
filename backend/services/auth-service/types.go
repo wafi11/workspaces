@@ -8,6 +8,9 @@ type IServices interface {
 	RefreshToken(c context.Context, req *RefreshTokenRequest) (*RefreshTokenResponse, error)
 	Register(c context.Context, req *RegisterRequest) (*RegisterResponse, error)
 	Validate(c context.Context,req string) (bool,error)
+	CreatePAT(c context.Context,req *CreatePATRequest) (*CreatePATResponse,error)
+	DeletePAT(c context.Context,PatId,userId string) error
+	 GetAllPAT(c context.Context,userID string) ([]Pat,error)
 }
 
 type RegisterRequest struct {

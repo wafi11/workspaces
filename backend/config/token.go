@@ -2,6 +2,9 @@ package config
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"time"
@@ -15,11 +18,13 @@ type UserRole string
 const (
 	RoleUser UserRole = "user"
 	RoleAdmin UserRole = "admin"
+	CookieAccessTokenName string = "workspace_token"
+	CookieRefreshTokenName string = "ws_refresh_token"
+
 )
 type TokenRequest struct {
 	UserID    string
 	SessionID string
-	Username  string
 	Exp       int
 	Role string
 	TokenName string
@@ -40,7 +45,6 @@ type WorkspaceClaims struct {
 
 type Claims struct {
 	UserID   string `json:"user_id"`
-	Username string `json:"username"`
 	SessionID string `json:"session_id"`
 	Role string `json:"role"`
 	jwt.RegisteredClaims
@@ -53,7 +57,6 @@ func GenerateToken(c context.Context, req *TokenRequest, conf *Config) (string, 
 	}
 	claims := Claims{
 		UserID:   req.UserID,
-		Username: req.Username,
 		SessionID: req.SessionID,
 		Role: req.Role,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -148,4 +151,21 @@ func ValidationToken(tokenStr string, conf *Config) (*Claims, error) {
 	}
 
 	return claims, nil
+}
+
+
+func GeneratePAT() (raw string, hash string, err error) {
+    // generate 32 random bytes
+    b := make([]byte, 32)
+    if _, err = rand.Read(b); err != nil {
+        return
+    }
+
+
+    raw = fmt.Sprintf("ksp_%s", hex.EncodeToString(b))
+
+    sum := sha256.Sum256([]byte(raw))
+    hash = hex.EncodeToString(sum[:])
+
+    return
 }

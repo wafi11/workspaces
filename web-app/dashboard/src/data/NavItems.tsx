@@ -1,5 +1,6 @@
 import { Ico } from "../features/components/icons";
 import type { NavItem } from "../types";
+
 export const NAV: NavItem[] = [
  
   {
@@ -64,3 +65,31 @@ export const NAV: NavItem[] = [
     roles: ["user", "admin"],
   },
 ];
+
+
+export const NavSettings: NavItem[] = [
+  {
+    label: "PAT",
+    to: "/settings/pat",
+    icon: <Ico d="M15 7a2 2 0 0 1 2 2m4-2a6 6 0 0 1-7.743 5.743L11 17H9v2H7v2H4a1 1 0 0 1-1-1v-2.586a1 1 0 0 1 .293-.707l5.964-5.964A6 6 0 0 1 21 7z" />,
+    roles: ["user", "admin"],
+  },
+  {
+    label: "Profile",
+    to: "/settings/profile",
+    icon: <Ico d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" />,
+    roles: ["user", "admin"],
+  },
+  {
+    label: "Preferences",
+    to: "/settings/preferences",
+    icon: <Ico d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" d2="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />,
+    roles: ["user", "admin"],
+  },
+  {
+    label: "Members",
+    to: "/settings/members",
+    icon: <Ico d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" />,
+    roles: ["admin"],
+  },
+]

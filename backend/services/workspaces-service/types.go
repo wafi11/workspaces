@@ -12,7 +12,7 @@ import (
 )
 
 type WorkspaceRepository interface {
-	CreateWorkspace(ctx context.Context, req *CreateWorkspaceRequest, username string) (*CreateWorkspaceResponse, error)
+	CreateWorkspace(ctx context.Context, req *CreateWorkspaceRequest) (*CreateWorkspaceResponse, error)
 	ListWorkspacesByUserId(ctx context.Context, req *ListWorkspacesRequest) (*ListWorkspacesResponse, error)
 	ListWorkspaces(ctx context.Context, limit int, offset int, status string) (*ListWorkspacesResponse, error)
 	ListWorkspaceForm(ctx context.Context, userId string) ([]ListWorkspaceForm, error)
@@ -35,7 +35,7 @@ type WorkspaceRepository interface {
 }
 
 type WorkspaceService interface {
-	CreateWorkspace(ctx context.Context, req *CreateWorkspaceRequest, username string) (*CreateWorkspaceResponse, error)
+	CreateWorkspace(ctx context.Context, req *CreateWorkspaceRequest) (*CreateWorkspaceResponse, error)
 	ListWorkspaces(ctx context.Context, limit int, offset int, status string) (*ListWorkspacesResponse, error)
 	ListWorkspacesByUserId(ctx context.Context, req *ListWorkspacesRequest) (*ListWorkspacesResponse, error)
 	ListWorkspaceForm(ctx context.Context, userId string) ([]ListWorkspaceForm, error)

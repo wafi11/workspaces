@@ -13,7 +13,7 @@ export function WorkspacePort({ workspaceId }: WorkspacePortProps) {
   const allowedPorts = Array.from({ length: 11 }, (_, i) => 3000 + i)
 
   return (
-    <section className="mx-6">
+    <section className="mx-6 mt-2">
       <div className="flex items-center justify-between mb-4">
         <div>
           <p className="text-sm font-medium" style={{ color: "var(--color-sidebar-text-active)" }}>

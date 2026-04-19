@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/wafi11/workspaces/config"
 	"github.com/wafi11/workspaces/pkg/response"
 	authservices "github.com/wafi11/workspaces/services/auth-service"
 )
@@ -35,7 +37,7 @@ func (h *Handler) Login(c echo.Context) error {
 	}
 
 	c.SetCookie(&http.Cookie{
-		Name:     "ws_session",
+		Name:     config.CookieAccessTokenName,
 		Value:    resp.AccessToken,
 		HttpOnly: true,
 		Secure:   true,
@@ -43,8 +45,17 @@ func (h *Handler) Login(c echo.Context) error {
 		Domain:   fmt.Sprintf(".%s","wfdnstore.online"),
 		SameSite: http.SameSiteLaxMode,
 	})
+	c.SetCookie(&http.Cookie{
+		Name:     config.CookieRefreshTokenName,
+		Value:    resp.RefreshToken,
+		HttpOnly: true,
+		Secure:   true,
+		Path:     "/",
+		Domain:   fmt.Sprintf(".%s","wfdnstore.online"),
+		SameSite: http.SameSiteLaxMode,
+	})
 
-	return response.Success(c, http.StatusOK, "login success", resp)
+	return response.Success(c, http.StatusOK, "login success", nil)
 }
 
 func (h *Handler) Register(c echo.Context) error {
@@ -92,7 +103,7 @@ func (h *Handler) RefreshToken(c echo.Context) error {
 
 // Handler
 func (h *Handler) Validate(c echo.Context) error {
-    cookie, err := c.Cookie("ws_session")
+    cookie, err := c.Cookie(config.CookieAccessTokenName)
     if err != nil {
         return c.NoContent(http.StatusUnauthorized)
     }
@@ -102,5 +113,58 @@ func (h *Handler) Validate(c echo.Context) error {
         return c.NoContent(http.StatusUnauthorized)
     }
 
+	
+
     return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler)  CreatePAT(c echo.Context) error{
+	userId := c.Get("user_id").(string)
+	var req struct {
+		Name string `json:"name"`
+		ExpiresAt  time.Time `json:"expires_at"`
+	}
+
+	if err := c.Bind(&req); err != nil {
+		return response.Error(c, http.StatusBadRequest, "invalid request body", err)
+	}
+
+	data,err := h.services.CreatePAT(c.Request().Context(),&authservices.CreatePATRequest{
+		Name: req.Name,
+		ExpiresAt: &req.ExpiresAt,
+		UserId: userId,
+	})
+
+	if err != nil {
+		return response.Error(c,http.StatusInternalServerError,err.Error(),nil)
+	}
+
+	return response.Success(c,http.StatusCreated,"Successfully Create Personal Access Token",data)
+}
+
+
+
+func (h *Handler) DeletePAT(c echo.Context) error {
+	userId := c.Get("user_id").(string)
+	patId := c.Param("pat_id")
+
+	err := h.services.DeletePAT(c.Request().Context(),patId,userId)
+
+	if err != nil {
+		return response.Error(c,http.StatusInternalServerError,err.Error(),nil)
+	}
+
+	return response.Success(c,http.StatusOK,"Successfully Delete PAT",nil)
+}
+
+
+func (h *Handler)  GetAllPAT(c echo.Context) error {
+	userId := c.Get("user_id").(string)
+
+	data,err := h.services.GetAllPAT(c.Request().Context(),userId)
+	if err != nil {
+		return response.Error(c,http.StatusInternalServerError,"Failed to get pat",nil)
+	}	
+
+	return response.Success(c,http.StatusOK,"Successfully Get All PAT",data)
 }

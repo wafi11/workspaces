@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WorkspacesRouteImport } from './routes/workspaces'
 import { Route as TemplatesRouteImport } from './routes/templates'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
@@ -18,11 +19,13 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WorkspacesIndexRouteImport } from './routes/workspaces/index'
 import { Route as TemplatesIndexRouteImport } from './routes/templates/index'
+import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as NotificationsIndexRouteImport } from './routes/notifications/index'
 import { Route as WorkspacesCreateRouteImport } from './routes/workspaces/create'
 import { Route as WorkspacesWorkspaceIdRouteImport } from './routes/workspaces/$workspaceId'
 import { Route as TemplatesCreateRouteImport } from './routes/templates/create'
 import { Route as TemplatesTemplateIdRouteImport } from './routes/templates/$templateId'
+import { Route as SettingsPatRouteImport } from './routes/settings/pat'
 
 const WorkspacesRoute = WorkspacesRouteImport.update({
   id: '/workspaces',
@@ -32,6 +35,11 @@ const WorkspacesRoute = WorkspacesRouteImport.update({
 const TemplatesRoute = TemplatesRouteImport.update({
   id: '/templates',
   path: '/templates',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RegisterRoute = RegisterRouteImport.update({
@@ -69,6 +77,11 @@ const TemplatesIndexRoute = TemplatesIndexRouteImport.update({
   path: '/',
   getParentRoute: () => TemplatesRoute,
 } as any)
+const SettingsIndexRoute = SettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const NotificationsIndexRoute = NotificationsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -94,6 +107,11 @@ const TemplatesTemplateIdRoute = TemplatesTemplateIdRouteImport.update({
   path: '/$templateId',
   getParentRoute: () => TemplatesRoute,
 } as any)
+const SettingsPatRoute = SettingsPatRouteImport.update({
+  id: '/pat',
+  path: '/pat',
+  getParentRoute: () => SettingsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -101,13 +119,16 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRouteWithChildren
   '/register': typeof RegisterRoute
+  '/settings': typeof SettingsRouteWithChildren
   '/templates': typeof TemplatesRouteWithChildren
   '/workspaces': typeof WorkspacesRouteWithChildren
+  '/settings/pat': typeof SettingsPatRoute
   '/templates/$templateId': typeof TemplatesTemplateIdRoute
   '/templates/create': typeof TemplatesCreateRoute
   '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdRoute
   '/workspaces/create': typeof WorkspacesCreateRoute
   '/notifications/': typeof NotificationsIndexRoute
+  '/settings/': typeof SettingsIndexRoute
   '/templates/': typeof TemplatesIndexRoute
   '/workspaces/': typeof WorkspacesIndexRoute
 }
@@ -116,11 +137,13 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/settings/pat': typeof SettingsPatRoute
   '/templates/$templateId': typeof TemplatesTemplateIdRoute
   '/templates/create': typeof TemplatesCreateRoute
   '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdRoute
   '/workspaces/create': typeof WorkspacesCreateRoute
   '/notifications': typeof NotificationsIndexRoute
+  '/settings': typeof SettingsIndexRoute
   '/templates': typeof TemplatesIndexRoute
   '/workspaces': typeof WorkspacesIndexRoute
 }
@@ -131,13 +154,16 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRouteWithChildren
   '/register': typeof RegisterRoute
+  '/settings': typeof SettingsRouteWithChildren
   '/templates': typeof TemplatesRouteWithChildren
   '/workspaces': typeof WorkspacesRouteWithChildren
+  '/settings/pat': typeof SettingsPatRoute
   '/templates/$templateId': typeof TemplatesTemplateIdRoute
   '/templates/create': typeof TemplatesCreateRoute
   '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdRoute
   '/workspaces/create': typeof WorkspacesCreateRoute
   '/notifications/': typeof NotificationsIndexRoute
+  '/settings/': typeof SettingsIndexRoute
   '/templates/': typeof TemplatesIndexRoute
   '/workspaces/': typeof WorkspacesIndexRoute
 }
@@ -149,13 +175,16 @@ export interface FileRouteTypes {
     | '/login'
     | '/notifications'
     | '/register'
+    | '/settings'
     | '/templates'
     | '/workspaces'
+    | '/settings/pat'
     | '/templates/$templateId'
     | '/templates/create'
     | '/workspaces/$workspaceId'
     | '/workspaces/create'
     | '/notifications/'
+    | '/settings/'
     | '/templates/'
     | '/workspaces/'
   fileRoutesByTo: FileRoutesByTo
@@ -164,11 +193,13 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/login'
     | '/register'
+    | '/settings/pat'
     | '/templates/$templateId'
     | '/templates/create'
     | '/workspaces/$workspaceId'
     | '/workspaces/create'
     | '/notifications'
+    | '/settings'
     | '/templates'
     | '/workspaces'
   id:
@@ -178,13 +209,16 @@ export interface FileRouteTypes {
     | '/login'
     | '/notifications'
     | '/register'
+    | '/settings'
     | '/templates'
     | '/workspaces'
+    | '/settings/pat'
     | '/templates/$templateId'
     | '/templates/create'
     | '/workspaces/$workspaceId'
     | '/workspaces/create'
     | '/notifications/'
+    | '/settings/'
     | '/templates/'
     | '/workspaces/'
   fileRoutesById: FileRoutesById
@@ -195,6 +229,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   NotificationsRoute: typeof NotificationsRouteWithChildren
   RegisterRoute: typeof RegisterRoute
+  SettingsRoute: typeof SettingsRouteWithChildren
   TemplatesRoute: typeof TemplatesRouteWithChildren
   WorkspacesRoute: typeof WorkspacesRouteWithChildren
 }
@@ -213,6 +248,13 @@ declare module '@tanstack/react-router' {
       path: '/templates'
       fullPath: '/templates'
       preLoaderRoute: typeof TemplatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/register': {
@@ -264,6 +306,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TemplatesIndexRouteImport
       parentRoute: typeof TemplatesRoute
     }
+    '/settings/': {
+      id: '/settings/'
+      path: '/'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof SettingsIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/notifications/': {
       id: '/notifications/'
       path: '/'
@@ -299,6 +348,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TemplatesTemplateIdRouteImport
       parentRoute: typeof TemplatesRoute
     }
+    '/settings/pat': {
+      id: '/settings/pat'
+      path: '/pat'
+      fullPath: '/settings/pat'
+      preLoaderRoute: typeof SettingsPatRouteImport
+      parentRoute: typeof SettingsRoute
+    }
   }
 }
 
@@ -312,6 +368,20 @@ const NotificationsRouteChildren: NotificationsRouteChildren = {
 
 const NotificationsRouteWithChildren = NotificationsRoute._addFileChildren(
   NotificationsRouteChildren,
+)
+
+interface SettingsRouteChildren {
+  SettingsPatRoute: typeof SettingsPatRoute
+  SettingsIndexRoute: typeof SettingsIndexRoute
+}
+
+const SettingsRouteChildren: SettingsRouteChildren = {
+  SettingsPatRoute: SettingsPatRoute,
+  SettingsIndexRoute: SettingsIndexRoute,
+}
+
+const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
+  SettingsRouteChildren,
 )
 
 interface TemplatesRouteChildren {
@@ -352,6 +422,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   NotificationsRoute: NotificationsRouteWithChildren,
   RegisterRoute: RegisterRoute,
+  SettingsRoute: SettingsRouteWithChildren,
   TemplatesRoute: TemplatesRouteWithChildren,
   WorkspacesRoute: WorkspacesRouteWithChildren,
 }

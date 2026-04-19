@@ -38,7 +38,7 @@ func NewRepository(db *sqlx.DB, redis *config.RedisConnection,hub *websocket.Hub
 	}
 }
 
-func (r *Repository) CreateWorkspace(ctx context.Context, req *CreateWorkspaceRequest, username string) (*CreateWorkspaceResponse, error) {
+func (r *Repository) CreateWorkspace(ctx context.Context, req *CreateWorkspaceRequest) (*CreateWorkspaceResponse, error) {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -46,13 +46,20 @@ func (r *Repository) CreateWorkspace(ctx context.Context, req *CreateWorkspaceRe
 	defer tx.Rollback()
 
 	var maxWs, usedWs int
+	var username string
 
 	// Ambil Quota User
 	err = tx.QueryRowContext(ctx, `
-        SELECT max_workspaces, used_workspaces 
-        FROM user_quotas WHERE user_id = $1 FOR UPDATE`,
+        SELECT 
+			u.username,
+			uq.max_workspaces, 
+			uq.used_workspaces 
+        FROM user_quotas uq 
+		LEFT JOIN users u on uq.user_id = u.id
+		WHERE u.id = $1 
+		FOR UPDATE OF uq`,
 		req.UserId,
-	).Scan(&maxWs, &usedWs)
+	).Scan(&username,&maxWs, &usedWs)
 
 	// Validasi Quota
 	if err != nil {
@@ -67,10 +74,10 @@ func (r *Repository) CreateWorkspace(ctx context.Context, req *CreateWorkspaceRe
 	var w Workspace
 	var template_name string
 
-	// if req.Password == "" {
-	// 	return nil, fmt.Errorf("password must be required")
-	// }
-	// hashedPassword, err := utils.HashPassword(req.Password)
+	if req.Password == "" {
+		return nil, fmt.Errorf("password must be required")
+	}
+	hashedPassword, err := utils.HashPassword(req.Password)
 
 
 	envJSON, _ := json.Marshal(req.EnvVars)
@@ -88,10 +95,10 @@ func (r *Repository) CreateWorkspace(ctx context.Context, req *CreateWorkspaceRe
 	url := GenerateAddonConnectionUrl(AddonUrl(strings.ToLower(template_name)),authservices.GenerateNamespace(req.UserId),req.Name,req.UserId,db_user,db_password,db_name)
 
 	err = tx.QueryRowContext(ctx, `
-        INSERT INTO workspaces (user_id,name,status,env_vars,url,template_id)
-        VALUES ($1, $2, $3, $4,$5,$6)
+        INSERT INTO workspaces (user_id,name,status,env_vars,url,template_id,password)
+        VALUES ($1, $2, $3, $4,$5,$6,$7)
         RETURNING id, user_id, name, status`,
-		req.UserId, req.Name, StatusPending, envJSON, url,req.TemplateId,
+		req.UserId, req.Name, StatusPending, envJSON, url,req.TemplateId,hashedPassword,
 	).Scan(&w.Id, &w.UserId, &w.Name, &w.Status)
 
 	if err != nil {

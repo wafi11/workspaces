@@ -2,10 +2,10 @@ package middlewares
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/labstack/echo/v4"
 	"github.com/wafi11/workspaces/config"
+	"github.com/wafi11/workspaces/pkg/response"
 )
 
 func AuthMiddleware(conf *config.Config) echo.MiddlewareFunc {
@@ -13,26 +13,12 @@ func AuthMiddleware(conf *config.Config) echo.MiddlewareFunc {
         return func(c echo.Context) error {
             var tokenString string
 
-            // Coba dari header dulu
-            authHeader := c.Request().Header.Get("Authorization")
-            if authHeader != "" {
-                tokenString = strings.TrimPrefix(authHeader, "Bearer ")
-                if tokenString == authHeader {
-                    return c.JSON(http.StatusUnauthorized, map[string]string{
-                        "message": "invalid authorization format",
-                    })
-                }
-            } else {
-                // Fallback ke cookie
-                cookie, err := c.Cookie("ws_session")
-                if err != nil {
-                    return c.JSON(http.StatusUnauthorized, map[string]string{
-                        "message": "missing authorization",
-                    })
-                }
-                tokenString = cookie.Value
+            cookie, err := c.Cookie(config.CookieAccessTokenName)
+            if err != nil {
+                return response.Error(c,http.StatusUnauthorized, "Unauthorized",nil)
             }
-
+            tokenString = cookie.Value
+        
             // Verify token
             claims, err := config.ValidationToken(tokenString, conf)
             if err != nil {
@@ -42,7 +28,7 @@ func AuthMiddleware(conf *config.Config) echo.MiddlewareFunc {
             }
 
             c.Set("user_id", claims.UserID)
-            c.Set("username", claims.Username)
+           
             c.Set("role", claims.Role)
             c.Set("session_id", claims.SessionID)
             

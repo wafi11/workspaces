@@ -5,14 +5,13 @@ import { ReactQueryProvider } from "./features/layout/ReactQuery";
 import { routeTree } from "./routeTree.gen";
 import "./styles.css";
 
-// Set up a Router instance
+
 const router = createRouter({
   routeTree,
   defaultPreload: "intent",
   scrollRestoration: true,
 });
 
-// Register things for typesafety
 declare module "@tanstack/react-router" {
   interface Register {
     router: typeof router;
@@ -26,7 +25,7 @@ if (!rootElement.innerHTML) {
   root.render(
     <Theme appearance="dark" accentColor="gray" grayColor="slate">
       <ReactQueryProvider>
-        <RouterProvider router={router} />{" "}
+        <RouterProvider router={router} />
       </ReactQueryProvider>
     </Theme>,
   );

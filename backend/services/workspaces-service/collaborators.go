@@ -202,7 +202,6 @@ func (repo *Repository) AcceptOrDeniedInvitationCollborator(ctx context.Context,
 
 	log.Printf("[accept or denied] inviteToken=%s userID=%s", inviteToken, userID)
 
-
     // 3. Update status workspace_collaborators langsung
     newStatus := "denied"
     if types == "accept" {
@@ -227,16 +226,7 @@ func (repo *Repository) AcceptOrDeniedInvitationCollborator(ctx context.Context,
 }
 
 
-type CollaboratedWorkspace struct {
-    WorkspaceID   string    `json:"workspace_id"`
-    WorkspaceName string    `json:"workspace_name"`
-	WorkspaceUrl string `json:"workspace_url"`
-    Role          string    `json:"role"`
-    Status        string    `json:"status"`
-    InvitedAt     time.Time `json:"invited_at"`
-	TemplateName  string `json:"template_name"`
-	TemplateIcon string `json:"template_icon"`
-}
+
 
 func (repo *Repository) GetCollaboratedWorkspaces(ctx context.Context, userID string) ([]CollaboratedWorkspace, error) {
     query := `

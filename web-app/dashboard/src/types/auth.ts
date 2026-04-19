@@ -22,3 +22,13 @@ export type UserQuota = {
   used_ram_mb: number;
   used_storage_gb: number;
 };
+
+
+
+export interface PAT {
+  id: string
+  name: string
+  expires_at: string
+  last_used_at: string | null
+  created_at: string
+}

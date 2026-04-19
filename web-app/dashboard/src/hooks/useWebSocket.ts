@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import { storage } from "./storage";
 
 export function useWorkspaceSocket(onMessage: (data: any) => void) {
   const wsRef = useRef<WebSocket | null>(null);
@@ -14,14 +13,8 @@ export function useWorkspaceSocket(onMessage: (data: any) => void) {
     let ws: WebSocket;
 
     const connect = () => {
-      const token = storage.getAccessToken();
-      if (!token) {
-        // delay kalau token belum ada
-        retryRef.current = setTimeout(connect, 1000);
-        return;
-      }
-
-      ws = new WebSocket(`ws://localhost:8080/ws?token=${token}`);
+      
+      ws = new WebSocket(`ws://localhost:8080/ws`);
 
       ws.onopen = () => console.log("[ws] connected");
 

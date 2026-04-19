@@ -35,6 +35,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to connect to Elasticsearch: %v", err)
 	}
+	
 
 	jobQueue := make(chan *proto.WorkspaceEnvelope, 100)
 	sub := messagebroker.NewSubscriber(redisClient.Redis, jobQueue)
@@ -64,6 +65,11 @@ func main() {
 	}, asynq.Config{})
 	mux := asynq.NewServeMux()
 
+	k8s, err := config.NewK8sClient(conf.K8S_CONFIG)
+	if err != nil {
+		log.Fatalf("failed to connect k8s: %v", err)
+	}
+
 	go func() {
 		if err := srv.Run(mux); err != nil {
 			log.Fatalf("asynq server error: %v", err)
@@ -72,7 +78,8 @@ func main() {
 
 
 
-	server.NewServer(e, database, redisClient, minio, conf, esClient, sub, jobQueue, hub,mux)
+
+	server.NewServer(e, database, redisClient, minio, conf, esClient, sub, jobQueue, hub,mux,k8s)
 	log.Printf("starting backend workspace on port %s", conf.Port)
 	if err := e.Start(":" + conf.Port); err != nil {
 		log.Println("server stopped:", err)

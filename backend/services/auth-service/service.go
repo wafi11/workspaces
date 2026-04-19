@@ -24,6 +24,14 @@ func NewServices(repo *Repository, conf *config.Config, userRepo userservices.Us
 func (services *Services) Login(c context.Context, req *LoginRequest, userAgent, ipAddress string) (*LoginResponse, error) {
 	return services.repo.Login(c, req, userAgent, ipAddress)
 }
+
+func (Services *Services)  DeletePAT(c context.Context,PatId,userId string) error {
+	return Services.repo.DeletePAT(c,PatId,userId)
+}
+
+func (services *Services)  CreatePAT(c context.Context,req *CreatePATRequest) (*CreatePATResponse,error){
+	return  services.repo.CreatePAT(c,req)
+}
 func (services *Services) Logout(c context.Context, req *LogoutRequest) (*LogoutResponse, error) {
 	return services.repo.Logout(c, req)
 }
@@ -37,4 +45,8 @@ func (services *Services) Register(c context.Context, req *RegisterRequest) (*Re
 
 func (service *Services)  Validate(c context.Context,req string) (bool,error){
 	return service.repo.Validate(c,req)
+}
+
+func (service *Services)  GetAllPAT(c context.Context,userID string) ([]Pat,error){
+	return service.repo.GetAllPAT(c,userID)
 }

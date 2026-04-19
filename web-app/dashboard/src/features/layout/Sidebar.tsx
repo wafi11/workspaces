@@ -1,9 +1,10 @@
-import { useState } from "react";
-import { Link, useRouterState } from "@tanstack/react-router";
 import { Avatar, Tooltip } from "@radix-ui/themes";
-import type { Role } from "../../types";
+import { useRouterState } from "@tanstack/react-router";
+import { useState } from "react";
 import { NAV } from "../../data";
+import type { Role } from "../../types";
 import { Ico } from "../components/icons";
+import { SidebarLists } from "./SidebarList";
 
 interface SidebarProps {
   role?: Role;
@@ -81,19 +82,19 @@ export function Sidebar({
     />
   </button>
 
-  {/* Logo Icon & Text */}
-  <div
-    className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
-    style={{ background: "var(--color-sidebar-text-active)" }}
-  >
-    {/* SVG Logo Anda */}
-  </div>
-  {!collapsed && (
-    <span className="text-sm font-medium tracking-tight truncate" style={{ color: "var(--color-sidebar-text-active)" }}>
-      Workspaces
-    </span>
-  )}
-</div>
+      {/* Logo Icon & Text */}
+      <div
+        className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
+        style={{ background: "var(--color-sidebar-text-active)" }}
+      >
+        {/* SVG Logo Anda */}
+      </div>
+      {!collapsed && (
+        <span className="text-sm font-medium tracking-tight truncate" style={{ color: "var(--color-sidebar-text-active)" }}>
+          Workspaces
+        </span>
+      )}
+    </div>
 
       {/* Nav */}
       <nav className="flex-1 py-2 flex flex-col gap-0.5 overflow-hidden">
@@ -101,49 +102,7 @@ export function Sidebar({
           const active = path.startsWith(item.to);
 
           const linkEl = (
-            <Link
-              to={item.to}
-              className={[
-                "flex items-center gap-2.5 mx-2 px-3 py-2 rounded-md text-sm",
-                "transition-colors duration-100 relative",
-                collapsed ? "justify-center" : "",
-              ].join(" ")}
-              style={{
-                background: active
-                  ? "var(--color-sidebar-surface)"
-                  : "transparent",
-                color: active
-                  ? "var(--color-sidebar-text-active)"
-                  : "var(--color-sidebar-text)",
-              }}
-              onMouseEnter={(e) => hoverOn(e, active)}
-              onMouseLeave={(e) => hoverOff(e, active)}
-            >
-              {active && (
-                <span
-                  className="absolute left-0 top-2 bottom-2 w-0.5 rounded-r-full"
-                  style={{ background: "var(--color-sidebar-accent)" }}
-                />
-              )}
-              {item.icon}
-              {!collapsed && (
-                <>
-                  <span className="flex-1 truncate">{item.label}</span>
-                  {item.badge && (
-                    <span
-                      className="text-[10px] px-1.5 py-px rounded leading-none"
-                      style={{
-                        color: "var(--color-sidebar-text)",
-                        background: "var(--color-sidebar-border)",
-                        border: "1px solid var(--color-app-border)",
-                      }}
-                    >
-                      {item.badge}
-                    </span>
-                  )}
-                </>
-              )}
-            </Link>
+           <SidebarLists active={active} collapsed={collapsed} hoverOff={hoverOff} hoverOn={hoverOn} item={item}/>
           );
 
           return collapsed ? (

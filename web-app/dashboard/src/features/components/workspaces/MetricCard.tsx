@@ -39,7 +39,7 @@ export function MetricCard({
   }, [cpu, memory]);
 
   return (
-    <div className="flex flex-col w-full gap-2 py-3 rounded bg-[#0a0a0a]">
+    <div className="flex flex-col w-full gap-2 py-3 rounded bg-[#0a0a0a] px-4">
       <span className="text-[10px] font-mono text-[#555] uppercase tracking-widest">
         {label}
       </span>

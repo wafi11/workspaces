@@ -23,7 +23,6 @@ func NewHandler(svc workspaceservice.WorkspaceService) *Handler {
 
 
 func (h *Handler) Create(c echo.Context) error {
-	username := c.Get("username").(string)
 	userId := c.Get("user_id").(string)
 	var req workspaceservice.CreateWorkspaceRequest
 
@@ -33,7 +32,7 @@ func (h *Handler) Create(c echo.Context) error {
 
 	req.UserId = userId
 
-	data, err := h.svc.CreateWorkspace(c.Request().Context(), &req, username)
+	data, err := h.svc.CreateWorkspace(c.Request().Context(), &req)
 	if err != nil {
 		return response.Error(c, http.StatusInternalServerError, "failed to create workspace", err)
 	}

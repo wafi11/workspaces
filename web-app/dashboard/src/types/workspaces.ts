@@ -50,3 +50,17 @@ export interface WorkspaceRequest {
   req_cpu_cores: number
   env_vars?: Record<string, string>
 }
+
+export interface ContainerMetrics {
+  name: string;
+  cpu_cores: number;
+  memory_mb: number;
+}
+
+export interface PodMetrics {
+  pod_name: string;
+  app_name: string;
+  containers: ContainerMetrics[];
+  total_cpu_cores: number;
+  total_memory_mb: number;
+}
