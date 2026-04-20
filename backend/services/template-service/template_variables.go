@@ -7,22 +7,22 @@ import (
 	"log"
 
 	"github.com/google/uuid"
+	"github.com/wafi11/workspaces/pkg/models"
 )
 
 
-func (r *Repository) CreateTemplateVariable(ctx context.Context, req *CreateVariableRequest,templateId string,tx *sql.Tx) (error) {
+func (r *Repository) CreateTemplateVariable(ctx context.Context, req *models.CreateVariableRequest,templateId string,tx *sql.Tx) (error) {
 	
 	if tx != nil {
 		_, err := tx.ExecContext(ctx, `
 		INSERT INTO template_variables (id, template_id, key, default_value, required, description)
 		VALUES ($1, $2, $3, $4, $5, $6)
 	`, uuid.New().String(), templateId, req.Key, req.DefaultValue, req.Required, req.Description)
-
-	if err != nil {
-		log.Printf("error : %s",err.Error())
-		return fmt.Errorf("failed to create template variable: %w", err)
-	}
-	}else {
+		if err != nil {
+			log.Printf("error : %s",err.Error())
+			return fmt.Errorf("failed to create template variable: %w", err)
+		}
+	}	else {
 			
 			_, err := r.db.ExecContext(ctx, `
 			INSERT INTO template_variables (id, template_id, key, default_value, required, description)
@@ -39,7 +39,7 @@ func (r *Repository) CreateTemplateVariable(ctx context.Context, req *CreateVari
 }
 
 
-func (r *Repository) UpdateTemplateVariable(ctx context.Context, id string, req *CreateVariableRequest) error {
+func (r *Repository) UpdateTemplateVariable(ctx context.Context, id string, req *models.CreateVariableRequest) error {
 	_, err := r.db.ExecContext(ctx, `
 		UPDATE template_variables
 		SET key = $1, default_value = $2, required = $3, description = $4
@@ -64,8 +64,8 @@ func (r *Repository) DeleteTemplateVariable(ctx context.Context, id string) erro
 
 
 
-func (r *Repository) GetTemplateVariables(ctx context.Context, templateID string) ([]TemplateVariable, error) {
-	var variables []TemplateVariable
+func (r *Repository) GetTemplateVariables(ctx context.Context, templateID string) ([]models.TemplateVariable, error) {
+	var variables []models.TemplateVariable
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT id, template_id, key, default_value, required, description
 		FROM template_variables
@@ -76,7 +76,7 @@ func (r *Repository) GetTemplateVariables(ctx context.Context, templateID string
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var v TemplateVariable
+		var v models.TemplateVariable
 		if err := rows.Scan(&v.Id, &v.TemplateId, &v.Key, &v.DefaultValue, &v.Required, &v.Description); err != nil {
 			return nil, err
 		}

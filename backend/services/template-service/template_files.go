@@ -6,10 +6,11 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/wafi11/workspaces/pkg/models"
 )
 
-func (r *Repository) GetTemplateFiles(ctx context.Context, templateID string) ([]TemplateFiles, error) {
-	var variables []TemplateFiles
+func (r *Repository) GetTemplateFiles(ctx context.Context, templateID string) ([]models.TemplateFiles, error) {
+	var variables []models.TemplateFiles
 
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT id, template_id, filename, sort_order
@@ -23,7 +24,7 @@ func (r *Repository) GetTemplateFiles(ctx context.Context, templateID string) ([
 	defer rows.Close()
 	
 	for rows.Next() {
-		var v TemplateFiles
+		var v models.TemplateFiles
 		if err := rows.Scan(&v.Id, &v.TemplateId, &v.Filename, &v.SortOrder); err != nil {
 			return nil, err
 		}
@@ -33,9 +34,8 @@ func (r *Repository) GetTemplateFiles(ctx context.Context, templateID string) ([
 	return variables, nil
 }
 
-func (r *Repository) CreateTemplateFiles(ctx context.Context, req *CreateTemplateFilesRequest, templateId string,tx *sql.Tx) error {
+func (r *Repository) CreateTemplateFiles(ctx context.Context, req *models.CreateTemplateFilesRequest, templateId string,tx *sql.Tx) error {
 	if tx != nil {
-
 		_, err := tx.ExecContext(ctx, `
 		INSERT INTO template_files (id, template_id, filename, sort_order)
 		VALUES ($1, $2, $3, $4)
@@ -55,7 +55,7 @@ func (r *Repository) CreateTemplateFiles(ctx context.Context, req *CreateTemplat
 	return nil
 }
 
-func (r *Repository) UpdateTemplateFiles(ctx context.Context, id string, req *CreateTemplateFilesRequest) error{	
+func (r *Repository) UpdateTemplateFiles(ctx context.Context, id string, req *models.CreateTemplateFilesRequest) error{	
 	_, err := r.db.ExecContext(ctx, `
 		UPDATE template_files
 		SET filename = $1, sort_order = $2

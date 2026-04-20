@@ -11,6 +11,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/minio/minio-go/v7"
 	"github.com/redis/go-redis/v9"
+	"github.com/wafi11/workspaces/pkg/models"
 )
 
 type Repository struct {
@@ -27,7 +28,7 @@ func NewRepository(db *sqlx.DB, redis *redis.Client, minioClient *minio.Client) 
 	}
 }
 
-func (r *Repository) ListTemplates(ctx context.Context, req *ListTemplatesRequest) (*ListTemplatesResponse, error) {
+func (r *Repository) ListTemplates(ctx context.Context, req *models.ListTemplatesRequest) (*models.ListTemplatesResponse, error) {
 	query := `
 		SELECT id, name, description,icon, category, is_public, created_at,template_url
 		FROM templates
@@ -48,9 +49,9 @@ func (r *Repository) ListTemplates(ctx context.Context, req *ListTemplatesReques
 	}
 	defer rows.Close()
 
-	var templates []Template
+	var templates []models.Template
 	for rows.Next() {
-		var t Template
+		var t models.Template
 		if err := rows.Scan(
 			&t.Id, &t.Name, &t.Description, &t.Icon,
 		 &t.Category, &t.IsPublic, &t.CreatedAt, &t.TemplateUrl,
@@ -60,12 +61,12 @@ func (r *Repository) ListTemplates(ctx context.Context, req *ListTemplatesReques
 		templates = append(templates, t)
 	}
 
-	return &ListTemplatesResponse{Templates: templates}, nil
+	return &models.ListTemplatesResponse{Templates: templates}, nil
 }
 
-func (r *Repository) GetTemplate(ctx context.Context, req *GetTemplateRequest) (*GetTemplateResponse, error) {
+func (r *Repository) GetTemplate(ctx context.Context, req *models.GetTemplateRequest) (*models.GetTemplateResponse, error) {
 	// 2. cache miss → hit db
-	var t Template
+	var t models.Template
 	err := r.db.QueryRowContext(ctx, `
 		SELECT id, name, description, category, is_public, created_at,template_url,icon
 		FROM templates
@@ -80,10 +81,10 @@ func (r *Repository) GetTemplate(ctx context.Context, req *GetTemplateRequest) (
 		return nil, err
 	}
 
-	return &GetTemplateResponse{Template: &t}, nil
+	return &models.GetTemplateResponse{Template: &t}, nil
 }
 
-func (r *Repository) CreateTemplate(ctx context.Context, req *CreateTemplateRequest) (*CreateTemplateResponse, error) {
+func (r *Repository) CreateTemplate(ctx context.Context, req *models.CreateTemplateRequest) (*models.CreateTemplateResponse, error) {
 	tx, err := r.db.BeginTxx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -91,7 +92,7 @@ func (r *Repository) CreateTemplate(ctx context.Context, req *CreateTemplateRequ
 	defer tx.Rollback()
 
 	// 1. insert template
-	var t Template
+	var t models.Template
 	err = tx.QueryRowContext(ctx, `
 		INSERT INTO templates (name, description, category, is_public,icon,template_url)
 		VALUES ($1, $2, $3, $4, $5,$6)
@@ -136,23 +137,23 @@ func (r *Repository) CreateTemplate(ctx context.Context, req *CreateTemplateRequ
 	}
 
 	// invalidate list cache
-	r.redisClient.Del(ctx, templatesCacheKey)
+	r.redisClient.Del(ctx, models.TemplatesCacheKey)
 
-	return &CreateTemplateResponse{
+	return &models.CreateTemplateResponse{
 		Template: &t,
 		Message:  "template created successfully",
 	}, nil
 }
 
-func (repo *Repository) UpdateTemplate(ctx context.Context, id string, req *UpdateTemplateRequest) error {
+func (repo *Repository) UpdateTemplate(ctx context.Context, id string, req *models.UpdateTemplateRequest) error {
 	// 1. fetch existing
-	existing, err := repo.GetTemplate(ctx, &GetTemplateRequest{TemplateId: id})
+	existing, err := repo.GetTemplate(ctx, &models.GetTemplateRequest{TemplateId: id})
 	if err != nil {
 		return fmt.Errorf("template not found: %w", err)
 	}
 
 	// 2. merge partial request ke existing
-	req.merge(existing.Template)
+	req.Merge(existing.Template)
 
 	// 3. update dengan data lengkap — tidak ada mismatch
 	query := `
@@ -178,7 +179,7 @@ func (repo *Repository) UpdateTemplate(ctx context.Context, id string, req *Upda
 	if err != nil {
 		return fmt.Errorf("failed to update template: %w", err)
 	}
-	repo.redisClient.Del(ctx, templatesCacheKey)
+	repo.redisClient.Del(ctx, models.TemplatesCacheKey)
 
 	return nil
 }
@@ -191,13 +192,13 @@ func (repo *Repository) DeleteTemplate(ctx context.Context, id string) error {
 	if err != nil {
 		return fmt.Errorf("failed to delete workspaces")
 	}
-	repo.redisClient.Del(ctx, templatesCacheKey)
+	repo.redisClient.Del(ctx, models.TemplatesCacheKey)
 
 	return nil
 }
 
-func (repo *Repository) GetTemplatesConfigFile(ctx context.Context, id string) ([]TemplateFileInfo, error) {
-	var files []TemplateFileInfo
+func (repo *Repository) GetTemplatesConfigFile(ctx context.Context, id string) ([]models.TemplateFileInfo, error) {
+	var files []models.TemplateFileInfo
 
 	query := `
         SELECT 
@@ -218,7 +219,7 @@ func (repo *Repository) GetTemplatesConfigFile(ctx context.Context, id string) (
 	return files, nil
 }
 
-func (repo *Repository) GetDetailsInfo(c context.Context, templateId string) (*DetailsInfo, error) {
+func (repo *Repository) GetDetailsInfo(c context.Context, templateId string) (*models.DetailsInfo, error) {
 	query := `
         SELECT t.name, (
             SELECT json_agg(
@@ -239,7 +240,7 @@ func (repo *Repository) GetDetailsInfo(c context.Context, templateId string) (*D
         WHERE t.id = $1
     `
 
-	var detail DetailsInfo
+	var detail models.DetailsInfo
 	var addonList json.RawMessage
 	var varJSON json.RawMessage
 
@@ -269,7 +270,7 @@ func (repo *Repository) GetDetailsInfo(c context.Context, templateId string) (*D
 }
 
 
-func (repo *Repository)  FindTemplateWorkspaceForm(c context.Context)([]TemplateWorkspaceForm,error){
+func (repo *Repository)  FindTemplateWorkspaceForm(c context.Context)([]models.TemplateWorkspaceForm,error){
 	query := `
 		SELECT id,name,icon
 		FROM templates
@@ -283,9 +284,9 @@ func (repo *Repository)  FindTemplateWorkspaceForm(c context.Context)([]Template
 
 	defer rows.Close()
 	
-	var templates []TemplateWorkspaceForm
+	var templates []models.TemplateWorkspaceForm
 	for rows.Next() {
-		var template TemplateWorkspaceForm
+		var template models.TemplateWorkspaceForm
 		err := rows.Scan(
 			&template.ID,&template.Name,&template.Icon,
 		)

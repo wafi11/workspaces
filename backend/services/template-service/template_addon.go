@@ -7,9 +7,10 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/wafi11/workspaces/pkg/models"
 )
 
-func (r *Repository) CreateTemplateAddon(ctx context.Context, req *CreateAddonRequest, templateId string,Tx *sql.Tx) error {
+func (r *Repository) CreateTemplateAddon(ctx context.Context, req *models.CreateAddonRequest, templateId string,Tx *sql.Tx) error {
 	if Tx != nil {
 
 		_, err := Tx.ExecContext(ctx, `
@@ -31,7 +32,7 @@ func (r *Repository) CreateTemplateAddon(ctx context.Context, req *CreateAddonRe
 	return nil
 }
 
-func (r *Repository) GetTemplateAddons(ctx context.Context, templateID string) ([]TemplateAddon, error) {
+func (r *Repository) GetTemplateAddons(ctx context.Context, templateID string) ([]models.TemplateAddon, error) {
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT id, name,image, description, default_config,template_id
 		FROM template_addons
@@ -42,9 +43,9 @@ func (r *Repository) GetTemplateAddons(ctx context.Context, templateID string) (
 	}
 	defer rows.Close()
 
-	var addons []TemplateAddon
+	var addons []models.TemplateAddon
 	for rows.Next() {
-    var addon TemplateAddon
+    var addon models.TemplateAddon
     var defaultConfig []byte  
     if err := rows.Scan(&addon.Id, &addon.Name, &addon.Image, &addon.Description, &defaultConfig, &addon.TemplateId); err != nil {
         return nil, fmt.Errorf("failed to scan template addon: %w", err)
@@ -64,7 +65,7 @@ func (r *Repository) GetTemplateAddons(ctx context.Context, templateID string) (
 	return addons, nil
 }
 
-func (r *Repository) UpdateTemplateAddon(ctx context.Context, id string, req *CreateAddonRequest) error {
+func (r *Repository) UpdateTemplateAddon(ctx context.Context, id string, req *models.CreateAddonRequest) error {
 	_, err := r.db.ExecContext(ctx, `
 		UPDATE template_addons
 		SET name = $1, description = $2, default_config = $3

@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
+	"github.com/wafi11/workspaces/pkg/models"
 )
 
-func (r *Repository) setTemplateCache(ctx context.Context, templateId string, t *Template) {
-	cached := CachedTemplate{
+func (r *Repository) setTemplateCache(ctx context.Context, templateId string, t *models.Template) {
+	cached := models.CachedTemplate{
 		Id:          t.Id,
 		Name:        t.Name,
 		Description: t.Description,
@@ -23,21 +25,21 @@ func (r *Repository) setTemplateCache(ctx context.Context, templateId string, t 
 	if err != nil {
 		return
 	}
-	r.redisClient.Set(ctx, fmt.Sprintf(templateCacheKey, templateId), b, cacheTTL)
+	r.redisClient.Set(ctx, fmt.Sprintf(models.TemplateCacheKey, templateId), b, models.TemplateCacheTTL)
 }
 
-func (r *Repository) getTemplateCache(ctx context.Context, templateId string) (*Template, error) {
-	val, err := r.redisClient.Get(ctx, fmt.Sprintf(templateCacheKey, templateId)).Bytes()
+func (r *Repository) getTemplateCache(ctx context.Context, templateId string) (*models.Template, error) {
+	val, err := r.redisClient.Get(ctx, fmt.Sprintf(models.TemplateCacheKey, templateId)).Bytes()
 	if err != nil {
 		return nil, err
 	}
 
-	var cached CachedTemplate
+	var cached models.CachedTemplate
 	if err := json.Unmarshal(val, &cached); err != nil {
 		return nil, err
 	}
 
-	return &Template{
+	return &models.Template{
 		Id:          cached.Id,
 		Name:        cached.Name,
 		Description: cached.Description,
