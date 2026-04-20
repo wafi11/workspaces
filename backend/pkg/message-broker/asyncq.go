@@ -14,6 +14,7 @@ type TaskSchedulling struct {
 	WorkspaceID string `json:"workspace_id"`
 	Type string `json:"type"`
 	Duration int `json:"duration"`
+    TypeTimeDuration time.Duration `json:"type_time_duration"`
 	Status string `json:"status"`
 }
 
@@ -23,9 +24,9 @@ func TaskStartAndStopWorkspace(payload string, client *asynq.Client) error {
         return fmt.Errorf("failed to process task")
     }
 
-    duration := time.Duration(taskReq.Duration) * time.Minute
-    if duration < time.Minute {
-        duration = time.Minute
+    duration := time.Duration(taskReq.Duration) * taskReq.TypeTimeDuration
+    if duration < taskReq.TypeTimeDuration {
+        duration = taskReq.TypeTimeDuration
     }
 
     task := asynq.NewTask(string(EventStopWorkspace), []byte(payload))
@@ -33,7 +34,6 @@ func TaskStartAndStopWorkspace(payload string, client *asynq.Client) error {
         asynq.ProcessIn(duration),
         asynq.TaskID(fmt.Sprintf("autostop:%s", taskReq.WorkspaceID)),
         asynq.Queue("default"),
-        // asynq.Unique dihapus — TaskID sudah handle dedupe
     )
     if err != nil && !errors.Is(err, asynq.ErrTaskIDConflict) {
         return err

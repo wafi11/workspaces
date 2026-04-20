@@ -43,11 +43,12 @@ func (r *Repository) publishStart(ctx context.Context, workspaceId string, res *
 	})
 }
 
-func (r *Repository) scheduleAutoStop(workspaceId string, d time.Duration) {
+func (r *Repository) scheduleAutoStop(workspaceId string, d int,typeTimeDuration time.Duration) {
 	payload, err := json.Marshal(messagebroker.TaskSchedulling{
 		WorkspaceID: workspaceId,
-		Duration:    int(d),
+		Duration:    d,
 		Status:      string(messagebroker.EventStopWorkspace),
+		TypeTimeDuration: typeTimeDuration,
 	})
 	if err != nil {
 		log.Printf("[scheduler] failed marshal payload: %v", err)

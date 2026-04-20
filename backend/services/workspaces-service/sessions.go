@@ -14,17 +14,29 @@ import (
 
 func (repo *Repository) CreateWorkspaceSessions(ctx context.Context, req CreateWorkspaceSessions) error {
 	now := time.Now().UTC()
-	expiresAt := now.Add(cooldown * time.Minute)
+    var type_time_duration string
+    var time_duration int
+    query := `
+        select type_time_duration,time_duration from workspaces w where id = $1
+    `
+
+    err := repo.db.QueryRowContext(ctx,query,req.WorkspaceId).Scan(&type_time_duration,&time_duration)
+    if err != nil {
+        return fmt.Errorf("failed to find workspaces")
+    }
+
+    times,err := validationTypeSchedulling(type_time_duration)
+    expiresAt := now.Add(time.Duration(time_duration) * times)
 	
 
-	query := `
+	query = `
         INSERT INTO workspace_sessions (
             workspace_id, user_id, status, started_at, expires_at,
             created_at, updated_at
         ) VALUES ($1, $2, $3, $4, $5, $6, $7)
     `
 
-	_, err := repo.db.ExecContext(ctx, query, req.WorkspaceId, req.UserId, req.Status, now, expiresAt, now, now)
+	_, err = repo.db.ExecContext(ctx, query, req.WorkspaceId, req.UserId, req.Status, now, expiresAt, now, now)
 	if err != nil {
 		log.Printf("failed to start sessions: %s", err.Error())
 		return fmt.Errorf("failed to start sessions")
@@ -33,26 +45,6 @@ func (repo *Repository) CreateWorkspaceSessions(ctx context.Context, req CreateW
 	return nil
 }
 
-func TxCreateWorkspaceSessions(ctx context.Context, req CreateWorkspaceSessions,tx *sql.Tx) error {
-	now := time.Now().UTC()
-	expiresAt := now.Add(cooldown * time.Minute)
-	
-
-	query := `
-        INSERT INTO workspace_sessions (
-            workspace_id, user_id, status, started_at, expires_at,
-            created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-    `
-
-	_, err := tx.ExecContext(ctx, query, req.WorkspaceId, req.UserId, req.Status, now, expiresAt, now, now)
-	if err != nil {
-		log.Printf("failed to start sessions: %s", err.Error())
-		return fmt.Errorf("failed to start sessions")
-	}
-
-	return nil
-}
 
 func (repo *Repository) HandleStopWorkspace() asynq.HandlerFunc {
     return func(ctx context.Context, t *asynq.Task) error {

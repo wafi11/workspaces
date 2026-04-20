@@ -10,6 +10,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/wafi11/workspaces/config"
 	messagebroker "github.com/wafi11/workspaces/pkg/message-broker"
+	"github.com/wafi11/workspaces/pkg/middlewares"
 	"github.com/wafi11/workspaces/pkg/proto"
 	"github.com/wafi11/workspaces/pkg/server"
 	"github.com/wafi11/workspaces/pkg/websocket"
@@ -44,7 +45,8 @@ func main() {
 	// init echo
 	hub := websocket.NewHub(conf)
 	e := echo.New()
-	e.GET("/ws", hub.Handler)
+	
+	e.GET("/ws", hub.Handler,middlewares.AuthMiddleware(conf))
 
 	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())
@@ -75,9 +77,6 @@ func main() {
 			log.Fatalf("asynq server error: %v", err)
 		}
 	}()
-
-
-
 
 	server.NewServer(e, database, redisClient, minio, conf, esClient, sub, jobQueue, hub,mux,k8s)
 	log.Printf("starting backend workspace on port %s", conf.Port)

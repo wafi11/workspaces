@@ -74,12 +74,6 @@ func (r *Repository) CreateWorkspace(ctx context.Context, req *CreateWorkspaceRe
 	var w Workspace
 	var template_name string
 
-	if req.Password == "" {
-		return nil, fmt.Errorf("password must be required")
-	}
-	hashedPassword, err := utils.HashPassword(req.Password)
-
-
 	envJSON, _ := json.Marshal(req.EnvVars)
 
 	db_name := utils.GetEnvString(req.EnvVars,"DB_NAME")
@@ -95,10 +89,10 @@ func (r *Repository) CreateWorkspace(ctx context.Context, req *CreateWorkspaceRe
 	url := GenerateAddonConnectionUrl(AddonUrl(strings.ToLower(template_name)),authservices.GenerateNamespace(req.UserId),req.Name,req.UserId,db_user,db_password,db_name)
 
 	err = tx.QueryRowContext(ctx, `
-        INSERT INTO workspaces (user_id,name,status,env_vars,url,template_id,password)
-        VALUES ($1, $2, $3, $4,$5,$6,$7)
+        INSERT INTO workspaces (user_id,name,status,env_vars,url,template_id,type_time_duration,time_duration)
+        VALUES ($1, $2, $3, $4,$5,$6,$7,$8)
         RETURNING id, user_id, name, status`,
-		req.UserId, req.Name, StatusPending, envJSON, url,req.TemplateId,hashedPassword,
+		req.UserId, req.Name, StatusPending, envJSON, url,req.TemplateId,req.TypeTimeDuration,req.TimeDuration,
 	).Scan(&w.Id, &w.UserId, &w.Name, &w.Status)
 
 	if err != nil {
@@ -151,7 +145,6 @@ func (r *Repository) CreateWorkspace(ctx context.Context, req *CreateWorkspaceRe
 						UserId:      w.UserId,
 						Username:    username,
 						Name:        w.Name,
-						Password:    req.Password,
 						Namespace:   w.UserId,
 					},
 					AddOns:  &proto.AddonSpec{

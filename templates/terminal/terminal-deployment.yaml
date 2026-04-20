@@ -41,8 +41,6 @@ spec:
             - -W
             - -p
             - "7681"
-            - -c
-            - "{{.Username}}:{{.Password}}"
             - /bin/bash
             - -c
             - |

@@ -23,19 +23,9 @@ func NewHub(conf *config.Config) *Hub {
 	}
 }
 func (h *Hub) Handler(c echo.Context) error {
-	token := c.QueryParam("token")
-	if token == "" {
-		log.Println("[ws] no token provided")
-		return echo.ErrUnauthorized
-	}
+	userId := c.Get("user_id").(string)
 
-	data, err := config.ValidationToken(token, h.conf)
-	if err != nil {
-		log.Printf("[ws] invalid token: %v", err)
-		return echo.ErrUnauthorized
-	}
-
-	log.Printf("[ws] client connecting: userID=%s", data.UserID)
+	log.Printf("[ws] client connecting: userID=%s", userId)
 
 	conn, err := upgrader.Upgrade(c.Response(), c.Request(), nil)
 	if err != nil {
@@ -43,17 +33,17 @@ func (h *Hub) Handler(c echo.Context) error {
 		return err
 	}
 
-	h.Register(data.UserID, conn)
-	log.Printf("[ws] client registered: userID=%s total_clients=%d", data.UserID, len(h.clients))
+	h.Register(userId, conn)
+	log.Printf("[ws] client registered: userID=%s total_clients=%d", userId, len(h.clients))
 	defer func() {
-		h.Unregister(data.UserID, conn)
-		log.Printf("[ws] client disconnected: userID=%s", data.UserID)
+		h.Unregister(userId, conn)
+		log.Printf("[ws] client disconnected: userID=%s", userId)
 	}()
 
 	for {
 		_, _, err := conn.ReadMessage()
 		if err != nil {
-			log.Printf("[ws] read error userID=%s: %v", data.UserID, err)
+			log.Printf("[ws] read error userID=%s: %v", userId, err)
 			break
 		}
 	}

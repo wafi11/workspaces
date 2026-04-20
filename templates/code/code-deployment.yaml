@@ -17,6 +17,24 @@ spec:
         runAsUser: {{.RunAsUser}}
         runAsGroup: {{.RunAsGroup}}
         fsGroup: {{.FsGroup}}
+      initContainers:
+        - name: init-dirs
+          image: busybox
+          command: ["sh", "-c", "mkdir -p /mnt/home /mnt/data"]
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "64Mi"
+            limits:
+              cpu: "100m"
+              memory: "64Mi"
+          volumeMounts:
+            - name: user-data
+              mountPath: /mnt/home
+              subPath: "workspaces/{{.Name}}/home"
+            - name: user-data
+              mountPath: /mnt/data
+              subPath: "workspaces/{{.Name}}/data"
       containers:
         - name: {{.Name}}
           image: codercom/code-server:4.91.1
@@ -39,8 +57,11 @@ spec:
               memory: {{.MemLimit}}
           volumeMounts:
             - name: user-data
+              mountPath: /home/coder
+              subPath: "workspaces/{{.Name}}/home"
+            - name: user-data
               mountPath: /data
-              subPath: home
+              subPath: "workspaces/{{.Name}}/data"
       volumes:
         - name: user-data
           persistentVolumeClaim:

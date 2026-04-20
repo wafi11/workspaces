@@ -63,7 +63,7 @@ async function request<T = any>(
 
   try {
     response = await fetch(url, {
-      credentials : "include",
+      credentials: "include",
       method: config.method || "GET",
       headers,
       body: config.body ? JSON.stringify(config.body) : undefined,
@@ -154,16 +154,15 @@ async function request<T = any>(
 
 export const api = {
   sse: async (endpoint: string, onMessage: (data: any) => void) => {
-    const token = storage.getAccessToken();
     const url = endpoint.startsWith("http")
       ? endpoint
       : `${API_URL}${endpoint}`;
 
     const response = await fetch(url, {
       headers: {
-        Authorization: `Bearer ${token}`,
         Accept: "text/event-stream",
       },
+      credentials: "include",
     });
 
     const reader = response.body!.getReader();

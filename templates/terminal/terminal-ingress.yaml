@@ -9,6 +9,9 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
     nginx.ingress.kubernetes.io/websocket-services: "terminal"
     nginx.ingress.kubernetes.io/upgrade-type: "websocket"
+    nginx.ingress.kubernetes.io/auth-url: "http://platform-service.default.svc.cluster.local:8080/api/v1/auth/validate"
+    nginx.ingress.kubernetes.io/auth-signin: "https://api.wfdnstore.online/api/v1/auth/login?rd=https://$host$escaped_request_uri"
+    nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-User"
 spec:
   ingressClassName: nginx
   rules:
@@ -22,4 +25,3 @@ spec:
             name: terminal
             port:
               number: 80
-              targetPort: 7681

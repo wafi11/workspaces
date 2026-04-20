@@ -19,7 +19,7 @@ type Notification struct {
 	Title            string           `json:"title"`
 	Message          string           `json:"message"`
 	Metadata         json.RawMessage         `json:"metadata"`
-IsRead bool `json:"is_read"`
+	IsRead bool `json:"is_read"`
 	CreatedAt        time.Time  `json:"created_at"`
 }
 
@@ -32,7 +32,7 @@ type NotificationRequest struct {
 	RetreivedID  	 string  `json:"retreived_id"`
 	Message          string           `json:"message"`
 	Metadata         json.RawMessage         `json:"metadata"`
-IsRead bool `json:"is_read"`
+	IsRead bool `json:"is_read"`
 }
 
 

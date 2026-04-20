@@ -17,7 +17,7 @@ import (
 	"github.com/wafi11/workspaces/services/api-gateway/template"
 	"github.com/wafi11/workspaces/services/api-gateway/user"
 	"github.com/wafi11/workspaces/services/api-gateway/workspace"
-	logsservices "github.com/wafi11/workspaces/services/log-services"
+	logservices "github.com/wafi11/workspaces/services/log-services"
 )
 
 func NewServer(e *echo.Echo, db *sqlx.DB, redis *config.RedisConnection, minioClient *minio.Client, conf *config.Config, esClient *config.Client, sub *messagebroker.Subscriber, jobQueue <-chan *proto.WorkspaceEnvelope, hub *websocket.Hub,mux *asynq.ServeMux,k8s *config.K8sClient) {
@@ -29,7 +29,7 @@ func NewServer(e *echo.Echo, db *sqlx.DB, redis *config.RedisConnection, minioCl
 
 
 
-	h := logsservices.NewHandler(k8s.MetricsClient)
+	h := logservices.NewHandler(k8s.MetricsClient)
 	protected := e.Group("",middlewares.AuthMiddleware(conf))
 	protected.GET("/api/v1/metrics",h.GetMetrics)
 }

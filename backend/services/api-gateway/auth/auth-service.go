@@ -87,16 +87,38 @@ func (h *Handler) Logout(c echo.Context) error {
 }
 
 func (h *Handler) RefreshToken(c echo.Context) error {
-	var req authservices.RefreshTokenRequest
-	if err := c.Bind(&req); err != nil {
-		return response.Error(c, http.StatusBadRequest, "invalid request body", err)
+	refresh_token,err := c.Cookie(config.CookieRefreshTokenName)
+
+	if err != nil {
+		return response.Error(c,http.StatusUnauthorized,"UNAUTHORIZED",nil)
 	}
 
-	resp, err := h.services.RefreshToken(c.Request().Context(), &req)
+	resp, err := h.services.RefreshToken(c.Request().Context(), &authservices.RefreshTokenRequest{
+		RefreshToken: refresh_token.Value,
+	})
 	if err != nil {
 		log.Printf("failed to refresh token %s",err.Error())
 		return response.Error(c, http.StatusUnauthorized, "refresh token failed", err)
 	}
+
+	c.SetCookie(&http.Cookie{
+		Name:     config.CookieAccessTokenName,
+		Value:    resp.AccessToken,
+		HttpOnly: true,
+		Secure:   true,
+		Path:     "/",
+		Domain:   fmt.Sprintf(".%s","wfdnstore.online"),
+		SameSite: http.SameSiteLaxMode,
+	})
+	c.SetCookie(&http.Cookie{
+		Name:     config.CookieRefreshTokenName,
+		Value:    resp.RefreshToken,
+		HttpOnly: true,
+		Secure:   true,
+		Path:     "/",
+		Domain:   fmt.Sprintf(".%s","wfdnstore.online"),
+		SameSite: http.SameSiteLaxMode,
+	})
 
 	return response.Success(c, http.StatusOK, "token refreshed", resp)
 }

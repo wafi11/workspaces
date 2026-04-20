@@ -60,8 +60,6 @@ const (
 	workspacesCacheKey = "workspaces:user:%s"
 	cacheTTL           = 5 * time.Minute
 	timeExpCollaborators = 60
-	timeExpSessionCollaborator = 60
-	cooldown = 5300
 )
 
 var (
@@ -82,6 +80,7 @@ const (
 	StatusError    WorkspaceStatus = "error"
 	StatusDeleting WorkspaceStatus = "deleting"
 )
+
 const (
 	CollaboratorPending  WorkspaceCollaboratorStatus = "pending"
 	CollaboratorAccepted WorkspaceCollaboratorStatus = "accepted"
@@ -112,6 +111,19 @@ func ConvertWorkspaceStatus(s proto.WorkspaceStatus) WorkspaceStatus {
 	default:
 		return StatusPending
 	}
+}
+
+func validationTypeSchedulling(typeTime string) (time.Duration,error){
+
+	switch typeTime {
+	case "minutes":
+		return  time.Minute,nil
+	case "hours":
+		return time.Hour,nil
+	default :
+		return time.Hour,fmt.Errorf("type scheduling just minute and hour")
+	}
+
 }
 
 type Workspace struct {
@@ -179,7 +191,8 @@ type CreateWorkspaceAddon struct {
 type CreateWorkspaceRequest struct {
 	UserId        string            `json:"user_id"`
 	TemplateId    string            `json:"template_id"`
-	Password      string            `json:"password"`
+	TimeDuration int `json:"time_duration"`
+	TypeTimeDuration string `json:"type_time_duration"`
 	Name          string            `json:"name"`
 	LimitRam      int               `json:"limit_ram_mb"`
 	LimitCpuCores float64           `json:"limit_cpu_cores"`
@@ -254,6 +267,8 @@ type workspaceRow struct {
     Name       string
     CurrStatus WorkspaceStatus
     LimitRAM   int
+	TypeTimeDuration string
+	TimeDuration int
     LimitCPU   float64
     ReqRAM     int
     ReqCPU     float64

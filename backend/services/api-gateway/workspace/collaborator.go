@@ -43,7 +43,8 @@ func (h *Handler) GetWorkspaceCollaboration(c echo.Context)  error{
 	data,err := h.svc.GetCollaboratedWorkspaces(c.Request().Context(),user_id)
 
 	if err != nil {
-		return response.Error(c,http.StatusUnauthorized,"Failed to get workspace collaboration",nil)
+		log.Printf("failed to find collaborations teams : %s",err.Error())
+		return response.Error(c,http.StatusBadRequest,"Failed to get workspace collaboration",nil)
 	}
 
 	return response.Success(c,http.StatusOK,"Successfully retreived workspaces",data)

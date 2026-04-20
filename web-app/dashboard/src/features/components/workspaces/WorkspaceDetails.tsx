@@ -1,31 +1,32 @@
-import { useGetWorkspace } from "@/features/api"
-import { MainContainer } from "@/features/layout/MainContainer"
-import { TopbarAdmin } from "@/features/layout/TopbarDashboard"
-import { useGetMetricsWorkspaces } from "@/hooks/useGetWorkspaceMatrics"
-import { formatDate } from "@/utils/formatDate"
-import { ExternalLink, PanelRight, X } from "lucide-react"
-import { useState } from "react"
-import { EmptyState } from "./EmptyState"
-import { InfoRow } from "./InfoRow"
-import { MetricCard } from "./MetricCard"
-import { WorkspacePort } from "./WorkspacePort"
+import { useGetWorkspace } from "@/features/api";
+import { MainContainer } from "@/features/layout/MainContainer";
+import { TopbarAdmin } from "@/features/layout/TopbarDashboard";
+import { useGetMetricsWorkspaces } from "@/hooks/useGetWorkspaceMatrics";
+import { formatDate } from "@/utils/formatDate";
+import { ExternalLink, PanelRight, X } from "lucide-react";
+import { useState } from "react";
+import { EmptyState } from "./EmptyState";
+import { InfoRow } from "./InfoRow";
+import { MetricCard } from "./MetricCard";
+import { WorkspacePort } from "./WorkspacePort";
 
 export type WorkspaceDetailsProps = {
-  id: string
-}
+  id: string;
+};
 
 export function WorkspaceDetails({ id }: WorkspaceDetailsProps) {
-  const { data } = useGetWorkspace(id)
-  const [showPanel, setShowPanel] = useState(false)
+  const { data } = useGetWorkspace(id);
+  const [showPanel, setShowPanel] = useState(false);
 
-  const {byApp} = useGetMetricsWorkspaces()
+  const { byApp } = useGetMetricsWorkspaces();
   const pods = [data?.name];
   const envEntries = Object.entries(data?.env_vars ?? {});
-  if (!data) return <EmptyState />
+  console.log(byApp);
+  if (!data) return <EmptyState />;
 
   return (
     <MainContainer>
-      <TopbarAdmin title={data.name} >
+      <TopbarAdmin title={data.name}>
         <a
           href={`https://${data.url}`}
           target="_blank"
@@ -34,7 +35,7 @@ export function WorkspaceDetails({ id }: WorkspaceDetailsProps) {
           <ExternalLink size={15} />
         </a>
         <button
-          onClick={() => setShowPanel(v => !v)}
+          onClick={() => setShowPanel((v) => !v)}
           className="p-1.5 rounded hover:bg-[#1a1a1a] text-sidebar-text-active hover:text-white transition-colors"
         >
           <PanelRight size={15} />
@@ -66,7 +67,6 @@ export function WorkspaceDetails({ id }: WorkspaceDetailsProps) {
                 <X size={13} />
               </button>
             </div>
-          
 
             {/* Metrics */}
             <div className="px-4 py-3 border-b border-[#111]">
@@ -83,10 +83,13 @@ export function WorkspaceDetails({ id }: WorkspaceDetailsProps) {
                       memory={byApp[app as string].total_memory_mb}
                     />
                   ) : (
-                    <p key={app} className="text-[10px] text-sidebar-text-muted">
+                    <p
+                      key={app}
+                      className="text-[10px] text-sidebar-text-muted"
+                    >
                       no metrics yet
                     </p>
-                  )
+                  ),
                 )}
               </div>
             </div>
@@ -101,7 +104,7 @@ export function WorkspaceDetails({ id }: WorkspaceDetailsProps) {
                 <InfoRow label="created" value={formatDate(data.created_at)} />
               </div>
             </div>
-            <WorkspacePort workspaceId={id}/>
+            <WorkspacePort workspaceId={id} />
 
             {/* Env vars */}
             <div className="px-4 py-3">
@@ -109,7 +112,9 @@ export function WorkspaceDetails({ id }: WorkspaceDetailsProps) {
                 <span className="text-[9px] tracking-[0.18em] text-sidebar-text-muted uppercase">
                   env vars
                 </span>
-                <span className="text-[9px] text-sidebar-text-muted">{envEntries.length}</span>
+                <span className="text-[9px] text-sidebar-text-muted">
+                  {envEntries.length}
+                </span>
               </div>
               <div className="bg-[#0d0d0d] border border-[#141414] rounded-sm overflow-hidden">
                 {envEntries.length === 0 ? (
@@ -123,7 +128,9 @@ export function WorkspaceDetails({ id }: WorkspaceDetailsProps) {
                       className="px-3 py-2 border-b border-[#0f0f0f] last:border-0"
                     >
                       <p className="text-[10px] text-[#71717a]">{key}</p>
-                      <p className="text-[10px] text-sidebar-text-muted truncate">{val}</p>
+                      <p className="text-[10px] text-sidebar-text-muted truncate">
+                        {val}
+                      </p>
                     </div>
                   ))
                 )}
@@ -133,5 +140,5 @@ export function WorkspaceDetails({ id }: WorkspaceDetailsProps) {
         )}
       </div>
     </MainContainer>
-  )
+  );
 }

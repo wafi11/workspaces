@@ -1,5 +1,5 @@
 "use client";
-import { ADMIN_ROLE } from "@/constants";
+import { LOGIN_URL } from "@/constants";
 import { storage } from "@/hooks";
 import { api } from "@/lib/api";
 import type { User, UserQuota } from "@/types";
@@ -13,10 +13,10 @@ export function useRegister() {
     mutationKey: ["register"],
     mutationFn: async (data: RegisterForm) => {
       const req = await api.post<null>("/auth/register", data);
+      if (req.status == 201) {
+        router.navigate({ to: LOGIN_URL });
+      }
       return req.data;
-    },
-    onSuccess: () => {
-      //   router.(LOGIN_URL);
     },
   });
 }
@@ -30,20 +30,14 @@ export function useLogin() {
       const req = await api.post<{
         access_token: string;
         refresh_token: string;
-        role : string
+        role: string;
       }>("/auth/login", data);
-      const { access_token,role, refresh_token } = req.data;
-      storage.setAccessToken(access_token);
-      storage.setRefreshToken(refresh_token);
-       if (role === ADMIN_ROLE) {
-        router.navigate({to : "/dashboard"})
-      }else {
-        router.navigate({to : "/workspaces"})
-      }
+      router.navigate({ to: "/workspaces" });
+
       return req.data;
     },
     // onSuccess: (data) => {
-     
+
     // },
   });
 }

@@ -4,13 +4,13 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+	"github.com/wafi11/workspaces/pkg/models"
 	"github.com/wafi11/workspaces/pkg/response"
-	templateservice "github.com/wafi11/workspaces/services/template-service"
 )
 
 func (h *Handler) CreateTemplateVariable(c echo.Context) error {
 	templateId := c.Param("template_id")
-	var req templateservice.CreateVariableRequest
+	var req models.CreateVariableRequest
 	if err := c.Bind(&req); err != nil {
 		return response.Error(c, http.StatusBadRequest, "Invalid request body", nil)
 	}
@@ -35,7 +35,7 @@ func (h *Handler) GetTemplateVariables(c echo.Context) error {
 
 func (h *Handler) UpdateTemplateVariable(c echo.Context) error {
 	id := c.Param("id")
-	var req templateservice.CreateVariableRequest
+	var req models.CreateVariableRequest
 	if err := c.Bind(&req); err != nil {
 		return response.Error(c, http.StatusBadRequest, "Invalid request body", nil)
 	}

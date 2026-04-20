@@ -1,12 +1,6 @@
 import { Cpu, MemoryStick } from "lucide-react";
 import { useEffect, useState } from "react";
-import {
-    Line,
-    LineChart,
-    ResponsiveContainer,
-    Tooltip,
-    YAxis
-} from "recharts";
+import { Line, LineChart, ResponsiveContainer, Tooltip, YAxis } from "recharts";
 export interface MetricPoint {
   time: string;
   cpu: number;

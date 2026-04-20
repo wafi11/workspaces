@@ -57,22 +57,11 @@ func (repo *Repository) Register(c context.Context, req *RegisterRequest) (*Regi
 		return nil, fmt.Errorf("username or email already registered: %w", err)
 	}
 
-	const (
-		maxQuota   = 5
-		maxStorage = 20
-		maxRam     = 4096
-		maxCpu     = 4.0
-		
-		cpuTerminalLimit    = 0.5
-		memTerminalLimitMi  = 512
-		storTerminalLimitGi = 1
-	)
-
 	quotaQuery := `
 		INSERT INTO user_quotas (id, user_id, max_workspaces, max_storage_gb, max_ram_mb, max_cpu_cores)
 		VALUES ($1, $2, $3, $4, $5, $6)
 	`
-	_,err = tx.ExecContext(c, quotaQuery, uuid.New().String(), userId, maxQuota, maxStorage-storTerminalLimitGi, maxRam-memTerminalLimitMi, maxCpu-cpuTerminalLimit)
+	_,err = tx.ExecContext(c, quotaQuery, uuid.New().String(), userId, models.MaxQuota, models.MaxStorage-models.StorTerminalLimitGi, models.MaxRam-models.MemTerminalLimitMi, models.MaxCpu-models.CpuTerminalLimit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user quota: %w", err)
 	}
@@ -93,24 +82,38 @@ func (repo *Repository) Register(c context.Context, req *RegisterRequest) (*Regi
 		return nil, fmt.Errorf("failed to create session: %w", err)
 	}
 
+
+	var templateId string
+
+	queryTemplateId := `
+		SELECT id FROM templates where category = 'terminal' and is_public = false
+	`
+
+	err = tx.QueryRowContext(c,queryTemplateId).Scan(&templateId)
+	if err != nil {
+		log.Printf("[register] template not found : %s",err.Error())
+		return nil,fmt.Errorf("failed to register")
+	}
+
 	if err = tx.Commit(); err != nil {
 		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 
-	cpuReq := fmt.Sprintf("%.2f", maxCpu)
-	memReq := fmt.Sprintf("%dMi", maxRam)
-	storReq := fmt.Sprintf("%dGi", maxStorage)
+	cpuReq := fmt.Sprintf("%.2f", models.MaxCpu)
+	memReq := fmt.Sprintf("%dMi", models.MaxRam)
+	storReq := fmt.Sprintf("%dGi", models.MaxStorage)
 
 	messagebroker.PublishEvent(c, repo.redis, &proto.WorkspaceEnvelope{
 		Payload: &proto.WorkspaceEnvelope_Create{
 			Create: &proto.CreateWorkspaceEvent{
 				Identity: &proto.WorkspaceIdentity{
 					UserId:    userId,
+					Username:	 username,
 					Namespace: GenerateNamespace(userId),
 					Password:  req.Password,
 				},
-				TemplateId: "a7fda0ee-092c-40dc-be9f-8917784764b2",
+				TemplateId: templateId,
 				Resources: &proto.ResourceSpec{
 					CpuRequest:          cpuReq,
 					CpuLimit:            cpuReq,
@@ -118,8 +121,8 @@ func (repo *Repository) Register(c context.Context, req *RegisterRequest) (*Regi
 					MemoryLimit:         memReq,
 					StorageRequest:      storReq,
 					StorageLimit:        storReq,
-					CpuTerminalLimit:    fmt.Sprintf("%.2f", cpuTerminalLimit),
-					MemoryTerminalLimit: fmt.Sprintf("%dMi", memTerminalLimitMi),
+					CpuTerminalLimit:    fmt.Sprintf("%.2f", models.CpuTerminalLimit),
+					MemoryTerminalLimit: fmt.Sprintf("%dMi", models.MemTerminalLimitMi),
 				},
 				EnvVars: map[string]string{
 					"WS_TOKEN":         token.AccessToken,
@@ -139,19 +142,12 @@ func (repo *Repository) Register(c context.Context, req *RegisterRequest) (*Regi
 }
 
 func (repo *Repository) Login(c context.Context, req *LoginRequest, userAgent, ipAddress string) (*LoginResponse, error) {
-	var id, password,role, username string
+	var id, password, role, username string
 
-	query := `
-		SELECT 
-			id, 
-			username, 
-			password,
-			role
-		FROM users 
-		WHERE email = $1
-	`
-
-	err := repo.db.QueryRowContext(c, query, req.Email).Scan(&id, &username, &password,&role)
+	err := repo.db.QueryRowContext(c, `
+		SELECT id, username, password, role
+		FROM users WHERE email = $1
+	`, req.Email).Scan(&id, &username, &password, &role)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("invalid credentials")
@@ -162,94 +158,88 @@ func (repo *Repository) Login(c context.Context, req *LoginRequest, userAgent, i
 	if !utils.VerifyPassword(password, req.Password) {
 		return nil, fmt.Errorf("invalid credentials")
 	}
-	
-	// generate access token
+
 	sessionId := uuid.New().String()
-	token,err :=  repo.GenerateToken(c,GenerateTokenReq{
-		UserID: id,
-		Role: role,
+	token, err := repo.GenerateToken(c, GenerateTokenReq{
+		UserID:    id,
+		Role:      role,
 		SessionID: sessionId,
 	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate token: %w", err)
+	}
 
-	// simpan session ke database
-	sessionQuery := `
-		INSERT INTO sessions (id, user_id, is_active, user_agent, ip_address,refresh_token)
-		VALUES ($1, $2, true, $3, $4,$5)
-	`
-	_, err = repo.db.ExecContext(c, sessionQuery, sessionId, id, userAgent, ipAddress,token.RefreshToken)
+	_, err = repo.db.ExecContext(c, `
+		INSERT INTO sessions (id, user_id, is_active, user_agent, ip_address, refresh_token)
+		VALUES ($1, $2, true, $3, $4, $5)
+	`, sessionId, id, userAgent, ipAddress, token.RefreshToken)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create session: %w", err)
 	}
 
-	redisKey := fmt.Sprintf("refresh_token:%s", id)
-	err = repo.redis.Set(c, redisKey, token.RefreshToken, 24*time.Hour).Err()
-	if err != nil {
+	if err = repo.redis.Set(c, refreshTokenKey(sessionId), token.RefreshToken, 24*time.Hour).Err(); err != nil {
 		return nil, fmt.Errorf("failed to store refresh token: %w", err)
 	}
 
-	repo.redis.Set(c, "session:"+token.AccessToken,id, 1*time.Hour)
-
+	if err = repo.redis.Set(c, sessionKey(sessionId), true, 1*time.Hour).Err(); err != nil {
+		return nil, fmt.Errorf("failed to store session: %w", err)
+	}
 
 	return &LoginResponse{
 		AccessToken:  token.AccessToken,
 		RefreshToken: token.RefreshToken,
 		UserId:       id,
-		Role: role,
+		Role:         role,
 		SessionId:    sessionId,
 	}, nil
-
 }
-
 func (repo *Repository) RefreshToken(c context.Context, req *RefreshTokenRequest) (*RefreshTokenResponse, error) {
-    claims, err := config.ValidationToken(req.RefreshToken, repo.conf)
-    if err != nil {
-        return nil, fmt.Errorf("invalid or expired refresh token: %w", err)
-    }
+	claims, err := config.ValidationToken(req.RefreshToken, repo.conf)
+	if err != nil {
+		return nil, fmt.Errorf("invalid or expired refresh token: %w", err)
+	}
 
+	// coba dari redis dulu, fallback ke DB
+	storedToken, err := repo.redis.Get(c, refreshTokenKey(claims.SessionID)).Result()
+	if err != nil || storedToken == "" {
+		err = repo.db.QueryRowContext(c,
+			`SELECT refresh_token FROM sessions WHERE id = $1`,
+			claims.SessionID,
+		).Scan(&storedToken)
+		if err != nil {
+			return nil, fmt.Errorf("refresh token not found or expired")
+		}
+	}
 
-    redisKey := fmt.Sprintf("refresh_token:%s", claims.SessionID)
-    storedToken, err := repo.redis.Get(c, redisKey).Result()
+	if storedToken != req.RefreshToken {
+		return nil, fmt.Errorf("refresh token mismatch")
+	}
 
-    if err != nil || storedToken == "" {
-        err = repo.db.QueryRowContext(c,
-            `SELECT refresh_token FROM sessions WHERE id = $1`,
-            claims.SessionID,
-        ).Scan(&storedToken)
-        if err != nil {
-			log.Printf("[refresh token]  failed to get refresh token")
-            return nil, fmt.Errorf("refresh token not found or expired")
-        }
-    }
-
-    if storedToken != req.RefreshToken {
-        return nil, fmt.Errorf("refresh token mismatch")
-    }
-
-    token,err :=  repo.GenerateToken(c,GenerateTokenReq{
-		UserID: claims.UserID,
-		Role: claims.Role,
+	token, err := repo.GenerateToken(c, GenerateTokenReq{
+		UserID:    claims.UserID,
+		Role:      claims.Role,
 		SessionID: claims.SessionID,
 	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate token: %w", err)
+	}
 
-    // update DB by session_id
-    _, err = repo.db.ExecContext(c,
-        `UPDATE sessions SET refresh_token = $1, updated_at = NOW() WHERE id = $2`,
-        token.RefreshToken, claims.SessionID,
-    )
-    if err != nil {
-        return nil, fmt.Errorf("failed to update refresh token in db: %w", err)
-    }
+	_, err = repo.db.ExecContext(c,
+		`UPDATE sessions SET refresh_token = $1, updated_at = NOW() WHERE id = $2`,
+		token.RefreshToken, claims.SessionID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update refresh token in db: %w", err)
+	}
 
-    // update redis
-    err = repo.redis.Set(c, redisKey, token.RefreshToken, 24*time.Hour).Err()
-    if err != nil {
-        return nil, fmt.Errorf("failed to store refresh token: %w", err)
-    }
+	if err = repo.redis.Set(c, refreshTokenKey(claims.SessionID), token.RefreshToken, 24*time.Hour).Err(); err != nil {
+		return nil, fmt.Errorf("failed to store refresh token: %w", err)
+	}
 
-    return &RefreshTokenResponse{
-        AccessToken:  token.AccessToken,
-        RefreshToken: token.RefreshToken,
-    }, nil
+	return &RefreshTokenResponse{
+		AccessToken:  token.AccessToken,
+		RefreshToken: token.RefreshToken,
+	}, nil
 }
 
 func (repo *Repository) Logout(c context.Context, req *LogoutRequest) (*LogoutResponse, error) {
@@ -275,8 +265,8 @@ func (repo *Repository) Logout(c context.Context, req *LogoutRequest) (*LogoutRe
 
 	// hapus refresh token dari redis
 	if err == nil {
-		redisKey := fmt.Sprintf("refresh_token:%s", userId)
-		repo.redis.Del(c, redisKey)
+		repo.redis.Del(c, refreshTokenKey(req.SessionId))
+		repo.redis.Del(c, sessionKey(req.SessionId))
 	}
 
 	return &LogoutResponse{

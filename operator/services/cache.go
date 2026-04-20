@@ -26,7 +26,3 @@ func (r *Repository) getWorkspaceCache(ctx context.Context, workspaceId string) 
 	return &w, nil
 }
 
-func (r *Repository) invalidateWorkspaceCache(ctx context.Context, workspaceId, userId string) {
-	r.redisClient.Del(ctx, fmt.Sprintf(workspaceCacheKey, workspaceId))
-	r.redisClient.Del(ctx, fmt.Sprintf(workspacesCacheKey, userId))
-}

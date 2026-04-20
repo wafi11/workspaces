@@ -1,5 +1,18 @@
 package models
 
+
+const (
+	MaxQuota   = 5
+	MaxStorage = 20
+	MaxRam     = 4096
+	MaxCpu     = 4.0
+	
+	CpuTerminalLimit    = 0.5
+	MemTerminalLimitMi  = 512
+	StorTerminalLimitGi = 1
+)
+
+
 type RegisterRequest struct {
 	Username string `json:"username"`
 	Email    string `json:"email"`

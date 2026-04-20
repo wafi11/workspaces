@@ -16,14 +16,21 @@ func (r *Repository) lockWorkspaceForUpdate(ctx context.Context, tx *sql.Tx, wor
 	
     var res workspaceRow
     err := tx.QueryRowContext(ctx, `
-        SELECT w.user_id, w.name, w.status,
-            wr.limit_ram_mb, wr.limit_cpu_cores,
-            wr.ram_mb_req, wr.cpu_cores_req
+        SELECT 
+			w.user_id, 
+			w.type_time_duration,
+			w.time_duration,
+			w.name, 
+			w.status,
+            wr.limit_ram_mb, 
+			wr.limit_cpu_cores,
+            wr.ram_mb_req, 
+			wr.cpu_cores_req
         FROM workspaces w
         JOIN workspace_resources wr ON wr.workspace_id = w.id
         WHERE w.id = $1
         FOR UPDATE`, workspaceId,
-    ).Scan(&res.UserId, &res.Name, &res.CurrStatus,
+    ).Scan(&res.UserId,&res.TypeTimeDuration,&res.TimeDuration, &res.Name, &res.CurrStatus,
         &res.LimitRAM, &res.LimitCPU, &res.ReqRAM, &res.ReqCPU)
     if err != nil {
         return nil, fmt.Errorf("workspace tidak ditemukan: %w", err)
@@ -143,14 +150,20 @@ func (r *Repository) AutoStopWorkspace(ctx context.Context, workspaceId string) 
 	log.Printf("[autostop] quota dirilis user %s cpu=%v ram=%v", res.UserId, res.ReqCPU, res.ReqRAM)
 
 	
-	var sessionID string
+	var sessionID,type_time_duration string
+	var time_duration int
 	err = tx.QueryRowContext(ctx, `
-		SELECT id FROM workspace_sessions
-		WHERE workspace_id = $1
-		AND status IN ('running', 'paused')
-		ORDER BY created_at DESC
+		SELECT 
+			ws.id,
+			w.type_time_duration,
+			w.time_duration
+	 	FROM workspace_sessions ws
+		LEFT JOIN workspaces w on w.id = ws.workspace_id
+		WHERE ws.workspace_id = $1
+		AND ws.status IN ('running', 'paused')
+		ORDER BY ws.created_at DESC
 		LIMIT 1
-		`, workspaceId).Scan(&sessionID)
+		`, workspaceId).Scan(&sessionID,&type_time_duration,&time_duration)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			log.Printf("[autostop] tidak ada session aktif untuk workspace %s", workspaceId)
@@ -160,7 +173,7 @@ func (r *Repository) AutoStopWorkspace(ctx context.Context, workspaceId string) 
 		return fmt.Errorf("autostop: gagal ambil session: %w", err)
 	}
 	log.Printf("[autostop] session aktif ditemukan id=%s", sessionID)
-	nextStartAt := time.Now().UTC().Add(cooldown)
+	nextStartAt := time.Now().UTC().Add(time.Duration(time_duration))
 
 	_, err = tx.ExecContext(ctx, `
 		UPDATE workspace_sessions
@@ -170,7 +183,7 @@ func (r *Repository) AutoStopWorkspace(ctx context.Context, workspaceId string) 
 			paused_at     = NULL,
 			updated_at    = NOW()
 		WHERE id = $2
-	`, fmt.Sprintf("%d minutes", int(cooldown)), sessionID)
+	`, fmt.Sprintf("%d %s", int(time_duration),type_time_duration), sessionID)
 	log.Printf("[autostop] session %s diupdate ke stopped, next_start_at=%s", sessionID, nextStartAt.Format(time.RFC3339))
 
 	_, err = tx.ExecContext(ctx,
@@ -230,7 +243,7 @@ func (r *Repository) handleStart(ctx context.Context, tx *sql.Tx, workspaceId st
 			started_at, expires_at,
 			created_at, updated_at
 		) VALUES ($1, $2, 'running', NOW(), NOW() + $3::interval, NOW(), NOW())
-	`, workspaceId, res.UserId, fmt.Sprintf("%d minutes", int(cooldown)))
+	`, workspaceId, res.UserId, fmt.Sprintf("%d %s", int(res.TimeDuration),res.TypeTimeDuration))
 	if err != nil {
 		return fmt.Errorf("gagal buat session: %w", err)
 	}
@@ -238,7 +251,9 @@ func (r *Repository) handleStart(ctx context.Context, tx *sql.Tx, workspaceId st
 	if res.CurrStatus == "stopped" {
 		r.publishStart(ctx, workspaceId, res)
 	}
-	r.scheduleAutoStop(workspaceId, cooldown)
+
+	time,err := validationTypeSchedulling(res.TypeTimeDuration)
+	r.scheduleAutoStop(workspaceId,res.TimeDuration,time)
 
 	return nil
 }
@@ -275,13 +290,11 @@ func (r *Repository) handlePause(ctx context.Context, tx *sql.Tx, workspaceId st
 // handleResume: paused → running
 // Hitung sisa waktu dari (expires_at - paused_at), klaim quota kembali, jadwalkan timer baru.
 func (r *Repository) handleResume(ctx context.Context, tx *sql.Tx, workspaceId string, res *workspaceRow) error {
-	// Cek dan klaim quota kembali
 	if err := r.claimQuota(ctx, tx, res); err != nil {
-		log.Printf("failed to resume workspaces : %s",err.Error())
+		log.Printf("failed to resume workspaces : %s", err.Error())
 		return err
 	}
 
-	// Ambil sisa waktu dari session yang paused
 	var sessionId string
 	var pausedAt, expiresAt time.Time
 	err := tx.QueryRowContext(ctx, `
@@ -292,14 +305,17 @@ func (r *Repository) handleResume(ctx context.Context, tx *sql.Tx, workspaceId s
 		LIMIT 1
 	`, workspaceId).Scan(&sessionId, &pausedAt, &expiresAt)
 	if err != nil {
-		log.Printf("failed to resumed workspaces : %s",err.Error())
 		return fmt.Errorf("session paused tidak ditemukan: %w", err)
 	}
 
-	// Sisa waktu = waktu yang belum terpakai sebelum di-pause
+	// error dari validationTypeSchedulling di-check
+	typeTimeDuration, err := validationTypeSchedulling(res.TypeTimeDuration)
+	if err != nil {
+		return fmt.Errorf("invalid type time duration: %w", err)
+	}
+
 	remainingTime := expiresAt.Sub(pausedAt)
 	if remainingTime <= 0 {
-		// Waktu sudah habis saat di-pause, beri grace period minimal
 		remainingTime = 1 * time.Minute
 	}
 
@@ -314,12 +330,17 @@ func (r *Repository) handleResume(ctx context.Context, tx *sql.Tx, workspaceId s
 		WHERE id = $2
 	`, newExpiresAt, sessionId)
 	if err != nil {
-		log.Printf("failed to resumed workspaces : %s",err.Error())
 		return fmt.Errorf("gagal resume session: %w", err)
 	}
 
 	r.publishStart(ctx, workspaceId, res)
-	r.scheduleAutoStop(workspaceId, remainingTime)
+
+	// hitung remaining dalam detik untuk scheduler
+	remainingSeconds := int(time.Until(newExpiresAt).Seconds())
+	if remainingSeconds <= 0 {
+		remainingSeconds = 60 // fallback 1 menit
+	}
+	r.scheduleAutoStop(workspaceId, remainingSeconds, typeTimeDuration)
 
 	return nil
 }

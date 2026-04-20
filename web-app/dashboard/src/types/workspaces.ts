@@ -2,9 +2,9 @@ export type Workspaces = {
   id: string;
   user_id: string;
   template_id: string;
-  template_name : string
+  template_name: string;
   name: string;
-  icon : string
+  icon: string;
   namespace: string;
   status: string;
   env_vars: Record<string, string>;
@@ -30,25 +30,26 @@ export type WorkspaceSessions = {
 };
 
 export type WorkspaceCollaborations = {
-    workspace_id: string
-    workspace_name: string
-    workspace_url : string
-    role: "viewer" | "editor"
-    status: string
-    invited_at: string
-    template_name: string
-    template_icon: string
-}
+  workspace_id: string;
+  workspace_name: string;
+  workspace_url: string;
+  role: "viewer" | "editor";
+  status: string;
+  invited_at: string;
+  template_name: string;
+  template_icon: string;
+};
 export interface WorkspaceRequest {
-  name: string
-  description?: string
-  password?: string
-  template_id: string
-  limit_ram_mb: number
-  limit_cpu_cores: number
-  req_ram_mb: number
-  req_cpu_cores: number
-  env_vars?: Record<string, string>
+  name: string;
+  description?: string;
+  type_time_duration: "minutes" | "hours";
+  time_duration: number;
+  template_id: string;
+  limit_ram_mb: number;
+  limit_cpu_cores: number;
+  req_ram_mb: number;
+  req_cpu_cores: number;
+  env_vars?: Record<string, string>;
 }
 
 export interface ContainerMetrics {

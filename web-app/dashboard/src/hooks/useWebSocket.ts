@@ -1,5 +1,10 @@
 import { useEffect, useRef } from "react";
 
+function getCookie(name: string): string | null {
+  const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
+  return match ? match[2] : null;
+}
+
 export function useWorkspaceSocket(onMessage: (data: any) => void) {
   const wsRef = useRef<WebSocket | null>(null);
   const onMessageRef = useRef(onMessage);
@@ -13,8 +18,8 @@ export function useWorkspaceSocket(onMessage: (data: any) => void) {
     let ws: WebSocket;
 
     const connect = () => {
-      
-      ws = new WebSocket(`ws://localhost:8080/ws`);
+      const token = getCookie("workspace_token"); // atau ambil dari state/context
+      ws = new WebSocket(`wss://api.wfdnstore.online/ws?token=${token}`);
 
       ws.onopen = () => console.log("[ws] connected");
 

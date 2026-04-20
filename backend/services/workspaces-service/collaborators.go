@@ -249,6 +249,7 @@ func (repo *Repository) GetCollaboratedWorkspaces(ctx context.Context, userID st
 
     rows, err := repo.db.QueryContext(ctx, query, userID)
     if err != nil {
+		log.Printf("failed to get collaborations : %s",err.Error())
         return nil, fmt.Errorf("failed to get collaborated workspaces")
     }
     defer rows.Close()
@@ -258,6 +259,8 @@ func (repo *Repository) GetCollaboratedWorkspaces(ctx context.Context, userID st
         var cw CollaboratedWorkspace
         err := rows.Scan(&cw.WorkspaceID, &cw.WorkspaceName,&cw.WorkspaceUrl, &cw.Role, &cw.Status, &cw.InvitedAt,&cw.TemplateName,&cw.TemplateIcon)
         if err != nil {
+					log.Printf("failed to get collaborations : %s",err.Error())
+
             return nil, fmt.Errorf("failed to scan row: %w", err)
         }
         result = append(result, cw)

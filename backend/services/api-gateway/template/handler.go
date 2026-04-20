@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+	"github.com/wafi11/workspaces/pkg/models"
 	"github.com/wafi11/workspaces/pkg/response"
 	templateservice "github.com/wafi11/workspaces/services/template-service"
 )
@@ -21,7 +22,7 @@ func NewHandler(svc templateservice.TemplateService) *Handler {
 }
 
 func (h *Handler) CreateTemplate(ctx echo.Context) error {
-	var req templateservice.CreateTemplateRequest
+	var req models.CreateTemplateRequest
 
 	if err := ctx.Bind(&req); err != nil {
 		return response.Error(ctx, http.StatusBadRequest, "invalid request body", err)
@@ -30,9 +31,9 @@ func (h *Handler) CreateTemplate(ctx echo.Context) error {
 	data, err := h.svc.CreateTemplate(ctx.Request().Context(), &req)
 	if err != nil {
 		switch {
-		case errors.Is(err, templateservice.ErrValidation):
+		case errors.Is(err, models.ErrTemplateValidation):
 			return response.Error(ctx, http.StatusBadRequest, err.Error(), err)
-		case errors.Is(err, templateservice.ErrTemplateNotFound):
+		case errors.Is(err, models.ErrTemplateNotFound):
 			return response.Error(ctx, http.StatusNotFound, "template not found", err)
 		default:
 			return response.Error(ctx, http.StatusInternalServerError, "failed to create template", err)
@@ -60,7 +61,7 @@ func (h *Handler) FindTemplateDetailsForm(c echo.Context) error {
 
 func (h *Handler) UpdateTemplate(ctx echo.Context) error {
 	id := ctx.Param("id")
-	var req templateservice.UpdateTemplateRequest
+	var req models.UpdateTemplateRequest
 
 	if err := ctx.Bind(&req); err != nil {
 		return response.Error(ctx, http.StatusBadRequest, "invalid request body", err)
@@ -69,9 +70,9 @@ func (h *Handler) UpdateTemplate(ctx echo.Context) error {
 	err := h.svc.UpdateTemplate(ctx.Request().Context(), id, &req)
 	if err != nil {
 		switch {
-		case errors.Is(err, templateservice.ErrValidation):
+		case errors.Is(err, models.ErrTemplateValidation):
 			return response.Error(ctx, http.StatusBadRequest, err.Error(), err)
-		case errors.Is(err, templateservice.ErrTemplateNotFound):
+		case errors.Is(err, models.ErrTemplateNotFound):
 			return response.Error(ctx, http.StatusNotFound, "template not found", err)
 		default:
 			return response.Error(ctx, http.StatusInternalServerError, "failed to create template", err)
@@ -87,9 +88,9 @@ func (h *Handler) DeleteTemplate(ctx echo.Context) error {
 	err := h.svc.DeleteTemplate(ctx.Request().Context(), id)
 	if err != nil {
 		switch {
-		case errors.Is(err, templateservice.ErrValidation):
+		case errors.Is(err, models.ErrTemplateValidation):
 			return response.Error(ctx, http.StatusBadRequest, err.Error(), err)
-		case errors.Is(err, templateservice.ErrTemplateNotFound):
+		case errors.Is(err, models.ErrTemplateNotFound):
 			return response.Error(ctx, http.StatusNotFound, "template not found", err)
 		default:
 			return response.Error(ctx, http.StatusInternalServerError, "failed to create template", err)
@@ -102,7 +103,7 @@ func (h *Handler) DeleteTemplate(ctx echo.Context) error {
 func (h *Handler) GetTemplateDetails(ctx echo.Context) error {
 	template_id := ctx.Param("template_id")
 
-	data, err := h.svc.GetTemplate(ctx.Request().Context(), &templateservice.GetTemplateRequest{
+	data, err := h.svc.GetTemplate(ctx.Request().Context(), &models.GetTemplateRequest{
 		TemplateId: template_id,
 	})
 
@@ -121,7 +122,7 @@ func (h *Handler) GetTemplateDetails(ctx echo.Context) error {
 }
 
 func (h *Handler) GetListTemplates(ctx echo.Context) error {
-	req := &templateservice.ListTemplatesRequest{
+	req := &models.ListTemplatesRequest{
 		Category: ctx.QueryParam("category"),
 	}
 
@@ -129,6 +130,7 @@ func (h *Handler) GetListTemplates(ctx echo.Context) error {
 	if err != nil {
 		return response.Error(ctx, http.StatusInternalServerError, "failed to fetch templates", err)
 	}
+	
 
 	return response.Success(ctx, http.StatusOK, "successfully get templates", data.Templates)
 }
