@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"log"
-	"strings"
 
 	"github.com/hibiken/asynq"
 	"github.com/labstack/echo/v4"
@@ -36,7 +35,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to connect to Elasticsearch: %v", err)
 	}
-	
 
 	jobQueue := make(chan *proto.WorkspaceEnvelope, 100)
 	sub := messagebroker.NewSubscriber(redisClient.Redis, jobQueue)
@@ -45,25 +43,23 @@ func main() {
 	// init echo
 	hub := websocket.NewHub(conf)
 	e := echo.New()
-	
-	e.GET("/ws", hub.Handler,middlewares.AuthMiddleware(conf))
+
+	e.GET("/ws", hub.Handler, middlewares.AuthMiddleware(conf))
 
 	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-    AllowOriginFunc: func(origin string) (bool, error) {
-        return strings.HasSuffix(origin, ".wfdnstore.online"), nil
-    },
-    AllowHeaders:     []string{"Content-Type", "Authorization"},
-    AllowMethods:     []string{"POST", "GET", "PATCH", "DELETE", "OPTIONS", "PUT"},
-    AllowCredentials: true,
-    MaxAge:           2000,
+		AllowOrigins:     []string{"https://web-platform.wfdnstore.online"},
+		AllowHeaders:     []string{"Content-Type", "Authorization"},
+		AllowMethods:     []string{"POST", "GET", "PATCH", "DELETE", "OPTIONS", "PUT"},
+		AllowCredentials: true,
+		MaxAge:           2000,
 	}))
-	
+
 	srv := asynq.NewServer(asynq.RedisClientOpt{
-		Addr: conf.REDISURL,
+		Addr:     conf.REDISURL,
 		Password: "",
-		DB: 0,
+		DB:       0,
 	}, asynq.Config{})
 	mux := asynq.NewServeMux()
 
@@ -78,7 +74,7 @@ func main() {
 		}
 	}()
 
-	server.NewServer(e, database, redisClient, minio, conf, esClient, sub, jobQueue, hub,mux,k8s)
+	server.NewServer(e, database, redisClient, minio, conf, esClient, sub, jobQueue, hub, mux, k8s)
 	log.Printf("starting backend workspace on port %s", conf.Port)
 	if err := e.Start(":" + conf.Port); err != nil {
 		log.Println("server stopped:", err)

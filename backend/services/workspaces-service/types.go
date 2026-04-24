@@ -20,18 +20,18 @@ type WorkspaceRepository interface {
 	DeleteWorkspace(ctx context.Context, req *DeleteWorkspaceRequest) (*DeleteWorkspaceResponse, error)
 	UpdateWorkspaceStatus(ctx context.Context, workspaceId string, status string) error
 	CreateWorkspaceSessions(ctx context.Context, req CreateWorkspaceSessions) error
-	CanStartWorkspace(ctx context.Context, workspaceID string,tx *sql.Tx) (bool, error)
-	AutoStopWorkspace(ctx context.Context, workspaceId string) error 
+	CanStartWorkspace(ctx context.Context, workspaceID string, tx *sql.Tx) (bool, error)
+	AutoStopWorkspace(ctx context.Context, workspaceId string) error
 	ListWorkspacePorts(ctx context.Context, workspaceID string) ([]WorkspacePort, error)
 	DeleteWorkspacePort(ctx context.Context, workspaceID string, port int) error
 	GetWorkspacePort(ctx context.Context, workspaceID string, port int) (*WorkspacePort, error)
 	CreateWorkspacePort(ctx context.Context, workspaceID string, port int, subDomain string) (*WorkspacePort, error)
 	ValidateWorkspaceOwner(ctx context.Context, workspaceID, userID string) error
-	AddCollaborators(c context.Context, req WorkspaceCollaborator) (*WorkspaceCollaboratorResponse, error) 
+	AddCollaborators(c context.Context, req WorkspaceCollaborator) (*WorkspaceCollaboratorResponse, error)
 	UpdateCollaborator(c context.Context, req UpdateCollaboratorRequest) error
 	RemoveCollaborator(c context.Context, req RemoveCollaboratorRequest) error
-	 GetCollaboratedWorkspaces(ctx context.Context, userID string) ([]CollaboratedWorkspace, error)
-	AcceptOrDeniedInvitationCollborator(ctx context.Context, types, notificationID string) error
+	GetCollaboratedWorkspaces(ctx context.Context, userID string) ([]CollaboratedWorkspace, error)
+	AcceptOrDeniedInvitationCollborator(ctx context.Context, types, notificationID, userId string) error
 }
 
 type WorkspaceService interface {
@@ -40,7 +40,7 @@ type WorkspaceService interface {
 	ListWorkspacesByUserId(ctx context.Context, req *ListWorkspacesRequest) (*ListWorkspacesResponse, error)
 	ListWorkspaceForm(ctx context.Context, userId string) ([]ListWorkspaceForm, error)
 	GetWorkspace(ctx context.Context, req *GetWorkspaceRequest) (*GetWorkspaceResponse, error)
-	UpdateWorkspaceStatus(ctx context.Context, workspaceId,userId string, status string) error
+	UpdateWorkspaceStatus(ctx context.Context, workspaceId, userId string, status string) error
 	DeleteWorkspace(ctx context.Context, req *DeleteWorkspaceRequest) (*DeleteWorkspaceResponse, error)
 	StartEventConsumer(ctx context.Context)
 	ListWorkspacePorts(ctx context.Context, workspaceID string) ([]WorkspacePort, error)
@@ -48,17 +48,17 @@ type WorkspaceService interface {
 	GetWorkspacePort(ctx context.Context, workspaceID string, port int) (*WorkspacePort, error)
 	CreateWorkspacePort(ctx context.Context, workspaceID string, port int, subDomain string) (*WorkspacePort, error)
 	ValidateWorkspaceOwner(ctx context.Context, workspaceID, userID string) error
-	AddCollaborators(c context.Context, req WorkspaceCollaborator) (*WorkspaceCollaboratorResponse, error) 
+	AddCollaborators(c context.Context, req WorkspaceCollaborator) (*WorkspaceCollaboratorResponse, error)
 	UpdateCollaborator(c context.Context, req UpdateCollaboratorRequest) error
-	RemoveCollaborator(c context.Context, req RemoveCollaboratorRequest) error 
-	AcceptOrDeniedInvitationCollborator(ctx context.Context, types, notificationID string) error
-	 GetCollaboratedWorkspaces(ctx context.Context, userID string) ([]CollaboratedWorkspace, error)
+	RemoveCollaborator(c context.Context, req RemoveCollaboratorRequest) error
+	AcceptOrDeniedInvitationCollborator(ctx context.Context, types, notificationID, userId string) error
+	GetCollaboratedWorkspaces(ctx context.Context, userID string) ([]CollaboratedWorkspace, error)
 }
 
 const (
-	workspaceCacheKey  = "workspace:%s"
-	workspacesCacheKey = "workspaces:user:%s"
-	cacheTTL           = 5 * time.Minute
+	workspaceCacheKey    = "workspace:%s"
+	workspacesCacheKey   = "workspaces:user:%s"
+	cacheTTL             = 5 * time.Minute
 	timeExpCollaborators = 60
 )
 
@@ -88,12 +88,12 @@ const (
 	CollaboratorRevoked  WorkspaceCollaboratorStatus = "revoked"
 )
 
-type AddonUrl string 
+type AddonUrl string
 
 const (
-	PostgresqlURL  AddonUrl = "postgresql"
-	MysqlURL  AddonUrl = "mysql"
-	RedisURL  AddonUrl = "redis"
+	PostgresqlURL AddonUrl = "postgresql"
+	MysqlURL      AddonUrl = "mysql"
+	RedisURL      AddonUrl = "redis"
 )
 
 func ConvertWorkspaceStatus(s proto.WorkspaceStatus) WorkspaceStatus {
@@ -113,39 +113,39 @@ func ConvertWorkspaceStatus(s proto.WorkspaceStatus) WorkspaceStatus {
 	}
 }
 
-func validationTypeSchedulling(typeTime string) (time.Duration,error){
+func validationTypeSchedulling(typeTime string) (time.Duration, error) {
 
 	switch typeTime {
 	case "minutes":
-		return  time.Minute,nil
+		return time.Minute, nil
 	case "hours":
-		return time.Hour,nil
-	default :
-		return time.Hour,fmt.Errorf("type scheduling just minute and hour")
+		return time.Hour, nil
+	default:
+		return time.Hour, fmt.Errorf("type scheduling just minute and hour")
 	}
 
 }
 
 type Workspace struct {
-	Id        string          `json:"id"`
-	UserId    string          `json:"user_id"`
-	Name      string          `json:"name"`
-	TemplateName string       `json:"template_name,omitempty"`
-	Status    WorkspaceStatus `json:"status"`
-	Icon      *string         `json:"icon"`
-	EnvVars   map[string]any  `json:"env_vars"`
-	CreatedAt time.Time       `json:"created_at"`
-	UpdatedAt time.Time       `json:"updated_at"`
-	Url       string          `json:"url"`
+	Id           string          `json:"id"`
+	UserId       string          `json:"user_id"`
+	Name         string          `json:"name"`
+	TemplateName string          `json:"template_name,omitempty"`
+	Status       WorkspaceStatus `json:"status"`
+	Icon         *string         `json:"icon"`
+	EnvVars      map[string]any  `json:"env_vars"`
+	CreatedAt    time.Time       `json:"created_at"`
+	UpdatedAt    time.Time       `json:"updated_at"`
+	Url          string          `json:"url"`
 }
 
 type WorkspaceAndSessions struct {
 	Workspace
-	StartedAt *time.Time `json:"started_at"`
-	StoppedAt *time.Time `json:"stopped_at"`
-	ExpiresAt *time.Time `json:"expires_at"`
+	StartedAt   *time.Time `json:"started_at"`
+	StoppedAt   *time.Time `json:"stopped_at"`
+	ExpiresAt   *time.Time `json:"expires_at"`
 	NextStartAt *time.Time `json:"next_start_at"`
-	Timezone  *string    `json:"timezone"`
+	Timezone    *string    `json:"timezone"`
 }
 
 type CachedWorkspace struct {
@@ -189,16 +189,16 @@ type CreateWorkspaceAddon struct {
 }
 
 type CreateWorkspaceRequest struct {
-	UserId        string            `json:"user_id"`
-	TemplateId    string            `json:"template_id"`
-	TimeDuration int `json:"time_duration"`
-	TypeTimeDuration string `json:"type_time_duration"`
-	Name          string            `json:"name"`
-	LimitRam      int               `json:"limit_ram_mb"`
-	LimitCpuCores float64           `json:"limit_cpu_cores"`
-	ReqRam        int               `json:"req_ram_mb"`
-	ReqCpuCores   float64           `json:"req_cpu_cores"`
-	EnvVars       map[string]string `json:"env_vars"`
+	UserId           string            `json:"user_id"`
+	TemplateId       string            `json:"template_id"`
+	TimeDuration     int               `json:"time_duration"`
+	TypeTimeDuration string            `json:"type_time_duration"`
+	Name             string            `json:"name"`
+	LimitRam         int               `json:"limit_ram_mb"`
+	LimitCpuCores    float64           `json:"limit_cpu_cores"`
+	ReqRam           int               `json:"req_ram_mb"`
+	ReqCpuCores      float64           `json:"req_cpu_cores"`
+	EnvVars          map[string]string `json:"env_vars"`
 }
 
 type CreateWorkspaceResponse struct {
@@ -245,7 +245,6 @@ type CreateWorkspaceSessions struct {
 	UserAgent   string `json:"user_agent"`
 }
 
-
 type CreateWorkspacesResources struct {
 	WsID   string `json:"wsId"`
 	Kind   string `json:"kind"`
@@ -263,20 +262,19 @@ type WorkspacesResources struct {
 }
 
 type workspaceRow struct {
-    UserId     string
-    Name       string
-    CurrStatus WorkspaceStatus
-    LimitRAM   int
+	UserId           string
+	Name             string
+	CurrStatus       WorkspaceStatus
+	LimitRAM         int
 	TypeTimeDuration string
-	TimeDuration int
-    LimitCPU   float64
-    ReqRAM     int
-    ReqCPU     float64
+	TimeDuration     int
+	LimitCPU         float64
+	ReqRAM           int
+	ReqCPU           float64
 }
 
-
 type WorkspaceCollaborator struct {
-	UserID      string `json:"user_id"`
+	Email       string `json:"email"`
 	Role        string `json:"role"`
 	InvitedBy   string `json:"invited_by"`
 	WorkspaceId string `json:"workspace_id"`
@@ -287,6 +285,7 @@ type WorkspaceCollaboratorResponse struct {
 	Status      string `json:"status"`
 	Token       string `json:"token"`
 }
+
 // UpdateCollaborator — update role atau status collaborator
 type UpdateCollaboratorRequest struct {
 	CollaboratorID string `json:"collaborator_id"`
@@ -304,21 +303,21 @@ type RemoveCollaboratorRequest struct {
 }
 
 type ValidateTokenWorkspaceReq struct {
-	WorkspaceID  string
-	Token string
+	WorkspaceID string
+	Token       string
 }
 
 type ValidateTokenWorkspaceRes struct {
 	UserID string `json:"userId"`
-	Role string `json:"role"`
+	Role   string `json:"role"`
 }
 type CollaboratedWorkspace struct {
-    WorkspaceID   string    `json:"workspace_id"`
-    WorkspaceName string    `json:"workspace_name"`
-	WorkspaceUrl string `json:"workspace_url"`
-    Role          string    `json:"role"`
-    Status        string    `json:"status"`
-    InvitedAt     time.Time `json:"invited_at"`
-	TemplateName  string `json:"template_name"`
-	TemplateIcon string `json:"template_icon"`
+	WorkspaceID   string    `json:"workspace_id"`
+	WorkspaceName string    `json:"workspace_name"`
+	WorkspaceUrl  string    `json:"workspace_url"`
+	Role          string    `json:"role"`
+	Status        string    `json:"status"`
+	InvitedAt     time.Time `json:"invited_at"`
+	TemplateName  string    `json:"template_name"`
+	TemplateIcon  string    `json:"template_icon"`
 }

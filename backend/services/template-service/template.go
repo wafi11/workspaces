@@ -54,7 +54,7 @@ func (r *Repository) ListTemplates(ctx context.Context, req *models.ListTemplate
 		var t models.Template
 		if err := rows.Scan(
 			&t.Id, &t.Name, &t.Description, &t.Icon,
-		 &t.Category, &t.IsPublic, &t.CreatedAt, &t.TemplateUrl,
+			&t.Category, &t.IsPublic, &t.CreatedAt, &t.TemplateUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -97,41 +97,40 @@ func (r *Repository) CreateTemplate(ctx context.Context, req *models.CreateTempl
 		INSERT INTO templates (name, description, category, is_public,icon,template_url)
 		VALUES ($1, $2, $3, $4, $5,$6)
 		RETURNING id, name, description, category, is_public, created_at,icon
-	`, req.Name, req.Description, req.Category, req.IsPublic, req.Icon,fmt.Sprintf("templates/%s",req.Name),
+	`, req.Name, req.Description, req.Category, req.IsPublic, req.Icon, fmt.Sprintf("templates/%s", req.Name),
 	).Scan(&t.Id, &t.Name, &t.Description, &t.Category, &t.IsPublic, &t.CreatedAt, &req.Icon)
 
 	if err != nil {
-		log.Printf("error create templates : %s",err)
+		log.Printf("error create templates : %s", err)
 		return nil, fmt.Errorf("failed to insert template: %w", err)
 	}
 
 	for _, v := range req.Variables {
-		err = r.CreateTemplateVariable(ctx, &v, t.Id,tx.Tx)
+		err = r.CreateTemplateVariable(ctx, &v, t.Id, tx.Tx)
 		if err != nil {
-			log.Printf("insert template error  : %s",err.Error())
-			return nil,fmt.Errorf("failed to create variables template")
+			log.Printf("insert template error  : %s", err.Error())
+			return nil, fmt.Errorf("failed to create variables template")
 		}
 	}
 
 	for _, v := range req.Files {
-		err = r.CreateTemplateFiles(ctx, &v, t.Id,tx.Tx)
-		
-		if err != nil {
-						log.Printf("insert template files errr  : %s",err.Error())
+		err = r.CreateTemplateFiles(ctx, &v, t.Id, tx.Tx)
 
-			return nil,fmt.Errorf("failed to insert addon  template")
+		if err != nil {
+			log.Printf("insert template files errr  : %s", err.Error())
+
+			return nil, fmt.Errorf("failed to insert addon  template")
 		}
 	}
 
 	// 3. insert addons
 	for _, a := range req.Addons {
- 
 
-    if err := r.CreateTemplateAddon(ctx, &a, t.Id, tx.Tx); err != nil {
-        log.Printf("insert template addon error: %s", err.Error())
-        return nil, fmt.Errorf("failed to create addon template")
-    }
-}
+		if err := r.CreateTemplateAddon(ctx, &a, t.Id, tx.Tx); err != nil {
+			log.Printf("insert template addon error: %s", err.Error())
+			return nil, fmt.Errorf("failed to create addon template")
+		}
+	}
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
@@ -269,35 +268,35 @@ func (repo *Repository) GetDetailsInfo(c context.Context, templateId string) (*m
 	return &detail, nil
 }
 
-
-func (repo *Repository)  FindTemplateWorkspaceForm(c context.Context)([]models.TemplateWorkspaceForm,error){
+func (repo *Repository) FindTemplateWorkspaceForm(c context.Context) ([]models.TemplateWorkspaceForm, error) {
 	query := `
 		SELECT id,name,icon
 		FROM templates
+		WHERE is_public = true
 	`
 
-	rows,err := repo.db.QueryContext(c,query)
+	rows, err := repo.db.QueryContext(c, query)
 	if err != nil {
 		log.Printf("failed to get template workspaces form")
-		return nil,fmt.Errorf("templates not found")
+		return nil, fmt.Errorf("templates not found")
 	}
 
 	defer rows.Close()
-	
+
 	var templates []models.TemplateWorkspaceForm
 	for rows.Next() {
 		var template models.TemplateWorkspaceForm
 		err := rows.Scan(
-			&template.ID,&template.Name,&template.Icon,
+			&template.ID, &template.Name, &template.Icon,
 		)
 
 		if err != nil {
-			log.Printf("failed to scan template workspace form : %s",err.Error())
-			return nil,fmt.Errorf("failed to find templates")
+			log.Printf("failed to scan template workspace form : %s", err.Error())
+			return nil, fmt.Errorf("failed to find templates")
 		}
 
-		templates = append(templates,template)
+		templates = append(templates, template)
 	}
 
-	return templates,nil
+	return templates, nil
 }

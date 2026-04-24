@@ -43,6 +43,7 @@ func (r *Repository) GetProfile(ctx context.Context, req *GetUserRequest) (*GetU
 			role, 
 			username,
 			terminal_url,
+			avatar_url,
 			created_at,
 			updated_at
 		FROM users 
@@ -50,7 +51,7 @@ func (r *Repository) GetProfile(ctx context.Context, req *GetUserRequest) (*GetU
 	`
 
 	err := r.db.QueryRowContext(ctx, query, req.UserId).
-		Scan(&profile.Id, &profile.Email,&profile.Role, &profile.Username, &profile.TerminalUrl, &profile.CreatedAt, &profile.UpdatedAt)
+		Scan(&profile.Id, &profile.Email, &profile.Role, &profile.Username, &profile.TerminalUrl, &profile.AvatarUrl, &profile.CreatedAt, &profile.UpdatedAt)
 
 	if err != nil {
 		fmt.Printf("error : %s", err.Error())
@@ -69,9 +70,9 @@ func (r *Repository) GetProfile(ctx context.Context, req *GetUserRequest) (*GetU
 func (r *Repository) UpdateUser(ctx context.Context, req *UpdateUserRequest) (*UpdateUserResponse, error) {
 	query := `
 		UPDATE users 
-		SET username = $1, email = $2, updated_at = NOW()
-		WHERE id = $3
-		RETURNING id, username, email, created_at, updated_at
+		SET username = $1, email = $2, avatar_url = $3, updated_at = NOW()
+		WHERE id = $4
+		RETURNING id, username, email, avatar_url, created_at, updated_at
 	`
 
 	var (
@@ -80,8 +81,8 @@ func (r *Repository) UpdateUser(ctx context.Context, req *UpdateUserRequest) (*U
 		updatedAt time.Time
 	)
 
-	err := r.db.QueryRowContext(ctx, query, req.Username, req.Email, req.UserId).
-		Scan(&profile.Id, &profile.Username, &profile.Email, &createdAt, &updatedAt)
+	err := r.db.QueryRowContext(ctx, query, req.Username, req.Email, req.AvatarUrl, req.UserId).
+		Scan(&profile.Id, &profile.Username, &profile.Email, &profile.AvatarUrl, &createdAt, &updatedAt)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

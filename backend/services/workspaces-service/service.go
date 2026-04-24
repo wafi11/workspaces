@@ -63,11 +63,10 @@ func (s *Service) DeleteWorkspace(ctx context.Context, req *DeleteWorkspaceReque
 	return s.repo.DeleteWorkspace(ctx, req)
 }
 
-
-func (s *Service) UpdateWorkspaceStatus(ctx context.Context, workspaceId,userId string, status string) error {
+func (s *Service) UpdateWorkspaceStatus(ctx context.Context, workspaceId, userId string, status string) error {
 	log.Printf("[consumer] sending to userID=%s clients=%v", userId, s.hub)
 	s.hub.SendToUser(userId, map[string]string{
-		"type":         fmt.Sprintf("workspace.%s",status),
+		"type":         fmt.Sprintf("workspace.%s", status),
 		"workspace_id": workspaceId,
 		"status":       status,
 	})
@@ -75,49 +74,44 @@ func (s *Service) UpdateWorkspaceStatus(ctx context.Context, workspaceId,userId 
 	return s.repo.UpdateWorkspaceStatus(ctx, workspaceId, status)
 }
 
-func (s *Service)  ListWorkspacePorts(ctx context.Context, workspaceID string) ([]WorkspacePort, error){
-	return s.repo.ListWorkspacePorts(ctx,workspaceID)
+func (s *Service) ListWorkspacePorts(ctx context.Context, workspaceID string) ([]WorkspacePort, error) {
+	return s.repo.ListWorkspacePorts(ctx, workspaceID)
 }
 
+func (s *Service) CreateWorkspacePort(ctx context.Context, workspaceID string, port int, userID string) (*WorkspacePort, error) {
 
-func (s *Service) CreateWorkspacePort(ctx context.Context, workspaceID string, port int, userID string)(*WorkspacePort, error){
-	
-	return s.repo.CreateWorkspacePort(ctx,workspaceID,port,userID)
+	return s.repo.CreateWorkspacePort(ctx, workspaceID, port, userID)
 }
-func (s *Service) ValidateWorkspaceOwner(ctx context.Context, workspaceID, userID string) error{
-	return s.repo.ValidateWorkspaceOwner(ctx,workspaceID,userID)
-}
-
-func (s *Service) DeleteWorkspacePort(ctx context.Context, workspaceID string, port int) error{
-	return s.repo.DeleteWorkspacePort(ctx,workspaceID,port)
+func (s *Service) ValidateWorkspaceOwner(ctx context.Context, workspaceID, userID string) error {
+	return s.repo.ValidateWorkspaceOwner(ctx, workspaceID, userID)
 }
 
-func (s *Service)  GetWorkspacePort(ctx context.Context, workspaceID string, port int) (*WorkspacePort, error){
-	return s.repo.GetWorkspacePort(ctx,workspaceID,port)
+func (s *Service) DeleteWorkspacePort(ctx context.Context, workspaceID string, port int) error {
+	return s.repo.DeleteWorkspacePort(ctx, workspaceID, port)
 }
 
-
-func (s *Service)  AddCollaborators(c context.Context, req WorkspaceCollaborator) (*WorkspaceCollaboratorResponse, error){
-	return s.repo.AddCollaborators(c,req)
+func (s *Service) GetWorkspacePort(ctx context.Context, workspaceID string, port int) (*WorkspacePort, error) {
+	return s.repo.GetWorkspacePort(ctx, workspaceID, port)
 }
 
-func (s *Service)  UpdateCollaborator(c context.Context, req UpdateCollaboratorRequest) error {
-	return s.repo.UpdateCollaborator(c,req)
+func (s *Service) AddCollaborators(c context.Context, req WorkspaceCollaborator) (*WorkspaceCollaboratorResponse, error) {
+	return s.repo.AddCollaborators(c, req)
+}
+
+func (s *Service) UpdateCollaborator(c context.Context, req UpdateCollaboratorRequest) error {
+	return s.repo.UpdateCollaborator(c, req)
 }
 
 func (s *Service) RemoveCollaborator(c context.Context, req RemoveCollaboratorRequest) error {
-	return s.repo.RemoveCollaborator(c,req)
+	return s.repo.RemoveCollaborator(c, req)
 }
 
-
-func (s *Service)  GetCollaboratedWorkspaces(ctx context.Context, userID string) ([]CollaboratedWorkspace, error){
-	return s.repo.GetCollaboratedWorkspaces(ctx,userID)
+func (s *Service) GetCollaboratedWorkspaces(ctx context.Context, userID string) ([]CollaboratedWorkspace, error) {
+	return s.repo.GetCollaboratedWorkspaces(ctx, userID)
 }
 
-
-
-func (s *Service) AcceptOrDeniedInvitationCollborator(c context.Context,types,notificationID string) error{
-	return s.repo.AcceptOrDeniedInvitationCollborator(c,types,notificationID)
+func (s *Service) AcceptOrDeniedInvitationCollborator(c context.Context, types, notificationID, userId string) error {
+	return s.repo.AcceptOrDeniedInvitationCollborator(c, types, notificationID, userId)
 }
 
 func (s *Service) StartEventConsumer(ctx context.Context) {

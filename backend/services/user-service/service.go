@@ -23,6 +23,12 @@ func (s *Service) GetProfile(ctx context.Context, req *GetUserRequest) (*GetUser
 
 	return s.repo.GetProfile(ctx, req)
 }
+func (s *Service) GetAllProvidersUsers(ctx context.Context, userId string) ([]ProviderUsers, error) {
+	if err := validateUserID(userId); err != nil {
+		return nil, err
+	}
+	return s.repo.GetAllProvidersUsers(ctx, userId)
+}
 func (s *Service) UpdateUser(ctx context.Context, req *UpdateUserRequest) (*UpdateUserResponse, error) {
 	if err := validateUserID(req.UserId); err != nil {
 		return nil, err
@@ -82,23 +88,22 @@ func (s *Service) RevokeSession(ctx context.Context, req *RevokeSessionRequest) 
 	return s.repo.RevokeSession(ctx, req)
 }
 
-
-func (s *Service) GetUserQuota(ctx context.Context,userId string) (*models.UserQuota, error) {
+func (s *Service) GetUserQuota(ctx context.Context, userId string) (*models.UserQuota, error) {
 	if err := validateUserID(userId); err != nil {
 		return nil, err
 	}
-	return s.repo.GetUserQuota(ctx,userId)
+	return s.repo.GetUserQuota(ctx, userId)
 }
 
-func (s *Service) UpdateUserQuota(ctx context.Context,quota *models.UserQuota) error {
+func (s *Service) UpdateUserQuota(ctx context.Context, quota *models.UserQuota) error {
 	if err := validateUserID(quota.UserID); err != nil {
 		return err
 	}
-	return s.repo.UpdateUserQuota(ctx,quota)
+	return s.repo.UpdateUserQuota(ctx, quota)
 }
-func (s *Service) CreateUserQuota(ctx context.Context,quota *models.UserQuota) error {
+func (s *Service) CreateUserQuota(ctx context.Context, quota *models.UserQuota) error {
 	if err := validateUserID(quota.UserID); err != nil {
 		return err
 	}
-	return s.repo.CreateUserQuota(ctx,quota)
+	return s.repo.CreateUserQuota(ctx, quota)
 }

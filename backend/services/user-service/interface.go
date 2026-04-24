@@ -14,14 +14,13 @@ const (
 	cacheTTL        = 5 * time.Minute
 )
 
-
 type UserRepository interface {
 	GetProfile(ctx context.Context, req *GetUserRequest) (*GetUserResponse, error)
 	UpdateUser(ctx context.Context, req *UpdateUserRequest) (*UpdateUserResponse, error)
 	ChangePassword(ctx context.Context, req *ChangePasswordRequest) (*ChangePasswordResponse, error)
 	GetUserSessions(ctx context.Context, req *GetUserSessionsRequest) (*GetUserSessionsResponse, error)
 	RevokeSession(ctx context.Context, req *RevokeSessionRequest) (*RevokeSessionResponse, error)
-
+	GetAllProvidersUsers(c context.Context, userId string) ([]ProviderUsers, error)
 	GetUserQuota(ctx context.Context, userId string) (*models.UserQuota, error)
 	UpdateUserQuota(ctx context.Context, quota *models.UserQuota) error
 	CreateUserQuota(ctx context.Context, quota *models.UserQuota) error
@@ -35,17 +34,18 @@ type UserService interface {
 	RevokeSession(ctx context.Context, req *RevokeSessionRequest) (*RevokeSessionResponse, error)
 	GetUserQuota(ctx context.Context, userId string) (*models.UserQuota, error)
 	UpdateUserQuota(ctx context.Context, quota *models.UserQuota) error
+	GetAllProvidersUsers(c context.Context, userId string) ([]ProviderUsers, error)
 	CreateUserQuota(ctx context.Context, quota *models.UserQuota) error
 }
 
 type CachedUser struct {
-	Id          string    `json:"id"`
-	Username    string    `json:"username"`
-	Email       string    `json:"email"`
-	Role 		config.UserRole   `json:"role"`
-	TerminalUrl string    `json:"terminal_url"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	Id          string          `json:"id"`
+	Username    string          `json:"username"`
+	Email       string          `json:"email"`
+	Role        config.UserRole `json:"role"`
+	TerminalUrl string          `json:"terminal_url"`
+	CreatedAt   time.Time       `json:"created_at"`
+	UpdatedAt   time.Time       `json:"updated_at"`
 }
 
 type CachedSession struct {
@@ -82,9 +82,10 @@ type GetUserResponse struct {
 }
 
 type UpdateUserRequest struct {
-	UserId   string `json:"user_id"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
+	UserId    string  `json:"user_id"`
+	Username  string  `json:"username"`
+	Email     string  `json:"email"`
+	AvatarUrl *string `json:"avatar_url"`
 }
 
 type UpdateUserResponse struct {
@@ -107,7 +108,8 @@ type User struct {
 	Username    string    `json:"username"`
 	Email       string    `json:"email"`
 	TerminalUrl *string   `json:"terminal_url"`
-	Role 		string   `json:"role"`
+	Role        string    `json:"role"`
+	AvatarUrl   *string   `json:"avatar_url"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }

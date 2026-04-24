@@ -13,19 +13,8 @@ import (
 )
 
 func (repo *Repository) AddCollaborators(c context.Context, req WorkspaceCollaborator) (*WorkspaceCollaboratorResponse, error) {
-	var wsId string
+	var wsId, userID string
 	wsCollId := uuid.New()
-
-	token, err := config.GenerateTokenWorkspaces(c, &config.TokenWorkspaceRequest{
-		UserID:     req.UserID,
-		Exp:        timeExpCollaborators,
-		AcessLevel: req.Role,
-	}, repo.conf)
-	if err != nil {
-		log.Printf("[add_collaborators] failed to generate token: %s", err.Error())
-		return nil, fmt.Errorf("failed to generate invite token")
-	}
-
 	// begin transaction
 	tx, err := repo.db.BeginTx(c, nil)
 	if err != nil {
@@ -37,9 +26,28 @@ func (repo *Repository) AddCollaborators(c context.Context, req WorkspaceCollabo
 		}
 	}()
 
-	
+	query := `
+		select id from users where email = $1
+	`
+
+	err = tx.QueryRowContext(c, query, req.Email).Scan(&userID)
+
+	if err != nil {
+		return nil, fmt.Errorf("user not found")
+	}
+
+	token, err := config.GenerateTokenWorkspaces(c, &config.TokenWorkspaceRequest{
+		UserID:     userID,
+		Exp:        timeExpCollaborators,
+		AcessLevel: req.Role,
+	}, repo.conf)
+	if err != nil {
+		log.Printf("[add_collaborators] failed to generate token: %s", err.Error())
+		return nil, fmt.Errorf("failed to generate invite token")
+	}
+
 	queryWs := `SELECT id FROM workspaces WHERE id = $1 and user_id = $2`
-	err = repo.db.QueryRowContext(c, queryWs, req.WorkspaceId,req.InvitedBy).Scan(&wsId)
+	err = repo.db.QueryRowContext(c, queryWs, req.WorkspaceId, req.InvitedBy).Scan(&wsId)
 	if err != nil {
 		log.Printf("[add_collaborators] failed to find workspace: %s", err.Error())
 		return nil, fmt.Errorf("workspace not found")
@@ -54,7 +62,7 @@ func (repo *Repository) AddCollaborators(c context.Context, req WorkspaceCollabo
 	_, err = tx.ExecContext(c, queryCreateWsColl,
 		wsCollId,
 		req.WorkspaceId,
-		req.UserID,
+		userID,
 		req.Role,
 		CollaboratorPending,
 		token,
@@ -76,7 +84,7 @@ func (repo *Repository) AddCollaborators(c context.Context, req WorkspaceCollabo
 	}
 
 	_, err = repo.notifRepo.CreateNotifications(c, &notificationservices.NotificationRequest{
-		UserID:           req.UserID,
+		UserID:           userID,
 		NotificationType: notificationservices.InvitationCollaborator,
 		Title:            "Invite Collaboration",
 		RetreivedID:      req.InvitedBy,
@@ -93,13 +101,17 @@ func (repo *Repository) AddCollaborators(c context.Context, req WorkspaceCollabo
 		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
+	repo.hub.SendToUser(userID, map[string]string{
+		"message": "You are invited to join collaborations",
+		"type":    "notification.unread",
+	})
+
 	return &WorkspaceCollaboratorResponse{
 		WorkspaceId: wsId,
 		Status:      string(CollaboratorPending),
 		Token:       token,
 	}, nil
 }
-
 
 func (repo *Repository) UpdateCollaborator(c context.Context, req UpdateCollaboratorRequest) error {
 	// pastikan yang request adalah owner workspace
@@ -138,7 +150,6 @@ func (repo *Repository) UpdateCollaborator(c context.Context, req UpdateCollabor
 
 	return nil
 }
-
 
 func (repo *Repository) RemoveCollaborator(c context.Context, req RemoveCollaboratorRequest) error {
 	// boleh remove kalau: dia owner workspace ATAU dia collaborator itu sendiri
@@ -180,56 +191,55 @@ func (repo *Repository) RemoveCollaborator(c context.Context, req RemoveCollabor
 	return nil
 }
 
-
-func (repo *Repository) AcceptOrDeniedInvitationCollborator(ctx context.Context, types, notificationID string) error {
-    // 1. Ambil invite_token + collaborator id dari notifikasi
-    var inviteToken, userID string
-    err := repo.db.QueryRowContext(ctx, `
+func (repo *Repository) AcceptOrDeniedInvitationCollborator(ctx context.Context, types, notificationID, userId string) error {
+	// 1. Ambil invite_token + collaborator id dari notifikasi
+	var inviteToken, userID string
+	err := repo.db.QueryRowContext(ctx, `
         SELECT metadata->>'invite_token', user_id 
         FROM notifications WHERE id = $1
     `, notificationID).Scan(&inviteToken, &userID)
-    if err != nil {
-		log.Printf("[acccept or denied] errr %s",err.Error())
-        return fmt.Errorf("notification not found")
-    }
+	if err != nil {
+		log.Printf("[acccept or denied] errr %s", err.Error())
+		return fmt.Errorf("notification not found")
+	}
 
-    // 2. Validate token
-    _, err = config.ValidateTokenWorkspace(inviteToken, repo.conf)
-    if err != nil {
-        return fmt.Errorf("invite token expired or invalid")
-    }
+	// 2. Validate token
+	token, err := config.ValidateTokenWorkspace(inviteToken, repo.conf)
+	if err != nil {
+		return fmt.Errorf("invite token expired or invalid")
+	}
 
+	if token.UserID != userID {
+		return fmt.Errorf("failed to update token")
+	}
 
 	log.Printf("[accept or denied] inviteToken=%s userID=%s", inviteToken, userID)
 
-    // 3. Update status workspace_collaborators langsung
-    newStatus := "denied"
-    if types == "accept" {
-        newStatus = "active"
-    }
+	// 3. Update status workspace_collaborators langsung
+	newStatus := "denied"
+	if types == "accept" {
+		newStatus = "active"
+	}
 
-    _, err = repo.db.ExecContext(ctx, `
+	_, err = repo.db.ExecContext(ctx, `
         UPDATE workspace_collaborators 
         SET status = $1, updated_at = NOW()
         WHERE invite_token = $2 AND user_id = $3
     `, newStatus, inviteToken, userID)
-    if err != nil {
-        return fmt.Errorf("failed to update collaborator status")
-    }
+	if err != nil {
+		return fmt.Errorf("failed to update collaborator status")
+	}
 
-    // 4. Mark notif as read
-    _, err = repo.db.ExecContext(ctx, `
+	// 4. Mark notif as read
+	_, err = repo.db.ExecContext(ctx, `
         UPDATE notifications SET is_read = true WHERE id = $1
     `, notificationID)
 
-    return err
+	return err
 }
 
-
-
-
 func (repo *Repository) GetCollaboratedWorkspaces(ctx context.Context, userID string) ([]CollaboratedWorkspace, error) {
-    query := `
+	query := `
         SELECT 
             w.id,
             w.name,
@@ -247,24 +257,24 @@ func (repo *Repository) GetCollaboratedWorkspaces(ctx context.Context, userID st
         ORDER BY wc.created_at DESC
     `
 
-    rows, err := repo.db.QueryContext(ctx, query, userID)
-    if err != nil {
-		log.Printf("failed to get collaborations : %s",err.Error())
-        return nil, fmt.Errorf("failed to get collaborated workspaces")
-    }
-    defer rows.Close()
+	rows, err := repo.db.QueryContext(ctx, query, userID)
+	if err != nil {
+		log.Printf("failed to get collaborations : %s", err.Error())
+		return nil, fmt.Errorf("failed to get collaborated workspaces")
+	}
+	defer rows.Close()
 
-    var result []CollaboratedWorkspace
-    for rows.Next() {
-        var cw CollaboratedWorkspace
-        err := rows.Scan(&cw.WorkspaceID, &cw.WorkspaceName,&cw.WorkspaceUrl, &cw.Role, &cw.Status, &cw.InvitedAt,&cw.TemplateName,&cw.TemplateIcon)
-        if err != nil {
-					log.Printf("failed to get collaborations : %s",err.Error())
+	var result []CollaboratedWorkspace
+	for rows.Next() {
+		var cw CollaboratedWorkspace
+		err := rows.Scan(&cw.WorkspaceID, &cw.WorkspaceName, &cw.WorkspaceUrl, &cw.Role, &cw.Status, &cw.InvitedAt, &cw.TemplateName, &cw.TemplateIcon)
+		if err != nil {
+			log.Printf("failed to get collaborations : %s", err.Error())
 
-            return nil, fmt.Errorf("failed to scan row: %w", err)
-        }
-        result = append(result, cw)
-    }
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+		result = append(result, cw)
+	}
 
-    return result, nil
+	return result, nil
 }
