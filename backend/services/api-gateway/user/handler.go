@@ -85,3 +85,14 @@ func (h *Handler) RevokeSession(c echo.Context) error {
 
 	return response.Success(c, http.StatusOK, "session revoked", res)
 }
+
+func (h *Handler) GetAllProvidersUsers(c echo.Context) error {
+	userId := c.Get("user_id").(string)
+
+	res, err := h.svc.GetAllProvidersUsers(c.Request().Context(), userId)
+	if err != nil {
+		return response.Error(c, http.StatusInternalServerError, "failed to get providers users", err)
+	}
+
+	return response.Success(c, http.StatusOK, "success", res)
+}

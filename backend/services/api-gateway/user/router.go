@@ -19,6 +19,7 @@ func RegisterRoutes(e *echo.Echo, db *sqlx.DB, redis *redis.Client, conf *config
 	user.GET("", h.GetProfile)
 	user.GET("/quota", h.GetQuota)
 	user.PUT("/", h.UpdateUser)
+	user.GET("/providers", h.GetAllProvidersUsers)
 	user.PUT("/password", h.ChangePassword)
 	user.GET("/sessions", h.GetUserSessions)
 	user.DELETE("/sessions/:session_id", h.RevokeSession)

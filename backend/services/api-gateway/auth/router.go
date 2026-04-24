@@ -22,10 +22,12 @@ func RegisterRoutes(e *echo.Echo, db *sqlx.DB, redisClient *redis.Client, conf *
 	auth.POST("/login", h.Login)
 	auth.GET("/login", h.LoginPage)
 	auth.POST("/logout", h.Logout)
-	auth.GET("/validate",h.Validate)
+	auth.GET("/validate", h.Validate)
 	auth.POST("/refresh", h.RefreshToken)
-	
-	protected := auth.Group("",middlewares.AuthMiddleware(conf))
+	auth.GET("/github", h.GithubLogin)
+	auth.GET("/github/callback", h.GithubCallback)
+
+	protected := auth.Group("", middlewares.AuthMiddleware(conf))
 	protected.POST("/pat", h.CreatePAT)
 	protected.GET("/pat", h.GetAllPAT)
 	protected.DELETE("/pat/:pat_id", h.DeletePAT)
