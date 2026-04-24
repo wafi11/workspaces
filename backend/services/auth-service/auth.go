@@ -32,44 +32,65 @@ func NewRepository(db *sqlx.DB, redis *redis.Client, conf *config.Config) *Repos
 	}
 }
 
-func (repo *Repository) Register(c context.Context, req *RegisterRequest) (*RegisterResponse, error) {
+func (repo *Repository) Register(c context.Context, req *RegisterRequest, provider string) (*RegisterResponse, error) {
+	if provider == UserProvidersLocal && req.Password == "" {
+		return nil, fmt.Errorf("password must be required")
+	}
+
 	tx, err := repo.db.BeginTx(c, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback()
 
-	var userId,role, username string
+	var userId, role, username string
+	var hashedPassword string
 	userId = uuid.New().String()
 
-	query := `
-		INSERT INTO users (id, username, email, password, terminal_url,role)
-		VALUES ($1, $2, $3, $4, $5,'user')
-		RETURNING id, username,role
-	`
-	hashedPassword, err := utils.HashPassword(req.Password)
-	if err != nil {
-		return nil, fmt.Errorf("failed to process password: %w", err)
+	if provider == UserProvidersLocal {
+		hashedPassword, err = utils.HashPassword(req.Password)
+		if err != nil {
+			return nil, fmt.Errorf("failed to process password: %w", err)
+		}
 	}
 
-	err = tx.QueryRowContext(c, query, userId, req.Username, req.Email, hashedPassword, utils.GenerateUrl(userId, models.DOMAIN)).Scan(&userId, &username,&role)
+	query := `
+		INSERT INTO users (id, username, email, password, terminal_url,role,avatar_url)
+		VALUES ($1, $2, $3, $4, $5,'user',$6)
+		RETURNING id, username,role
+	`
+
+	err = tx.QueryRowContext(c, query, userId, req.Username, req.Email, hashedPassword, utils.GenerateUrl(userId, models.DOMAIN), req.AvatarURL).Scan(&userId, &username, &role)
 	if err != nil {
 		return nil, fmt.Errorf("username or email already registered: %w", err)
+	}
+
+	insertProvider := `
+			INSERT INTO providers (id, user_id, name, provider_id)
+			VALUES ($1, $2, $3, $4)
+		`
+	_, err = tx.ExecContext(c, insertProvider,
+		uuid.New().String(), userId, provider, req.ProviderId,
+	)
+
+	if err != nil {
+		log.Printf("[register]  failed register providers : %s", err.Error())
+		return nil, fmt.Errorf("invalid credentials")
 	}
 
 	quotaQuery := `
 		INSERT INTO user_quotas (id, user_id, max_workspaces, max_storage_gb, max_ram_mb, max_cpu_cores)
 		VALUES ($1, $2, $3, $4, $5, $6)
 	`
-	_,err = tx.ExecContext(c, quotaQuery, uuid.New().String(), userId, models.MaxQuota, models.MaxStorage-models.StorTerminalLimitGi, models.MaxRam-models.MemTerminalLimitMi, models.MaxCpu-models.CpuTerminalLimit)
+	_, err = tx.ExecContext(c, quotaQuery, uuid.New().String(), userId, models.MaxQuota, models.MaxStorage-models.StorTerminalLimitGi, models.MaxRam-models.MemTerminalLimitMi, models.MaxCpu-models.CpuTerminalLimit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user quota: %w", err)
 	}
 	sessionId := uuid.New().String()
 
-	token,err := repo.GenerateToken(c,GenerateTokenReq{
-		UserID: userId,
-		Role: role,
+	token, err := repo.GenerateToken(c, GenerateTokenReq{
+		UserID:    userId,
+		Role:      role,
 		SessionID: sessionId,
 	})
 
@@ -77,11 +98,10 @@ func (repo *Repository) Register(c context.Context, req *RegisterRequest) (*Regi
 		INSERT INTO sessions (id, user_id, is_active, user_agent, ip_address, refresh_token)
 		VALUES ($1, $2, true, $3, $4,$5)
 	`
-	_, err = tx.ExecContext(c, sessionQuery, sessionId, userId, "","",token.RefreshToken)
+	_, err = tx.ExecContext(c, sessionQuery, sessionId, userId, "", "", token.RefreshToken)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create session: %w", err)
 	}
-
 
 	var templateId string
 
@@ -89,16 +109,15 @@ func (repo *Repository) Register(c context.Context, req *RegisterRequest) (*Regi
 		SELECT id FROM templates where category = 'terminal' and is_public = false
 	`
 
-	err = tx.QueryRowContext(c,queryTemplateId).Scan(&templateId)
+	err = tx.QueryRowContext(c, queryTemplateId).Scan(&templateId)
 	if err != nil {
-		log.Printf("[register] template not found : %s",err.Error())
-		return nil,fmt.Errorf("failed to register")
+		log.Printf("[register] template not found : %s", err.Error())
+		return nil, fmt.Errorf("failed to register")
 	}
 
 	if err = tx.Commit(); err != nil {
 		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
-
 
 	cpuReq := fmt.Sprintf("%.2f", models.MaxCpu)
 	memReq := fmt.Sprintf("%dMi", models.MaxRam)
@@ -109,7 +128,7 @@ func (repo *Repository) Register(c context.Context, req *RegisterRequest) (*Regi
 			Create: &proto.CreateWorkspaceEvent{
 				Identity: &proto.WorkspaceIdentity{
 					UserId:    userId,
-					Username:	 username,
+					Username:  username,
 					Namespace: GenerateNamespace(userId),
 					Password:  req.Password,
 				},
@@ -136,8 +155,10 @@ func (repo *Repository) Register(c context.Context, req *RegisterRequest) (*Regi
 	})
 
 	return &RegisterResponse{
-		UserId:  userId,
-		Message: "Successfully created user",
+		UserId:       userId,
+		Message:      "Successfully created user",
+		AccessToken:  token.AccessToken,
+		RefreshToken: token.RefreshToken,
 	}, nil
 }
 
@@ -145,8 +166,14 @@ func (repo *Repository) Login(c context.Context, req *LoginRequest, userAgent, i
 	var id, password, role, username string
 
 	err := repo.db.QueryRowContext(c, `
-		SELECT id, username, password, role
-		FROM users WHERE email = $1
+		SELECT 
+			u.id, 
+			u.username, 
+			u.password, 
+			u.role
+		FROM users u 
+		LEFT JOIN providers p on p.user_id = u.id
+		WHERE u.email = $1 and p.name = 'local'
 	`, req.Email).Scan(&id, &username, &password, &role)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -274,14 +301,17 @@ func (repo *Repository) Logout(c context.Context, req *LogoutRequest) (*LogoutRe
 	}, nil
 }
 
-
 func (repo *Repository) Validate(ctx context.Context, token string) (bool, error) {
-    val, err := repo.redis.Get(ctx, "session:"+token).Result()
-    if err == redis.Nil {
-        return false, nil
-    }
-    if err != nil {
-        return false, err
-    }
-    return val != "", nil
+	claims, err := config.ValidationToken(token, repo.conf)
+	if err != nil {
+		return false, fmt.Errorf("invalid or expired refresh token: %w", err)
+	}
+	val, err := repo.redis.Get(ctx, refreshTokenKey(claims.SessionID)).Result()
+	if err == redis.Nil {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return val != "", nil
 }
