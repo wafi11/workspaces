@@ -1,5 +1,3 @@
-import { useProfile } from "@/features/api";
-import { EmptyState } from "@/features/components/workspaces/EmptyState";
 import { SectionWorkspace } from "@/features/components/workspaces/SectionWorkspace";
 import { SectionWorkspaceCollaborations } from "@/features/components/workspaces/SectionWorkspaceCollaborations";
 import { MainContainer } from "@/features/layout/MainContainer";
@@ -12,11 +10,6 @@ export const Route = createFileRoute("/workspaces/")({
 });
 
 function RouteComponent() {
-  const { data: profileData } = useProfile();
-  if (!profileData){
-      return <EmptyState />
-    }
-
   
   return (
    <>

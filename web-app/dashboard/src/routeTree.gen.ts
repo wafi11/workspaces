@@ -15,16 +15,19 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as HomeRouteImport } from './routes/home'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WorkspacesIndexRouteImport } from './routes/workspaces/index'
 import { Route as TemplatesIndexRouteImport } from './routes/templates/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as NotificationsIndexRouteImport } from './routes/notifications/index'
+import { Route as HomeIndexRouteImport } from './routes/home/index'
 import { Route as WorkspacesCreateRouteImport } from './routes/workspaces/create'
 import { Route as WorkspacesWorkspaceIdRouteImport } from './routes/workspaces/$workspaceId'
 import { Route as TemplatesCreateRouteImport } from './routes/templates/create'
 import { Route as TemplatesTemplateIdRouteImport } from './routes/templates/$templateId'
+import { Route as SettingsProfileRouteImport } from './routes/settings/profile'
 import { Route as SettingsPatRouteImport } from './routes/settings/pat'
 
 const WorkspacesRoute = WorkspacesRouteImport.update({
@@ -57,6 +60,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HomeRoute = HomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -87,6 +95,11 @@ const NotificationsIndexRoute = NotificationsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => NotificationsRoute,
 } as any)
+const HomeIndexRoute = HomeIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => HomeRoute,
+} as any)
 const WorkspacesCreateRoute = WorkspacesCreateRouteImport.update({
   id: '/create',
   path: '/create',
@@ -107,6 +120,11 @@ const TemplatesTemplateIdRoute = TemplatesTemplateIdRouteImport.update({
   path: '/$templateId',
   getParentRoute: () => TemplatesRoute,
 } as any)
+const SettingsProfileRoute = SettingsProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const SettingsPatRoute = SettingsPatRouteImport.update({
   id: '/pat',
   path: '/pat',
@@ -116,6 +134,7 @@ const SettingsPatRoute = SettingsPatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/home': typeof HomeRouteWithChildren
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRouteWithChildren
   '/register': typeof RegisterRoute
@@ -123,10 +142,12 @@ export interface FileRoutesByFullPath {
   '/templates': typeof TemplatesRouteWithChildren
   '/workspaces': typeof WorkspacesRouteWithChildren
   '/settings/pat': typeof SettingsPatRoute
+  '/settings/profile': typeof SettingsProfileRoute
   '/templates/$templateId': typeof TemplatesTemplateIdRoute
   '/templates/create': typeof TemplatesCreateRoute
   '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdRoute
   '/workspaces/create': typeof WorkspacesCreateRoute
+  '/home/': typeof HomeIndexRoute
   '/notifications/': typeof NotificationsIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/templates/': typeof TemplatesIndexRoute
@@ -138,10 +159,12 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/settings/pat': typeof SettingsPatRoute
+  '/settings/profile': typeof SettingsProfileRoute
   '/templates/$templateId': typeof TemplatesTemplateIdRoute
   '/templates/create': typeof TemplatesCreateRoute
   '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdRoute
   '/workspaces/create': typeof WorkspacesCreateRoute
+  '/home': typeof HomeIndexRoute
   '/notifications': typeof NotificationsIndexRoute
   '/settings': typeof SettingsIndexRoute
   '/templates': typeof TemplatesIndexRoute
@@ -151,6 +174,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/home': typeof HomeRouteWithChildren
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRouteWithChildren
   '/register': typeof RegisterRoute
@@ -158,10 +182,12 @@ export interface FileRoutesById {
   '/templates': typeof TemplatesRouteWithChildren
   '/workspaces': typeof WorkspacesRouteWithChildren
   '/settings/pat': typeof SettingsPatRoute
+  '/settings/profile': typeof SettingsProfileRoute
   '/templates/$templateId': typeof TemplatesTemplateIdRoute
   '/templates/create': typeof TemplatesCreateRoute
   '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdRoute
   '/workspaces/create': typeof WorkspacesCreateRoute
+  '/home/': typeof HomeIndexRoute
   '/notifications/': typeof NotificationsIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/templates/': typeof TemplatesIndexRoute
@@ -172,6 +198,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/dashboard'
+    | '/home'
     | '/login'
     | '/notifications'
     | '/register'
@@ -179,10 +206,12 @@ export interface FileRouteTypes {
     | '/templates'
     | '/workspaces'
     | '/settings/pat'
+    | '/settings/profile'
     | '/templates/$templateId'
     | '/templates/create'
     | '/workspaces/$workspaceId'
     | '/workspaces/create'
+    | '/home/'
     | '/notifications/'
     | '/settings/'
     | '/templates/'
@@ -194,10 +223,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/settings/pat'
+    | '/settings/profile'
     | '/templates/$templateId'
     | '/templates/create'
     | '/workspaces/$workspaceId'
     | '/workspaces/create'
+    | '/home'
     | '/notifications'
     | '/settings'
     | '/templates'
@@ -206,6 +237,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/dashboard'
+    | '/home'
     | '/login'
     | '/notifications'
     | '/register'
@@ -213,10 +245,12 @@ export interface FileRouteTypes {
     | '/templates'
     | '/workspaces'
     | '/settings/pat'
+    | '/settings/profile'
     | '/templates/$templateId'
     | '/templates/create'
     | '/workspaces/$workspaceId'
     | '/workspaces/create'
+    | '/home/'
     | '/notifications/'
     | '/settings/'
     | '/templates/'
@@ -226,6 +260,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
+  HomeRoute: typeof HomeRouteWithChildren
   LoginRoute: typeof LoginRoute
   NotificationsRoute: typeof NotificationsRouteWithChildren
   RegisterRoute: typeof RegisterRoute
@@ -278,6 +313,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/home': {
+      id: '/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof HomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
@@ -320,6 +362,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NotificationsIndexRouteImport
       parentRoute: typeof NotificationsRoute
     }
+    '/home/': {
+      id: '/home/'
+      path: '/'
+      fullPath: '/home/'
+      preLoaderRoute: typeof HomeIndexRouteImport
+      parentRoute: typeof HomeRoute
+    }
     '/workspaces/create': {
       id: '/workspaces/create'
       path: '/create'
@@ -348,6 +397,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TemplatesTemplateIdRouteImport
       parentRoute: typeof TemplatesRoute
     }
+    '/settings/profile': {
+      id: '/settings/profile'
+      path: '/profile'
+      fullPath: '/settings/profile'
+      preLoaderRoute: typeof SettingsProfileRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/settings/pat': {
       id: '/settings/pat'
       path: '/pat'
@@ -357,6 +413,16 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface HomeRouteChildren {
+  HomeIndexRoute: typeof HomeIndexRoute
+}
+
+const HomeRouteChildren: HomeRouteChildren = {
+  HomeIndexRoute: HomeIndexRoute,
+}
+
+const HomeRouteWithChildren = HomeRoute._addFileChildren(HomeRouteChildren)
 
 interface NotificationsRouteChildren {
   NotificationsIndexRoute: typeof NotificationsIndexRoute
@@ -372,11 +438,13 @@ const NotificationsRouteWithChildren = NotificationsRoute._addFileChildren(
 
 interface SettingsRouteChildren {
   SettingsPatRoute: typeof SettingsPatRoute
+  SettingsProfileRoute: typeof SettingsProfileRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
 }
 
 const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsPatRoute: SettingsPatRoute,
+  SettingsProfileRoute: SettingsProfileRoute,
   SettingsIndexRoute: SettingsIndexRoute,
 }
 
@@ -419,6 +487,7 @@ const WorkspacesRouteWithChildren = WorkspacesRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
+  HomeRoute: HomeRouteWithChildren,
   LoginRoute: LoginRoute,
   NotificationsRoute: NotificationsRouteWithChildren,
   RegisterRoute: RegisterRoute,

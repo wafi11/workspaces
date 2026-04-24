@@ -1,15 +1,14 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils"
-import { ButtonNotification } from "../components/notifications/ButtonNotifications";
+
 interface TopBarAdminProps {
   title: string;
   children?: ReactNode;
   className? : string
   classNameFont? : string
-  isUsedButtonNotification? : boolean
 }
 
-export function TopbarAdmin({ title, children ,className,classNameFont,isUsedButtonNotification = true}: TopBarAdminProps) {
+export function TopbarAdmin({ title, children ,className,classNameFont}: TopBarAdminProps) {
   return (
     <div
       className={cn("flex items-center justify-between px-6 py-4",className)}
@@ -23,16 +22,11 @@ export function TopbarAdmin({ title, children ,className,classNameFont,isUsedBut
         >
           {title}
         </h1>
-        {
-          isUsedButtonNotification && (
-          <ButtonNotification />
 
-        )
-      }
       </div>
 
       {/* Actions */}
-      {children && <div className="flex items-center gap-3">{children}</div>}
+      {children}
     </div>
   );
 }

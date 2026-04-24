@@ -1,5 +1,5 @@
 "use client";
-import { LOGIN_URL } from "@/constants";
+import { LOGIN_URL, OAUTH_URL_GITHUB } from "@/constants";
 import { storage } from "@/hooks";
 import { api } from "@/lib/api";
 import type { User, UserQuota } from "@/types";
@@ -14,7 +14,7 @@ export function useRegister() {
     mutationFn: async (data: RegisterForm) => {
       const req = await api.post<null>("/auth/register", data);
       if (req.status == 201) {
-        router.navigate({ to: LOGIN_URL });
+        await router.navigate({ to: LOGIN_URL });
       }
       return req.data;
     },
@@ -32,7 +32,7 @@ export function useLogin() {
         refresh_token: string;
         role: string;
       }>("/auth/login", data);
-      router.navigate({ to: "/workspaces" });
+      await router.navigate({ to: "/workspaces" });
 
       return req.data;
     },
@@ -52,14 +52,13 @@ export function useLogout() {
         refresh_token: storage.getRefreshToken(),
       });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       storage.clear();
-      //   router.push("/login");
+      await router.navigate({ to: LOGIN_URL });
     },
-    onError: () => {
-      // Tetap logout di client meski server error
+    onError: async () => {
       storage.clear();
-      //   router.push("/login");
+        await  router.navigate({to : LOGIN_URL});
     },
   });
 }
@@ -83,4 +82,9 @@ export function useProfileQuota() {
     },
     staleTime: 0,
   });
+}
+
+
+export function useRegisterOrLoginWithGithub(){
+  return window.location.href = OAUTH_URL_GITHUB
 }

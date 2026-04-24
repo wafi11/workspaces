@@ -16,7 +16,7 @@ export function FormTemplates ({form,
 
     return (
        <>
-        <TopbarAdmin title="Form Templates" classNameFont="text-md text-md font-medium"/>
+        <TopbarAdmin title="Form Templates" classNameFont="text-md text-md font-medium" isUsedButtonNotification={false}/>
         <div className="flex flex-col gap-4 px-4 py-4 overflow-y-auto">
             {/* Row 1 - 2 kolom */}
             <div className="grid grid-cols-2 gap-3">

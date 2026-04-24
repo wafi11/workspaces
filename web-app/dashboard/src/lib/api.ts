@@ -1,5 +1,4 @@
 import { API_URL } from "@/constants";
-import { storage } from "@/hooks";
 
 let isRefreshing = false;
 let failedQueue: Array<{
@@ -46,16 +45,13 @@ async function request<T = any>(
   endpoint: string,
   config: RequestConfig = {},
 ): Promise<{ data: T; status: number; message: string }> {
-  const token = storage.getAccessToken();
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...config.headers,
   };
 
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
+  
 
   const url = endpoint.startsWith("http") ? endpoint : `${API_URL}${endpoint}`;
 
@@ -82,56 +78,45 @@ async function request<T = any>(
     if (isRefreshing) {
       return new Promise<string>((resolve, reject) => {
         failedQueue.push({ resolve, reject });
-      }).then((newToken) => {
+      }).then(() => {
         return request<T>(endpoint, {
           ...config,
-          headers: { ...config.headers, Authorization: `Bearer ${newToken}` },
+          headers: { ...config.headers },
           _retry: true,
         });
       });
     }
 
     isRefreshing = true;
-    const refreshToken = storage.getRefreshToken();
-
-    if (!refreshToken) {
-      storage.clear();
-      window.location.href = "/login";
-      return Promise.reject(buildError(401, null, "No refresh token"));
-    }
+   
 
     try {
       const refreshRes = await fetch(`${API_URL}/auth/refresh`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refresh_token: refreshToken }),
+        credentials : "include"
       });
 
       const refreshData = await refreshRes.json();
+      if (refreshRes.status === 401) {
+        processQueue(refreshData, null);
+        window.location.href = "/login";
+        return Promise.reject(refreshData);
+      }
 
       if (!refreshRes.ok) {
         throw refreshData;
       }
-
-      const newAccessToken = refreshData.data.access_token;
-      const newRefreshToken = refreshData.data.refresh_token;
-
-      storage.setAccessToken(newAccessToken);
-      storage.setRefreshToken(newRefreshToken);
-
-      processQueue(null, newAccessToken);
-
+      processQueue(null);
       return request<T>(endpoint, {
         ...config,
         headers: {
           ...config.headers,
-          Authorization: `Bearer ${newAccessToken}`,
         },
         _retry: true,
       });
     } catch (refreshError) {
       processQueue(refreshError, null);
-      storage.clear();
       window.location.href = "/login";
       return Promise.reject(refreshError);
     } finally {
@@ -168,7 +153,6 @@ export const api = {
     const reader = response.body!.getReader();
     const decoder = new TextDecoder();
 
-    const controller = new AbortController();
 
     (async () => {
       while (true) {

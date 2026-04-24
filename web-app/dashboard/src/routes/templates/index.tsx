@@ -21,7 +21,7 @@ function RouteComponent() {
          <TopbarAdmin title="List Templates">
           {
             data.role  === ADMIN_ROLE && (
-              <ButtonCreate label="+ Create Templates" to="templates"/>
+              <ButtonCreate label="Add" to="templates" className={"justify-end items-end"}/>
             )
           }
          </TopbarAdmin>

@@ -20,7 +20,7 @@ export function ListTemplates({profile} : ListTemplatesProps) {
   }
 
   return (
-    <div className="p-6 overflow-y-auto">
+    <div className="p-6 space-y-3 overflow-y-auto">
       {/* Grid Layout */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {templates?.map((template) => (

@@ -2,8 +2,18 @@ import { Ico } from "../features/components/icons";
 import type { NavItem } from "../types";
 
 export const NAV: NavItem[] = [
- 
   {
+    label: "Home",
+    to: "/home",
+    icon: (
+        <Ico
+            d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.5z"
+            d2="M9 21V12h6v9"
+        />
+    ),
+    roles: ["user", "admin"],
+  },
+   {
     label: "Workspaces",
     to: "/workspaces",
     icon: (
@@ -47,14 +57,6 @@ export const NAV: NavItem[] = [
     ),
     roles: ["admin"],
     badge: "Admin",
-  },
-  {
-    label: "Billing",
-    to: "/billing",
-    icon: (
-      <Ico d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 0 0 3-3V8a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3z" />
-    ),
-    roles: ["user", "admin"],
   },
   {
     label: "Settings",

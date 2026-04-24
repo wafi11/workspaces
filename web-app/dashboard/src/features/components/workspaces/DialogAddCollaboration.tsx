@@ -10,7 +10,7 @@ interface Props {
 }
 
 export type AddCollaborationType = {
-  user_id: string
+  email: string
   role: string
 }
 
@@ -20,7 +20,7 @@ export function DialogAddCollaboration({ open, onOpenChange, wsId }: Props) {
   const { register, handleSubmit } = useForm<AddCollaborationType>({
     defaultValues: {
       role: "viewer",
-      user_id: ""
+      email: ""
     }
   })
 
@@ -30,7 +30,7 @@ export function DialogAddCollaboration({ open, onOpenChange, wsId }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 w-95
+      <DialogContent className="bg-black border border-zinc-700 rounded-lg p-6 w-95
                                  fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50
                                  shadow-[0_8px_32px_rgba(0,0,0,0.7)]">
         <DialogTitle className="text-xs font-mono text-zinc-200 uppercase tracking-widest mb-1">
@@ -42,9 +42,9 @@ export function DialogAddCollaboration({ open, onOpenChange, wsId }: Props) {
 
         <div className="space-y-4">
           <Field
-            label="User ID"
-            placeholder="user id..."
-            {...register("user_id")}
+            label="Email"
+            placeholder="admin@gmail.com"
+            {...register("email")}
           />
           <Field
             label="Role"

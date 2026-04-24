@@ -16,7 +16,7 @@ export function FormTemplatesFiles({
 
   return (
     <>
-      <TopbarAdmin title="Files" classNameFont="text-md font-medium" />
+      <TopbarAdmin title="Files" classNameFont="text-md font-medium" isUsedButtonNotification={false}/>
       <div className="flex flex-col gap-3 px-4 py-4 overflow-y-auto">
         {fields.map((field, index) => (
           <div

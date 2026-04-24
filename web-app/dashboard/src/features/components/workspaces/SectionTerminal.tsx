@@ -9,13 +9,13 @@ export function SectionTerminal({ terminal_url }: SectionTerminalProps) {
 console.log(terminal_url)
   return (
     <div
-      className={`flex flex-col bg-[var(--color-app-bg)] p-4 border border-[var(--color-app-border)] rounded-xl overflow-hidden transition-all duration-200 ${
+      className={`flex flex-col bg-[var(--color-app-bg)] border border-[var(--color-app-border)] m-4 p-4 rounded-xl overflow-hidden transition-all duration-200 ${
         isFullscreen
           ? "fixed inset-4 z-50"
-          : "w-full h-full min-h-[200px]"
+          : "w-full  h-full min-h-[200px]"
       }`}
     >
-      {/* Titlebar */}
+      {/* Title bar */}
       <div className="flex items-center justify-between px-4 py-2.5 bg-[var(--color-sidebar-bg)] border-b border-[var(--color-app-border)] shrink-0">
         {/* Traffic lights */}
         <div className="flex items-center gap-1.5">

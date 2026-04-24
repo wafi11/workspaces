@@ -21,7 +21,7 @@ export function SectionWorkspace() {
 
   if (!workspaceData || workspaceData.length === 0) {
     return (<>
-    <div className="flex justify-between items-center gap-2 p-4">
+    <div className="flex w-full justify-between items-center gap-2 p-4">
         <div className="flex items-center gap-2">
           <h2
             className="text-xs font-semibold uppercase tracking-wider"

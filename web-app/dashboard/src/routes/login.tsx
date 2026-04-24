@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import * as Label from "@radix-ui/react-label";
 import { AuthContainer } from "../features/components/AuthContainer";
-import { useLogin } from "@/features/api/auth";
+import { useLogin, useRegisterOrLoginWithGithub } from "@/features/api/auth";
 import type { LoginForm } from "@/types";
 import { inputStyle } from "@/features/components/InputStyle";
 import { ActionBtn } from "@/features/components/ActionButton";
@@ -13,7 +13,6 @@ export const Route = createFileRoute("/login")({
 
 function RouteComponent() {
   const { mutate, isPending } = useLogin();
-
   const {
     register,
     handleSubmit,
@@ -28,6 +27,7 @@ function RouteComponent() {
   const onSubmit = (data: LoginForm) => {
     mutate(data);
   };
+
 
   return (
     <AuthContainer
@@ -112,10 +112,10 @@ function RouteComponent() {
 
         {/* Social Logins */}
         <div className="grid grid-cols-2 gap-3">
-          <button className="flex items-center justify-center gap-2 rounded-xl border border-zinc-800 bg-transparent h-10 text-xs font-medium text-zinc-300 hover:bg-zinc-900 transition-colors">
+          <button  className="flex items-center justify-center gap-2 rounded-xl border border-zinc-800 bg-transparent h-10 text-xs font-medium text-zinc-300 hover:bg-zinc-900 transition-colors">
             Google
           </button>
-          <button className="flex items-center justify-center gap-2 rounded-xl border border-zinc-800 bg-transparent h-10 text-xs font-medium text-zinc-300 hover:bg-zinc-900 transition-colors">
+          <button onClick={() => useRegisterOrLoginWithGithub()} className="flex items-center justify-center gap-2 rounded-xl border border-zinc-800 bg-transparent h-10 text-xs font-medium text-zinc-300 hover:bg-zinc-900 transition-colors">
             GitHub
           </button>
         </div>

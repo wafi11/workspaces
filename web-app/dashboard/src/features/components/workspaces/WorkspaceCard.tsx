@@ -2,6 +2,7 @@ import { useUpdateStatusWorkspace } from "@/features/api/workspace";
 import { ActionBtn } from "@/features/components/ActionButton";
 import { StatusBadge } from "@/features/components/statusBadge";
 import { DropdownChoice } from "@/features/components/workspaces/DropdownChoice";
+import { useGetMetricsStorageWorkspaces } from "@/hooks/useGetWorkspaceMatrics";
 import { useWorkspaceSocket } from "@/hooks/useWebSocket";
 import type { Workspaces, WorkspaceSessions } from "@/types";
 import { formatDate } from "@/utils/formatDate";
@@ -21,6 +22,7 @@ export function WorkspaceCard({ ws }: { ws: WorkspaceSessions }) {
   const { mutate: pauseWs } = useUpdateStatusWorkspace(ws.id, "paused");
 
   const {navigate}  = useRouter()
+
   useWorkspaceSocket((data) => {
     if (["workspace.running", "workspace.stopped", "workspace.resumed", "workspace.paused"].includes(data.type)) {
       queryClient.setQueryData(["workspace-users"], (old: Workspaces[]) => {

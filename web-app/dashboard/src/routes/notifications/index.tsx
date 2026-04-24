@@ -1,12 +1,11 @@
 import { useGetnotificationReceived, useGetnotificationRetreived } from '@/features/api/notifications'
+import { useAcceptOrDenied } from '@/features/api/workspace-collaboration'
 import { MainContainer } from '@/features/layout/MainContainer'
 import { TopbarAdmin } from '@/features/layout/TopbarDashboard'
-import { createFileRoute } from '@tanstack/react-router'
-import { useState } from 'react'
-import { ChevronDown, Bell, Inbox } from 'lucide-react'
 import { formatDate } from '@/utils/formatDate'
-import { useAcceptOrDenied } from '@/features/api/workspace-collaboration'
-import { useProfile } from '@/features/api'
+import { createFileRoute } from '@tanstack/react-router'
+import { Bell, ChevronDown, Inbox } from 'lucide-react'
+import { useState } from 'react'
 
 export const Route = createFileRoute('/notifications/')({
   component: RouteComponent,
@@ -17,7 +16,6 @@ type Tab = 'inbox' | 'retrieved'
 function RouteComponent() {
   const { data: dataReceived } = useGetnotificationReceived()
   const { data: dataRetreived } = useGetnotificationRetreived()
-  const {data : profileData}  = useProfile()
   const [activeTab, setActiveTab] = useState<Tab>('inbox')
   const [expanded, setExpanded] = useState<string | null>(null)
   const {mutate} = useAcceptOrDenied()
@@ -79,8 +77,9 @@ function RouteComponent() {
               className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-zinc-800/40 transition-colors"
             >
               {/* Unread dot */}
-              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${notif.is_read ? 'bg-transparent' : 'bg-blue-400'}`} />
-
+{activeTab === 'inbox' && (
+  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${notif.is_read ? 'bg-transparent' : 'bg-blue-400'}`} />
+)}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-mono text-zinc-200 truncate">{notif.title}</span>
@@ -123,28 +122,18 @@ function RouteComponent() {
                 )}
 
                 {/* Actions — khusus INVITATION_COLLABORATOR */}
-                {!notif.is_read && notif.user_id === profileData?.id && notif.notification_type === 'INVITATION_COLLABORATOR' && (
-                  <div className="flex gap-2 mt-3">
-                    <button onClick={() => handleAcc({
-                      data : {
-                        notification_id : notif.id,
-                        types : "accept"
-                      }
-                    })} className="text-[11px] font-mono px-3 py-1.5 bg-zinc-200 text-zinc-900
-                                       hover:bg-white rounded transition-colors">
-                      Accept
-                    </button>
-                    <button onClick={() => handleAcc({
-                      data : {
-                        notification_id : notif.id,
-                        types : "decline"
-                      }
-                    })} className="text-[11px] font-mono px-3 py-1.5 border border-zinc-700
-                                       text-zinc-400 hover:text-zinc-200 rounded transition-colors">
-                      Decline
-                    </button>
-                  </div>
-                )}
+               {activeTab === 'inbox' && !notif.is_read && notif.notification_type === 'INVITATION_COLLABORATOR' && (
+              <div className="flex gap-2 mt-3">
+                <button onClick={() => handleAcc({ data: { notification_id: notif.id, types: "accept" } })}
+                  className="text-[11px] font-mono px-3 py-1.5 bg-zinc-200 text-zinc-900 hover:bg-white rounded transition-colors">
+                  Accept
+                </button>
+                <button onClick={() => handleAcc({ data: { notification_id: notif.id, types: "decline" } })}
+                  className="text-[11px] font-mono px-3 py-1.5 border border-zinc-700 text-zinc-400 hover:text-zinc-200 rounded transition-colors">
+                  Decline
+                </button>
+              </div>
+            )}
               </div>
             )}
           </div>

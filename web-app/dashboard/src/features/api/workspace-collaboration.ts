@@ -7,7 +7,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 export function useAddCollaboration({wsId} :{ wsId : string}){
     return useMutation({
         mutationKey : ["workspace-collaboration",wsId],
-        mutationFn : async ({data} : {data : {user_id : string,role : string}})  => {
+        mutationFn : async ({data} : {data : {email : string,role : string}})  => {
             const req = await api.post(`/workspaces/${wsId}/invite`,data)
             return req.data
         },

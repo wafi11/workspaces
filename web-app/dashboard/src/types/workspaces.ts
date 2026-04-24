@@ -65,3 +65,15 @@ export interface PodMetrics {
   total_cpu_cores: number;
   total_memory_mb: number;
 }
+
+
+export interface PodStorageMetrics {
+   volumes:PodVolumesType[]
+}
+
+
+export interface PodVolumesType {
+  used_mb: number
+  capacity_mb: number
+  available_mb: number
+}

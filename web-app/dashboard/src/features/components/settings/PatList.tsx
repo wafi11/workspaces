@@ -1,6 +1,8 @@
 import { Trash2 } from "lucide-react"
 import { formatDate, formatDay } from "@/utils/formatDate"
 import type { PAT } from "@/types"
+import { LoadingScreen } from "@/features/layout/loadingScreen"
+import { EmptyState } from "../workspaces/EmptyState"
 
 type Props = {
   pats?: PAT[]
@@ -9,8 +11,8 @@ type Props = {
 }
 
 export function PATList({ pats, isLoading, onDelete }: Props) {
-  if (isLoading) return <p className="px-4 py-3 text-[11px]">Loading...</p>
-  if (!pats?.length) return <p className="px-4 py-3 text-[11px]">No tokens yet.</p>
+  if (isLoading) return <LoadingScreen />
+  if (!pats?.length) return <EmptyState title="No Tokens Yet" className="px-0 m-0" description="Add Your Personal Access Token"/>
 
   return (
     <div className="rounded border overflow-hidden">
