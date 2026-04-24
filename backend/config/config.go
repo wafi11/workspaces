@@ -6,6 +6,17 @@ import (
 	"github.com/joho/godotenv"
 )
 
+type SSOGithubConfig struct {
+	ClientID     string
+	ClientSecret string
+	RedirectURL  string
+}
+
+type SSOGoogleConfig struct {
+	ClientID     string
+	ClientSecret string
+	RedirectURL  string
+}
 type Config struct {
 	DBURL       string
 	REDISURL    string
@@ -13,6 +24,8 @@ type Config struct {
 	K8S_CONFIG  string
 	ELASTIC_URL string
 	Port        string
+	Github      *SSOGithubConfig
+	Google      *SSOGoogleConfig
 }
 
 func Load() *Config {
@@ -25,5 +38,15 @@ func Load() *Config {
 		ELASTIC_URL: os.Getenv("ELASTIC_URL"),
 		Port:        "8080",
 		K8S_CONFIG:  os.Getenv("K8S_CONFIG"),
+		Github: &SSOGithubConfig{
+			ClientID:     os.Getenv("GITHUB_CLIENT_ID"),
+			ClientSecret: os.Getenv("GITHUB_CLIENT_SECRET"),
+			RedirectURL:  os.Getenv("GITHUB_REDIRECT_URL"),
+		},
+		Google: &SSOGoogleConfig{
+			ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
+			ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+			RedirectURL:  os.Getenv("GOOGLE_REDIRECT_URL"),
+		},
 	}
 }
