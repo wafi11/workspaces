@@ -1,0 +1,123 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #e4e4e7;
+  --color-primary-hover: #a1a1aa;
+
+  /* Graphite sidebar tokens */
+  --color-sidebar-bg: #0a0a0a;
+  --color-sidebar-surface: #111111;
+  --color-sidebar-border: #161616;
+  --color-sidebar-text: #52525b;
+  --color-sidebar-text-muted: #3f3f46;
+  --color-sidebar-text-active: #e4e4e7;
+  --color-sidebar-accent: #e4e4e7;
+
+  /* Accent — Kubernetes blue */
+  --color-accent: #326ce5;
+  --color-accent-hover: #2558d0;
+  --color-accent-muted: #1a2f6a;
+  --color-accent-surface: #0d1a3d;
+  --color-accent-text: #7aa4f0;
+  --color-accent-border: #1e3a7a;
+
+  /* App background */
+  --color-app-bg: #000000;
+  --color-app-surface: #0a0a0a;
+  --color-app-border: #161616;
+}
+
+:root {
+  --font-sans: "Geist Sans", "Inter", sans-serif;
+  color-scheme: dark;
+  font-family: var(--font-sans);
+  letter-spacing: -0.015em;
+  background-color: #000000;
+  color: #e4e4e7;
+}
+
+body {
+  @apply min-h-screen antialiased;
+  background-color: #000000;
+  color: #e4e4e7;
+}
+
+/* Radix Themes sync */
+.radix-themes {
+  --color-background: #000000;
+  --gray-1: #000000;
+  --gray-2: #0a0a0a;
+  --gray-3: #111111;
+  --gray-4: #161616;
+  --gray-5: #1c1c1c;
+  --gray-6: #232323;
+  --gray-7: #2e2e2e;
+  --gray-8: #3f3f46;
+  --gray-9: #52525b;
+  --gray-10: #71717a;
+  --gray-11: #a1a1aa;
+  --gray-12: #e4e4e7;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+::-webkit-scrollbar-thumb {
+  background: #161616;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #232323;
+}
+
+
+:root {
+  --font-sans: "Geist Sans", "Inter", sans-serif;
+  color-scheme: dark;
+  font-family: var(--font-sans);
+  letter-spacing: -0.015em;
+  background-color: #000000;
+  color: #e4e4e7;
+}
+
+body {
+  @apply min-h-screen antialiased;
+  background-color: #000000;
+  color: #e4e4e7;
+}
+
+/* Radix Themes sync */
+.radix-themes {
+  --color-background: #000000;
+  --gray-1: #000000;
+  --gray-2: #0a0a0a;
+  --gray-3: #111111;
+  --gray-4: #161616;
+  --gray-5: #1c1c1c;
+  --gray-6: #232323;
+  --gray-7: #2e2e2e;
+  --gray-8: #3f3f46;
+  --gray-9: #52525b;
+  --gray-10: #71717a;
+  --gray-11: #a1a1aa;
+  --gray-12: #e4e4e7;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+::-webkit-scrollbar-thumb {
+  background: #161616;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #232323;
+}
