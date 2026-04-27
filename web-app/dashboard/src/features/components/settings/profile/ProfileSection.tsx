@@ -1,9 +1,8 @@
 import type { User } from "@/types";
-import { GetInitials } from "../../GetInitials";
-import { ButtonUploadPhoto } from "../../ButtonUploadPhoto";
 import { formatDate, TimeAgo } from "@/utils/formatDate";
+import { ButtonUploadPhoto } from "../../ButtonUploadPhoto";
 import { CopyableValue } from "../../CopyValue";
-import { ExternalIcon } from "../../ExternalIcons";
+import { GetInitials } from "../../GetInitials";
 
 interface ProfileSectionProps {
     user: User;

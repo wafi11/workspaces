@@ -1,4 +1,9 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+
+@custom-variant dark (&:is(.dark *));
 
 @theme {
   --color-primary: #e4e4e7;
@@ -28,56 +33,68 @@
 }
 
 :root {
-  --font-sans: "Geist Sans", "Inter", sans-serif;
   color-scheme: dark;
-  font-family: var(--font-sans);
-  letter-spacing: -0.015em;
-  background-color: #000000;
-  color: #e4e4e7;
+
+  /* ─── shadcn/ui semantic tokens — K8s dark theme ─── */
+
+  /* Base */
+  --background: oklch(0 0 0);                  /* #000000 — pitch black */
+  --foreground: oklch(0.92 0 0);               /* #e4e4e7 — zinc-200 */
+
+  /* Card / popover surfaces */
+  --card: oklch(0.07 0 0);                     /* #111111 */
+  --card-foreground: oklch(0.92 0 0);
+  --popover: oklch(0.07 0 0);                  /* #111111 */
+  --popover-foreground: oklch(0.92 0 0);
+
+  /* Primary — zinc light (text/icon actions) */
+  --primary: oklch(0.92 0 0);                  /* #e4e4e7 */
+  --primary-foreground: oklch(0 0 0);          /* #000000 */
+
+  /* Secondary — dark surface */
+  --secondary: oklch(0.12 0 0);                /* #1c1c1c */
+  --secondary-foreground: oklch(0.68 0 0);     /* #a1a1aa */
+
+  /* Muted */
+  --muted: oklch(0.1 0 0);                     /* #161616 */
+  --muted-foreground: oklch(0.45 0 0);         /* #71717a */
+
+  /* Accent — Kubernetes blue */
+  --accent: oklch(0.47 0.18 256);              /* #326ce5 */
+  --accent-foreground: oklch(0.92 0 0);        /* #e4e4e7 */
+
+  /* Destructive */
+  --destructive: oklch(0.55 0.22 27);          /* red-ish */
+
+  /* Borders & inputs */
+  --border: oklch(0.14 0 0);                   /* #232323 */
+  --input: oklch(0.1 0 0);                     /* #161616 */
+  --ring: oklch(0.47 0.18 256);                /* K8s blue focus ring */
+
+  /* Charts — blue family */
+  --chart-1: oklch(0.47 0.18 256);             /* #326ce5 */
+  --chart-2: oklch(0.55 0.16 256);             /* lighter blue */
+  --chart-3: oklch(0.38 0.14 256);             /* darker blue */
+  --chart-4: oklch(0.65 0.1  256);             /* steel blue */
+  --chart-5: oklch(0.28 0.1  256);             /* navy */
+
+  /* Radius */
+  --radius: 0.5rem;
+
+  /* Sidebar — matches graphite tokens */
+  --sidebar: oklch(0.04 0 0);                  /* #0a0a0a */
+  --sidebar-foreground: oklch(0.45 0 0);       /* #71717a */
+  --sidebar-primary: oklch(0.47 0.18 256);     /* K8s blue */
+  --sidebar-primary-foreground: oklch(0.92 0 0);
+  --sidebar-accent: oklch(0.07 0 0);           /* #111111 */
+  --sidebar-accent-foreground: oklch(0.92 0 0);
+  --sidebar-border: oklch(0.09 0 0);           /* #161616 */
+  --sidebar-ring: oklch(0.47 0.18 256);
 }
 
-body {
-  @apply min-h-screen antialiased;
-  background-color: #000000;
-  color: #e4e4e7;
-}
-
-/* Radix Themes sync */
-.radix-themes {
-  --color-background: #000000;
-  --gray-1: #000000;
-  --gray-2: #0a0a0a;
-  --gray-3: #111111;
-  --gray-4: #161616;
-  --gray-5: #1c1c1c;
-  --gray-6: #232323;
-  --gray-7: #2e2e2e;
-  --gray-8: #3f3f46;
-  --gray-9: #52525b;
-  --gray-10: #71717a;
-  --gray-11: #a1a1aa;
-  --gray-12: #e4e4e7;
-}
-
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #000000;
-}
-::-webkit-scrollbar-thumb {
-  background: #161616;
-  border-radius: 10px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #232323;
-}
-
-
+/* ─── Typography & base ─── */
 :root {
-  --font-sans: "Geist Sans", "Inter", sans-serif;
-  color-scheme: dark;
+  --font-sans: "Geist Variable", "Geist Sans", sans-serif;
   font-family: var(--font-sans);
   letter-spacing: -0.015em;
   background-color: #000000;
@@ -90,7 +107,7 @@ body {
   color: #e4e4e7;
 }
 
-/* Radix Themes sync */
+/* ─── Radix Themes sync ─── */
 .radix-themes {
   --color-background: #000000;
   --gray-1: #000000;
@@ -107,7 +124,7 @@ body {
   --gray-12: #e4e4e7;
 }
 
-/* Scrollbar */
+/* ─── Scrollbar ─── */
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -120,4 +137,63 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #232323;
+}
+
+/* ─── @theme inline (Tailwind v4 CSS var bridging) ─── */
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: "Geist Variable", sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* ─── Base layer ─── */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
 }

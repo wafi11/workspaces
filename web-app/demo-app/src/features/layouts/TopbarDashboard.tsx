@@ -11,7 +11,7 @@ interface TopBarAdminProps {
 export function TopbarAdmin({ title, children ,className,classNameFont}: TopBarAdminProps) {
   return (
     <div
-      className={cn("flex items-center justify-between  p-2",className)}
+      className={cn("flex items-center justify-between px-4 h-14",className)}
       style={{ borderBottom: "1px solid var(--color-sidebar-border)" }}
     >
         {/* Heading */}
@@ -21,8 +21,6 @@ export function TopbarAdmin({ title, children ,className,classNameFont}: TopBarA
         >
           {title}
         </h1>
-
-      
 
       {/* Actions */}
       {children}

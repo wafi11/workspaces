@@ -5,7 +5,6 @@ frontend-workspace/tests/*
 frontend-workspace/.next/*
 operator/.env
 operator/config/config
-log-services
 operator/.air.toml
 operator/tmp/*
 backend/tmp/*
@@ -13,8 +12,12 @@ hoscopus-server
 backend/config/config
 backend/.env
 templates/code
+web-app/dashboard/.env
 web-app/dashboard/.tanstack
 web-app/dashboard/node_modules
+web-app/demo-app/node_modules
+web-app/demo-app/.env
+web-app/demo-app/.idea
 ws-cli
 workspace-terminal
 web

@@ -1,6 +1,5 @@
 import { useProfileProviders } from "@/features/api/profile";
 import type { ProviderUser } from "@/types";
-import { useState } from "react";
 
 const PROVIDER_ICONS: Record<string, React.ReactNode> = {
   github: (
@@ -89,13 +88,10 @@ export function ProfileProviders() {
 }
 
 function ProviderRow({ provider }: { provider: ProviderUser }) {
-  const [hovered, setHovered] = useState(false);
 
   return (
     <div
       className="flex items-center gap-3 px-5 py-3 hover:bg-[#0d0d0d] transition-colors"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
     >
       <ProviderIcon providerId={provider.provider_id} />
 
