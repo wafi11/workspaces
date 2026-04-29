@@ -40,3 +40,7 @@ func (s *Service) Login(c context.Context, req *v1.LoginRequest) (*v1.LoginRespo
 	}
 	return s.repo.Login(c, req)
 }
+
+func (s *Service) ValidateToken(c context.Context, req *v1.ValidateTokenRequest) (*v1.ValidateTokenResponse, error) {
+	return s.repo.ValidateToken(c, req)
+}

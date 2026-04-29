@@ -18,6 +18,7 @@ var (
 	ErrEmailAlreadyExist   = errors.New("email already exists")
 	ErrInternalServerError = errors.New("Internal Server Error")
 	ErrInvalidCredentials  = errors.New("invalid credentials")
+	ErrUnauthorized        = errors.New("unauthorized")
 )
 
 var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)

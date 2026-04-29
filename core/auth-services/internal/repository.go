@@ -97,7 +97,28 @@ func (repo *Repository) Login(c context.Context, req *v1.LoginRequest) (*v1.Logi
 }
 
 func (repo *Repository) ValidateToken(c context.Context, req *v1.ValidateTokenRequest) (*v1.ValidateTokenResponse, error) {
-	return nil, nil
+	validate, err := config.ValidationToken(req.Token, repo.config)
+	var session_id string
+
+	if err != nil {
+		return nil, pkg.ErrUnauthorized
+	}
+
+	query := `
+		select id from sessions where user_id = $1 and id = $2
+	`
+
+	err = repo.db.DB.QueryRowContext(c, query, validate.UserID, validate.SessionID).Scan(&session_id)
+
+	if err != nil {
+		return nil, pkg.ErrUnauthorized
+	}
+
+	return &v1.ValidateTokenResponse{
+		UserId:    validate.UserID,
+		SessionId: validate.SessionID,
+		Role:      validate.Role,
+	}, nil
 }
 
 func (repo *Repository) RefreshToken(c context.Context, req *v1.RefreshTokenRequest) (*v1.RefreshTokenResponse, error) {
