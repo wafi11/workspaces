@@ -9,12 +9,18 @@ export type CreateWorkspaceData = {
   templateId?: string;
   timeDuration: number;
   typeTimeDuration: TypeTimeDuration;
+  reqCpu : number
+  reqRam: number
+  limitCpu : number
+  limitRam : number
 };
 
 export const useCreateWorkspace = () => {
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<CreateWorkspaceData>({
     defaultValues: {
@@ -33,5 +39,7 @@ export const useCreateWorkspace = () => {
     register,
     handleSubmit: handleSubmit(onSubmit),
     errors,
+    setValue,
+    watch
   };
 };
