@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"log"
 	"time"
 
 	v1 "github.com/wafi11/workspaces/core/api-gateway/gen/v1"
@@ -21,7 +22,14 @@ func (s *AuthService) Register(ctx context.Context, req *v1.RegisterRequest) (*v
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	return s.client.Register(ctx, req)
+	reg, err := s.client.Register(ctx, req)
+
+	if err != nil {
+		log.Printf("error : %s", err.Error())
+		return nil, err
+	}
+
+	return reg, nil
 }
 
 func (s *AuthService) Login(ctx context.Context, req *v1.LoginRequest) (*v1.LoginResponse, error) {

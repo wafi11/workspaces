@@ -6,6 +6,7 @@ import (
 	"github.com/labstack/echo/v4"
 	v1 "github.com/wafi11/workspaces/core/api-gateway/gen/v1"
 	"github.com/wafi11/workspaces/core/api-gateway/pkg"
+	"github.com/wafi11/workspaces/core/api-gateway/pkg/validate"
 )
 
 type AuthHandler struct {
@@ -17,23 +18,26 @@ func NewAuthHandler(as *AuthService) *AuthHandler {
 }
 
 func (h *AuthHandler) HandleRegister(c echo.Context) error {
-	req := new(v1.RegisterRequest)
-	if err := c.Bind(req); err != nil {
+
+	var req struct {
+		Username string `json:"username"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	if err := c.Bind(&req); err != nil {
 		return pkg.Error(c, http.StatusBadRequest, "Invalid Body Request", nil)
 	}
 
 	// 2. Panggil gRPC service (context otomatis dibawa dari Echo)
-	res, err := h.authService.Register(c.Request().Context(), req)
+	res, err := h.authService.Register(c.Request().Context(), &v1.RegisterRequest{
+		Username: req.Username,
+		Email:    req.Email,
+		Password: req.Password,
+	})
 	if err != nil {
-		if err.Error() != "EmailAlreadyExists" {
-			return pkg.Error(c, 400, res.Message, err)
-		} else if err.Error() == "Invalid Credentials" {
-			return pkg.Error(c, 400, "Invalid Credentials", err)
-		} else {
-			return pkg.Error(c, http.StatusInternalServerError, "Internal Server Error", nil)
-		}
+		return validate.HandleAuthError(c, err)
 	}
-
 	return pkg.Success(c, http.StatusCreated, res.Message, nil)
 
 }
@@ -48,16 +52,10 @@ func (h *AuthHandler) HandleLogin(c echo.Context) error {
 	// 2. Panggil gRPC service (context otomatis dibawa dari Echo)
 	res, err := h.authService.Login(c.Request().Context(), req)
 	if err != nil {
-		if err.Error() == "EmailAlreadyExists" {
-			return pkg.Error(c, 10, "Email Already Exists", nil)
-		} else if err.Error() == "Invalid Credentials" {
-			return pkg.Error(c, 400, "Invalid Credentials", nil)
-		} else {
-			return pkg.Error(c, http.StatusInternalServerError, "Internal Server Error", nil)
-		}
+		return validate.HandleAuthError(c, err)
 	}
 
-	pkg.SetAuthCookies(c, res.AccessToken, res.RefreshToken)
+	pkg.SetAuthCookies(c, res.AccessToken, res.RefreshToken, true)
 
 	// 3. Kembalikan response sukses
 	return pkg.Success(c, http.StatusCreated, "Successfully Login", nil)

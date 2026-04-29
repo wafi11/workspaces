@@ -13,11 +13,10 @@ func main() {
 	conf := config.Load()
 
 	e := echo.New()
-
 	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins:     []string{conf.FRONTEND_URL},
+		AllowOrigins:     []string{"http://"},
 		AllowHeaders:     []string{"Content-Type", "Authorization"},
 		AllowMethods:     []string{"POST", "GET", "PATCH", "DELETE", "OPTIONS", "PUT"},
 		AllowCredentials: true,
@@ -35,4 +34,5 @@ func main() {
 func NewServer(c *echo.Echo, conf config.Config) {
 
 	services.NewAuthRoutes(c, &conf)
+	services.NewUserRoutes(c, &conf)
 }
