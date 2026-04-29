@@ -2,6 +2,10 @@ run-operator:
 	@echo "Running operator locally..."
 	@cd operator && air
 
+run-auth:
+	@echo "Running auth-services locally..."
+	@cd core/auth-services && air
+
 build-wscli:
 	docker build
 
@@ -28,6 +32,8 @@ remote-github:
 remote-gitlab:
 	@echo "Remote to GitLab..."
 	@git remote set-url origin http://192.168.1.31/root/workspaces.git
+
+
 
 gen-proto:
 	@echo "Generating Go code from proto..."

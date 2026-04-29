@@ -21,3 +21,12 @@ web-app/demo-app/.idea
 ws-cli
 workspace-terminal
 web
+core/api-gateway/.env
+core/auth-services/.env
+core/api-gateway/tmp/*
+core/auth-service/tmp/*
+core/user-service/.env
+core/user-service/tmp/*
+
+
+
