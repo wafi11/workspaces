@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"log"
 
 	v1 "github.com/wafi11/workspaces/core/api-gateway/gen/v1"
 )
@@ -18,6 +17,9 @@ func NewUserService(client v1.UserServiceClient) *UserService {
 }
 
 func (s *UserService) GetProfile(c context.Context, req *v1.GetProfileRequest) (*v1.GetProfileResponse, error) {
-	log.Printf("request incoming")
 	return s.client.GetProfile(c, req)
+}
+
+func (s *UserService) UpdateProfile(c context.Context, req *v1.UpdateProfileRequest) (*v1.UpdateProfileResponse, error) {
+	return s.client.UpdateProfile(c, req)
 }

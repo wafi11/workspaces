@@ -41,6 +41,19 @@ func (s *Service) Login(c context.Context, req *v1.LoginRequest) (*v1.LoginRespo
 	return s.repo.Login(c, req)
 }
 
+func (s *Service) RefreshToken(c context.Context, req *v1.RefreshTokenRequest) (*v1.RefreshTokenResponse, error) {
+
+	return s.repo.RefreshToken(c, req)
+}
+
 func (s *Service) ValidateToken(c context.Context, req *v1.ValidateTokenRequest) (*v1.ValidateTokenResponse, error) {
 	return s.repo.ValidateToken(c, req)
+}
+
+func (s *Service) OAuthLogin(c context.Context, req *v1.OAuthCallbackRequest) (*v1.LoginResponse, error) {
+	return s.repo.OAuthLogin(c, req)
+}
+
+func (s *Service) ConnectOAuth(c context.Context, req *v1.ConnectOAuthRequest) (*v1.ConnectOAuthResponse, error) {
+	return s.repo.ConnectOAuth(c, req)
 }

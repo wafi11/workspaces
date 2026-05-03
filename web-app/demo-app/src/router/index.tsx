@@ -4,6 +4,10 @@ import Home from "@/features/pages/Home";
 import { WorkspacesPage } from "@/features/pages/Workspaces";
 import { TemplatesPage } from "@/features/pages/Templates";
 import { CreateWorkspacePage } from "@/features/pages/Workspaces/CreateWorkspacePage";
+import { LoginPage } from "@/features/pages/Auth/Login";
+import { RegisterPage } from "@/features/pages/Auth/Register";
+import { Settings } from "@/features/pages/Settings/Settings";
+import { SettingsProfile } from "@/features/pages/Settings/SettingsProfile";
 
 export default createBrowserRouter([
   {
@@ -35,8 +39,25 @@ export default createBrowserRouter([
       {
         path: "/templates",
         element: <TemplatesPage />,
+      },
+      {
+        path : "/settings",
+        element : <Settings />,
+        children : [
+          {
+            path : "profile",
+            element : <SettingsProfile />
+          }
+        ]
       }
     ],
   },
- 
+  {
+    path : "/login",
+    element : <LoginPage />
+  },
+  {
+    path : "/register",
+    element : <RegisterPage />
+  }
 ]);

@@ -1,7 +1,7 @@
 package services
 
 import (
-	"log"
+	"net/http"
 
 	"github.com/labstack/echo/v4"
 	"github.com/wafi11/workspaces/core/api-gateway/config"
@@ -13,21 +13,21 @@ import (
 func (service *AuthService) AuthMiddleware(conf *config.Config) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			var tokenString string
-
 			cookie, err := c.Cookie(pkg.CookieAccessTokenName)
 			if err != nil {
-				log.Printf("errr : %s", err.Error())
-				return validate.HandleAuthError(c, err)
+				// http.ErrNoCookie adalah error standard dari net/http
+				return pkg.Error(c, http.StatusUnauthorized, "unauthorized", nil)
 			}
-			tokenString = cookie.Value
 
-			// Verify token
+			if cookie.Value == "" {
+				return pkg.Error(c, http.StatusUnauthorized, "unauthorized", nil)
+			}
+
 			claims, err := service.client.ValidateToken(c.Request().Context(), &v1.ValidateTokenRequest{
-				Token: tokenString,
+				Token: cookie.Value,
 			})
 			if err != nil {
-				return validate.HandleAuthError(c, err)
+				return validate.HandleAuthError(c, err) // ini udah pasti gRPC error
 			}
 
 			c.Set("user_id", claims.UserId)

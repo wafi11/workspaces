@@ -1,6 +1,7 @@
 package services
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -23,6 +24,7 @@ func (h *AuthHandler) HandleRegister(c echo.Context) error {
 		Username string `json:"username"`
 		Email    string `json:"email"`
 		Password string `json:"password"`
+		Name     string `json:"name"`
 	}
 
 	if err := c.Bind(&req); err != nil {
@@ -34,6 +36,7 @@ func (h *AuthHandler) HandleRegister(c echo.Context) error {
 		Username: req.Username,
 		Email:    req.Email,
 		Password: req.Password,
+		Name:     req.Name,
 	})
 	if err != nil {
 		return validate.HandleAuthError(c, err)
@@ -59,4 +62,29 @@ func (h *AuthHandler) HandleLogin(c echo.Context) error {
 
 	// 3. Kembalikan response sukses
 	return pkg.Success(c, http.StatusCreated, "Successfully Login", nil)
+}
+
+func (h *AuthHandler) HandleRefreshToken(c echo.Context) error {
+
+	var tokenString string
+
+	cookie, err := c.Cookie(pkg.CookieRefreshTokenName)
+	if err != nil {
+		log.Printf("errr : %s", err.Error())
+		return validate.HandleAuthError(c, err)
+	}
+	tokenString = cookie.Value
+
+	res, err := h.authService.RefreshToken(c.Request().Context(), &v1.RefreshTokenRequest{
+		RefreshToken: tokenString,
+	})
+
+	if err != nil {
+		log.Printf("[Refresh Token] failed to refresh token : %s", err.Error())
+		return pkg.Error(c, http.StatusInternalServerError, "failed to refresh token", nil)
+	}
+
+	pkg.SetAuthCookies(c, res.AccessToken, tokenString, true)
+
+	return pkg.Success(c, http.StatusOK, "Successfully Refresh Token", nil)
 }

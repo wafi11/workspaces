@@ -18,22 +18,24 @@ type SSOGoogleConfig struct {
 	RedirectURL  string
 }
 type Config struct {
-	JWT_SECRET   string
-	DB_URL       string
-	Port         string
-	Github       *SSOGithubConfig
-	Google       *SSOGoogleConfig
-	FRONTEND_URL string
+	JWT_SECRET        string
+	DB_URL            string
+	Port              string
+	Github            *SSOGithubConfig
+	Google            *SSOGoogleConfig
+	FRONTEND_URL      string
+	StorageServiceUrl string
 }
 
 func Load() *Config {
 	godotenv.Load(".env")
 
 	return &Config{
-		DB_URL:       os.Getenv("DB_URL"),
-		JWT_SECRET:   os.Getenv("JWT_SECRET"),
-		Port:         os.Getenv("PORT"),
-		FRONTEND_URL: os.Getenv("FRONTEND_URL"),
+		StorageServiceUrl: os.Getenv("STORAGE_URL"),
+		DB_URL:            os.Getenv("DB_URL"),
+		JWT_SECRET:        os.Getenv("JWT_SECRET"),
+		Port:              os.Getenv("PORT"),
+		FRONTEND_URL:      os.Getenv("FRONTEND_URL"),
 		Github: &SSOGithubConfig{
 			ClientID:     os.Getenv("GITHUB_CLIENT_ID"),
 			ClientSecret: os.Getenv("GITHUB_CLIENT_SECRET"),

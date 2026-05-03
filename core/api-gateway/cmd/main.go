@@ -16,7 +16,7 @@ func main() {
 	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins:     []string{"http://"},
+		AllowOrigins:     []string{"http://*"},
 		AllowHeaders:     []string{"Content-Type", "Authorization"},
 		AllowMethods:     []string{"POST", "GET", "PATCH", "DELETE", "OPTIONS", "PUT"},
 		AllowCredentials: true,

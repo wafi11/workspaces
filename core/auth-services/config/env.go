@@ -17,6 +17,7 @@ type SSOGoogleConfig struct {
 	ClientSecret string
 	RedirectURL  string
 }
+
 type Config struct {
 	JWT_SECRET   string
 	DB_URL       string

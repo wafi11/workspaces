@@ -38,3 +38,7 @@ func (s *AuthService) Login(ctx context.Context, req *v1.LoginRequest) (*v1.Logi
 
 	return s.client.Login(ctx, req)
 }
+
+func (s *AuthService) RefreshToken(ctx context.Context, req *v1.RefreshTokenRequest) (*v1.RefreshTokenResponse, error) {
+	return s.client.RefreshToken(ctx, req)
+}

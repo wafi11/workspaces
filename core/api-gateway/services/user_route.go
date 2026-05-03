@@ -28,5 +28,6 @@ func NewUserRoutes(c *echo.Echo, conf *config.Config) {
 	user := c.Group("/api/user", svc.AuthMiddleware(conf))
 
 	user.GET("/profile", handler.GetProfile)
+	user.PATCH("", handler.UpdateProfile)
 
 }

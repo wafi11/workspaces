@@ -21,9 +21,16 @@ var (
 	ErrEmailAlreadyExist   = errors.New("email already exists")
 	ErrInternalServerError = errors.New("Internal Server Error")
 	ErrInvalidCredentials  = errors.New("invalid credentials")
+	ErrUnauthorized        = errors.New("unauthorized")
+	ErrCookieNotfound      = errors.New("named cookie not present")
 )
 
 func HandleAuthError(c echo.Context, err error) error {
+
+	if err.Error() == "http: named cookie not present" {
+		return pkg.Error(c, http.StatusUnauthorized, "unauthorized", nil)
+	}
+
 	if st, ok := status.FromError(err); ok {
 		msg := st.Message()
 		switch msg {
@@ -33,12 +40,13 @@ func HandleAuthError(c echo.Context, err error) error {
 			return pkg.Error(c, 400, msg, nil)
 		case ErrEmailRequired.Error(), ErrEmailInvalid.Error():
 			return pkg.Error(c, 400, msg, nil)
-		case ErrInvalidCredentials.Error():
+		case ErrInvalidCredentials.Error(), ErrUnauthorized.Error():
 			return pkg.Error(c, 401, "Invalid credentials", nil)
 		default:
-			log.Printf("error %s", err.Error())
+			log.Printf("unhandled auth error: %s", err.Error())
 			return pkg.Error(c, http.StatusInternalServerError, "Internal Server Error", nil)
 		}
 	}
-	return pkg.Error(c, http.StatusInternalServerError, "Internal Server Error", nil)
+
+	return pkg.Error(c, http.StatusUnauthorized, "unauthorized", nil)
 }

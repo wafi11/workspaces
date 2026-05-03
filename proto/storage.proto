@@ -1,0 +1,126 @@
+syntax = "proto3";
+
+package workspace.v1;
+
+option go_package = "github.com/wafi11/workspaces/core/storage-service/gen/v1";
+
+
+// ---------------------------------------------------------------------------
+// Service
+// ---------------------------------------------------------------------------
+
+service StorageService {
+    // Upload file ke MinIO (single shot, cocok untuk file < 4MB)
+    rpc PostStorage(PostStorageRequest) returns (PostStorageResponse);
+
+    // Upload file besar via client streaming (chunk-based)
+    rpc PostStorageStream(stream PostStorageStreamRequest) returns (PostStorageResponse);
+
+    // Get presigned URL untuk akses file
+    rpc GetStorage(GetStorageRequest) returns (GetStorageResponse);
+
+    // Hapus file dari MinIO
+    rpc DeleteStorage(DeleteStorageRequest) returns (DeleteStorageResponse);
+
+    // List file dalam sebuah bucket (dengan optional prefix/folder)
+    rpc ListStorage(ListStorageRequest) returns (ListStorageResponse);
+}
+
+// ---------------------------------------------------------------------------
+// PostStorage (single shot upload)
+// ---------------------------------------------------------------------------
+
+message PostStorageRequest {
+    bytes  file_data    = 1;
+    string file_name    = 2;
+    string bucket_name  = 3;
+    string content_type = 4;
+    map<string, string> metadata = 5;
+}
+
+message PostStorageResponse {
+    string url          = 1;
+    string bucket_name  = 2;
+    string file_name    = 3;
+    string etag         = 4;
+    int64  size         = 5;
+}
+
+// ---------------------------------------------------------------------------
+// PostStorageStream (streaming upload untuk file besar)
+// ---------------------------------------------------------------------------
+
+message PostStorageStreamRequest {
+    oneof data {
+        StreamMeta meta  = 1;
+        bytes      chunk = 2;
+    }
+}
+
+message StreamMeta {
+    string file_name    = 1;
+    string bucket_name  = 2;
+    string content_type = 3;
+    int64  total_size   = 4;
+    map<string, string> metadata = 5;
+}
+
+// ---------------------------------------------------------------------------
+// GetStorage
+// ---------------------------------------------------------------------------
+
+message GetStorageRequest {
+    string file_name   = 1;
+    string bucket_name = 2;
+    int32  expires_in  = 3;
+}
+
+message GetStorageResponse {
+    string url          = 1;
+    string file_name    = 2;
+    string bucket_name  = 3;
+    string content_type = 4;
+    int64  size         = 5;
+    string etag         = 6;
+}
+
+// ---------------------------------------------------------------------------
+// DeleteStorage
+// ---------------------------------------------------------------------------
+
+message DeleteStorageRequest {
+    string file_name   = 1;
+    string bucket_name = 2;
+}
+
+message DeleteStorageResponse {
+    bool   success   = 1;
+    string message   = 2;
+}
+
+// ---------------------------------------------------------------------------
+// ListStorage
+// ---------------------------------------------------------------------------
+
+message ListStorageRequest {
+    string bucket_name = 1;
+    // Optional: filter by prefix / folder, e.g. "avatars/"
+    string prefix      = 2;
+    // Pagination
+    int32  page_size   = 3;
+    string page_token  = 4;
+}
+
+message ListStorageResponse {
+    repeated StorageObject objects        = 1;
+    string                 next_page_token = 2;
+    int32                  total_count    = 3;
+}
+
+message StorageObject {
+    string file_name    = 1;
+    string bucket_name  = 2;
+    int64  size         = 3;
+    string content_type = 4;
+    string etag         = 5;
+}

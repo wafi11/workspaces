@@ -1,0 +1,98 @@
+syntax = "proto3";
+
+package workspace.v1;
+option go_package = "github.com/wafi11/workspaces/gen/workspace/v1";
+
+
+message ResourceSpec {
+  string cpu_request            = 1;
+  string cpu_limit              = 2;
+  string memory_request         = 3;
+  string memory_limit           = 4;
+  string storage_request        = 5;
+  string storage_limit          = 6;
+  string cpu_terminal_limit     = 7;
+  string memory_terminal_limit  = 8;
+}
+
+
+message Port {
+  int    port = 1;
+  string domain = 2;
+  string workspace_name = 3;
+}
+
+
+message WorkspaceIdentity {
+  string workspace_id = 1;
+  string user_id      = 2;
+  string username     = 3;
+  string name         = 4;
+  string namespace    = 5;
+  string password     = 6;
+}
+
+
+message CreateWorkspaceEvent {
+  WorkspaceIdentity identity  = 1;
+  string            template_id = 2;
+  ResourceSpec      resources = 3;
+  map<string, string> env_vars = 4;
+  string            timezone  = 5;
+  int32             replicas  = 6;
+}
+message AddonSpec {
+  string image         = 1;
+  string db_user       = 2;
+  string db_password   = 3;
+  string db_name       = 4;
+}
+
+message AddPodEvent {
+  WorkspaceIdentity identity    = 1;
+  string            template_id = 2;
+  string            image       = 3;
+  ResourceSpec      resources   = 4;
+  int32             replicas    = 5;
+  AddonSpec         add_ons =6;
+}
+
+message DeleteWorkspaceEvent {
+  WorkspaceIdentity identity = 1;
+}
+
+message StopWorkspaceEvent {
+  WorkspaceIdentity identity = 1;
+}
+
+message StartWorkspaceEvent {
+  WorkspaceIdentity identity = 1;
+}
+
+message UpdateStatusEvent {
+  string          workspace_id = 1;
+  WorkspaceStatus status       = 2;
+  string          reason       = 3;
+  string          user_id   = 4;
+}
+
+enum WorkspaceStatus {
+  WORKSPACE_STATUS_UNSPECIFIED  = 0;
+  WORKSPACE_STATUS_PROVISIONING = 1;
+  WORKSPACE_STATUS_RUNNING      = 2;
+  WORKSPACE_STATUS_DELETING     = 3;
+  WORKSPACE_STATUS_STOPPED      = 4;
+  WORKSPACE_STATUS_FAILED       = 5;
+}
+
+
+message WorkspaceEnvelope {
+  oneof payload {
+    CreateWorkspaceEvent create = 1;
+    AddPodEvent          add    = 2;
+    DeleteWorkspaceEvent delete = 3;
+    StopWorkspaceEvent   stop   = 4;
+    StartWorkspaceEvent  start  = 5;
+    UpdateStatusEvent    update = 6;
+  }
+}

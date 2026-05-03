@@ -22,5 +22,6 @@ func NewAuthRoutes(c *echo.Echo, conf *config.Config) {
 
 	auth.POST("/register", handler.HandleRegister)
 	auth.POST("/login", handler.HandleLogin)
+	auth.POST("/refresh", handler.HandleRefreshToken)
 
 }

@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+	"log"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -34,6 +35,8 @@ func (r *Repository) Register(c context.Context, req *v1.RegisterRequest) (*v1.R
 		return nil, pkg.ErrEmailAlreadyExist
 	}
 
+	username := pkg.GenerateRandomString(req.Username)
+
 	hashedPassword, err := pkg.HashPassword(req.Password)
 
 	if err != nil {
@@ -41,10 +44,10 @@ func (r *Repository) Register(c context.Context, req *v1.RegisterRequest) (*v1.R
 	}
 
 	query = `
-		insert into users (username,email,password,role) values ($1,$2,$3,'user') returning id
+		insert into users (name,username,email,password,role) values ($1,$2,$3,$4,'user') returning id
 	`
 
-	err = r.db.DB.QueryRowContext(c, query, req.Username, req.Email, hashedPassword).Scan(&user_id)
+	err = r.db.DB.QueryRowContext(c, query, req.Name, username, req.Email, hashedPassword).Scan(&user_id)
 
 	if err != nil {
 		return nil, pkg.ErrInternalServerError
@@ -122,7 +125,41 @@ func (repo *Repository) ValidateToken(c context.Context, req *v1.ValidateTokenRe
 }
 
 func (repo *Repository) RefreshToken(c context.Context, req *v1.RefreshTokenRequest) (*v1.RefreshTokenResponse, error) {
-	return nil, nil
+	validate, err := config.ValidationToken(req.RefreshToken, repo.config)
+	var role string
+
+	if err != nil {
+		return nil, pkg.ErrUnauthorized
+	}
+
+	query := `
+		select 
+			u.role
+		from users u
+		left join sessions s on s.user_id = u.id
+		where s.user_id = $1 and s.id = $2
+	`
+
+	err = repo.db.DB.QueryRowContext(c, query, validate.UserID, validate.SessionID).Scan(&role)
+
+	if err != nil {
+		log.Printf("failed to get role users : %s", err.Error())
+		return nil, pkg.ErrUnauthorized
+	}
+
+	token, err := repo.GenerateToken(c, pkg.GenerateTokenReq{
+		UserID:    validate.UserID,
+		Role:      role,
+		SessionID: validate.SessionID,
+	})
+
+	if err != nil {
+		return nil, err
+
+	}
+	return &v1.RefreshTokenResponse{
+		AccessToken: token.AccessToken,
+	}, nil
 }
 
 func insertSession(c context.Context, sessionId, refrsh_token, userId string, db *sqlx.DB) error {

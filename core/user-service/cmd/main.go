@@ -8,6 +8,7 @@ import (
 	"github.com/wafi11/workspaces/core/user-service/config"
 	v1 "github.com/wafi11/workspaces/core/user-service/gen/v1"
 	"github.com/wafi11/workspaces/core/user-service/internal"
+	"github.com/wafi11/workspaces/core/user-service/pkg"
 	"google.golang.org/grpc"
 )
 
@@ -20,8 +21,13 @@ func main() {
 		fmt.Printf("database : %s", err.Error())
 		return
 	}
+	storageConn, err := pkg.NewGrpcConnection(&conf.StorageServiceUrl, "Storage")
+	if err != nil {
+		log.Fatalf("storage-service connection gagal: %v", err)
+	}
+	storageSvc := v1.NewStorageServiceClient(storageConn)
 
-	repo := internal.NewRepository(conn)
+	repo := internal.NewRepository(conn, storageSvc)
 	svc := internal.NewService(repo)
 
 	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%s", conf.Port))

@@ -40,4 +40,4 @@ gen-proto:
 	protoc --proto_path=proto/workspace \
 	       --go_out=proto/workspace \
 	       --go_opt=paths=source_relative \
-	       proto/workspace/workspace.proto
+	       proto/workspace.proto

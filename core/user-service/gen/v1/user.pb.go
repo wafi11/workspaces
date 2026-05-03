@@ -211,8 +211,9 @@ func (x *GetProfileResponse) GetUser() *User {
 
 type UpdateProfileRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	AvatarUrl     *string                `protobuf:"bytes,1,opt,name=avatar_url,json=avatarUrl,proto3,oneof" json:"avatar_url,omitempty"`
+	AvatarBase64  *string                `protobuf:"bytes,1,opt,name=avatar_base64,json=avatarBase64,proto3,oneof" json:"avatar_base64,omitempty"` // dari browser/mobile
 	Name          *string                `protobuf:"bytes,2,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -247,9 +248,9 @@ func (*UpdateProfileRequest) Descriptor() ([]byte, []int) {
 	return file_user_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *UpdateProfileRequest) GetAvatarUrl() string {
-	if x != nil && x.AvatarUrl != nil {
-		return *x.AvatarUrl
+func (x *UpdateProfileRequest) GetAvatarBase64() string {
+	if x != nil && x.AvatarBase64 != nil {
+		return *x.AvatarBase64
 	}
 	return ""
 }
@@ -257,6 +258,13 @@ func (x *UpdateProfileRequest) GetAvatarUrl() string {
 func (x *UpdateProfileRequest) GetName() string {
 	if x != nil && x.Name != nil {
 		return *x.Name
+	}
+	return ""
+}
+
+func (x *UpdateProfileRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
 	}
 	return ""
 }
@@ -327,12 +335,12 @@ const file_user_proto_rawDesc = "" +
 	"\n" +
 	"session_id\x18\x02 \x01(\tR\tsessionId\"<\n" +
 	"\x12GetProfileResponse\x12&\n" +
-	"\x04user\x18\x01 \x01(\v2\x12.workspace.v1.UserR\x04user\"k\n" +
-	"\x14UpdateProfileRequest\x12\"\n" +
-	"\n" +
-	"avatar_url\x18\x01 \x01(\tH\x00R\tavatarUrl\x88\x01\x01\x12\x17\n" +
-	"\x04name\x18\x02 \x01(\tH\x01R\x04name\x88\x01\x01B\r\n" +
-	"\v_avatar_urlB\a\n" +
+	"\x04user\x18\x01 \x01(\v2\x12.workspace.v1.UserR\x04user\"\x8d\x01\n" +
+	"\x14UpdateProfileRequest\x12(\n" +
+	"\ravatar_base64\x18\x01 \x01(\tH\x00R\favatarBase64\x88\x01\x01\x12\x17\n" +
+	"\x04name\x18\x02 \x01(\tH\x01R\x04name\x88\x01\x01\x12\x17\n" +
+	"\auser_id\x18\x03 \x01(\tR\x06userIdB\x10\n" +
+	"\x0e_avatar_base64B\a\n" +
 	"\x05_name\"?\n" +
 	"\x15UpdateProfileResponse\x12&\n" +
 	"\x04user\x18\x01 \x01(\v2\x12.workspace.v1.UserR\x04user2\xb8\x01\n" +

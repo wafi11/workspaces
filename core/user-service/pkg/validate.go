@@ -7,3 +7,7 @@ var (
 	ErrSessionExpired     = errors.New("session expired")
 	ErrInvalidCredentials = errors.New("invalid credentials")
 )
+
+const (
+	BucketProfile string = "profiles"
+)
