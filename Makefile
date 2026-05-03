@@ -31,7 +31,7 @@ remote-github:
 
 remote-gitlab:
 	@echo "Remote to GitLab..."
-	@git remote set-url origin http://192.168.1.31/root/workspaces.git
+	@git remote set-url origin http://192.168.1.10/root/workspaces.git
 
 
 
