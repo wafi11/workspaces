@@ -2,7 +2,7 @@ stages:
   - build
 
 variables:
-  REGISTRY: "192.168.1.9:5050"
+  REGISTRY: "192.168.1.10:5050"
 
 build:auth-service:
   stage: build
@@ -13,6 +13,27 @@ build:auth-service:
       IMAGE="$REGISTRY/root/auth-service:$CI_COMMIT_SHORT_SHA"
       IMAGE_LATEST="$REGISTRY/root/auth-service:latest"
       docker build -t $IMAGE -t $IMAGE_LATEST ./core/auth-services
+      docker push $IMAGE
+      docker push $IMAGE_LATEST
+  only:
+    - main
+
+
+stages:
+  - build
+
+variables:
+  REGISTRY: "192.168.1.10:5050"
+
+build:auth-service:
+  stage: build
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $REGISTRY
+  script:
+    - |
+      IMAGE="$REGISTRY/root/user-service:$CI_COMMIT_SHORT_SHA"
+      IMAGE_LATEST="$REGISTRY/root/user-service:latest"
+      docker build -t $IMAGE -t $IMAGE_LATEST ./core/user-services
       docker push $IMAGE
       docker push $IMAGE_LATEST
   only:

@@ -3,6 +3,7 @@ package internal
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	v1 "github.com/wafi11/workspaces/core/auth-services/gen/v1"
@@ -139,4 +140,21 @@ func (r *Repository) GetProviderUser(c context.Context, email, provider, provide
 		return nil, pkg.ErrInvalidCredentials
 	}
 	return &user, nil
+}
+func (r *Repository) GetOAuthURL(c context.Context, req *v1.GetOAuthURLRequest) (*v1.GetOAuthURLResponse, error) {
+	state := uuid.NewString()
+
+	err := r.redis.SetEx(c, "oauth:state:"+state, req.Provider, 10*time.Minute).Err()
+	if err != nil {
+		return nil, err
+	}
+
+	// build URL redirect ke GitHub
+	oauthURL := fmt.Sprintf(
+		"https://github.com/login/oauth/authorize?client_id=%s&state=%s&scope=user:email",
+		r.config.Github.ClientID,
+		state,
+	)
+
+	return &v1.GetOAuthURLResponse{Url: oauthURL}, nil
 }

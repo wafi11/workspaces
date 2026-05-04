@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	"github.com/redis/go-redis/v9"
 	"github.com/wafi11/workspaces/core/auth-services/config"
 	v1 "github.com/wafi11/workspaces/core/auth-services/gen/v1"
 	"github.com/wafi11/workspaces/core/auth-services/pkg"
@@ -13,13 +14,15 @@ import (
 
 type Repository struct {
 	config *config.Config
+	redis  *redis.Client
 	db     *sqlx.DB
 }
 
-func NewRepository(config *config.Config, db *sqlx.DB) *Repository {
+func NewRepository(config *config.Config, db *sqlx.DB, redis *redis.Client) *Repository {
 	return &Repository{
 		config: config,
 		db:     db,
+		redis:  redis,
 	}
 }
 

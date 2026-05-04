@@ -86,7 +86,7 @@ func clearData(t *testing.T) {
 
 func TestRepository_Register_Success(t *testing.T) {
 	clearData(t)
-	repo := internal.NewRepository(nil, globalDB)
+	repo := internal.NewRepository(nil, globalDB, nil)
 
 	resp, err := repo.Register(context.Background(), &v1.RegisterRequest{
 		Username: "wafi11",
@@ -101,7 +101,7 @@ func TestRepository_Register_Success(t *testing.T) {
 
 func TestRepository_Register_PasswordHashed(t *testing.T) {
 	clearData(t)
-	repo := internal.NewRepository(nil, globalDB)
+	repo := internal.NewRepository(nil, globalDB, nil)
 
 	_, err := repo.Register(context.Background(), &v1.RegisterRequest{
 		Username: "wafi11",
@@ -118,7 +118,7 @@ func TestRepository_Register_PasswordHashed(t *testing.T) {
 
 func TestRepository_Register_DefaultRole(t *testing.T) {
 	clearData(t)
-	repo := internal.NewRepository(nil, globalDB)
+	repo := internal.NewRepository(nil, globalDB, nil)
 
 	repo.Register(context.Background(), &v1.RegisterRequest{
 		Username: "wafi11",
@@ -137,7 +137,8 @@ func TestRepository_Register_DefaultRole(t *testing.T) {
 
 func TestRepository_Register_EmailDuplicate(t *testing.T) {
 	clearData(t)
-	repo := internal.NewRepository(nil, globalDB)
+	repo := internal.NewRepository(nil, globalDB, nil)
+
 	req := &v1.RegisterRequest{
 		Username: "wafi11",
 		Email:    "wafi@example.com",
@@ -155,7 +156,7 @@ func TestRepository_Login_Success(t *testing.T) {
 	clearData(t)
 	repo := internal.NewRepository(&config.Config{
 		JWT_SECRET: "KAKLAKMAKAKAKAMAKMK",
-	}, globalDB)
+	}, globalDB, nil)
 
 	// Persiapan user
 	_, err := repo.Register(context.Background(), &v1.RegisterRequest{
@@ -177,7 +178,7 @@ func TestRepository_Login_Success(t *testing.T) {
 
 func TestRepository_Login_WrongPassword(t *testing.T) {
 	clearData(t)
-	repo := internal.NewRepository(nil, globalDB)
+	repo := internal.NewRepository(nil, globalDB, nil)
 
 	repo.Register(context.Background(), &v1.RegisterRequest{
 		Email:    "wafi@example.com",

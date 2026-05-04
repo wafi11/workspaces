@@ -69,3 +69,10 @@ func (m *MockRepository) GetProviderUser(c context.Context, email, provider, pro
 	}
 	return args.Get(0).(*pkg.ProviderResponse), args.Error(1)
 }
+func (m *MockRepository) GetOAuthURL(c context.Context, req *v1.GetOAuthURLRequest) (*v1.GetOAuthURLResponse, error) {
+	args := m.Called(c, req)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*v1.GetOAuthURLResponse), args.Error(1)
+}

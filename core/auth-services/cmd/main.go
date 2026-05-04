@@ -22,7 +22,13 @@ func main() {
 		return
 	}
 
-	repo := internal.NewRepository(conf, conn)
+	connRedis, err := config.NewRedisConnection(conf.Redis)
+
+	if err != nil {
+		return
+	}
+
+	repo := internal.NewRepository(conf, conn, connRedis)
 	svc := internal.NewService(repo)
 
 	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%s", conf.Port))

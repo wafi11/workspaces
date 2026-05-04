@@ -46,6 +46,12 @@ func (s *Service) RefreshToken(c context.Context, req *v1.RefreshTokenRequest) (
 	return s.repo.RefreshToken(c, req)
 }
 
+func (s *Service) GetOAuthURL(c context.Context, req *v1.GetOAuthURLRequest) (*v1.GetOAuthURLResponse, error) {
+
+	return s.repo.GetOAuthURL(c, req)
+
+}
+
 func (s *Service) ValidateToken(c context.Context, req *v1.ValidateTokenRequest) (*v1.ValidateTokenResponse, error) {
 	return s.repo.ValidateToken(c, req)
 }

@@ -14,6 +14,7 @@ type IRepository interface {
 	OAuthLogin(c context.Context, req *v1.OAuthCallbackRequest) (*v1.LoginResponse, error)
 	ConnectOAuth(c context.Context, req *v1.ConnectOAuthRequest) (*v1.ConnectOAuthResponse, error)
 	GetProviderUser(c context.Context, email, provider, providerID string) (*ProviderResponse, error)
+	GetOAuthURL(c context.Context, req *v1.GetOAuthURLRequest) (*v1.GetOAuthURLResponse, error)
 }
 type ProviderResponse struct {
 	UserID string

@@ -88,3 +88,56 @@ func (h *AuthHandler) HandleRefreshToken(c echo.Context) error {
 
 	return pkg.Success(c, http.StatusOK, "Successfully Refresh Token", nil)
 }
+
+func (h *AuthHandler) GetOAuthURLGithub(c echo.Context) error {
+
+	res, err := h.authService.GetOAuthURL(c.Request().Context(), &v1.GetOAuthURLRequest{
+		Provider: "github",
+	})
+
+	if err != nil {
+		return pkg.Error(c, http.StatusInternalServerError, "internal server error", nil)
+	}
+
+	return pkg.Success(c, http.StatusOK, "Successfully Get Oauth Url", res.Url)
+
+}
+
+func (h *AuthHandler) ConnectOAuthGithub(c echo.Context) error {
+
+	userId := c.Get("user_id").(string)
+	code := c.QueryParam("code")
+	state := c.QueryParam("state")
+
+	_, err := h.authService.ConnectOAuth(c.Request().Context(), &v1.ConnectOAuthRequest{
+		UserId:   userId,
+		Provider: "github",
+		Code:     code,
+		State:    state,
+	})
+
+	if err != nil {
+		return pkg.Error(c, http.StatusInternalServerError, "internal server error", nil)
+	}
+
+	return pkg.Success(c, http.StatusOK, "Successfully Connect Oauth", nil)
+}
+
+func (h *AuthHandler) OAuthLoginGithub(c echo.Context) error {
+	code := c.QueryParam("code")
+	state := c.QueryParam("state")
+
+	res, err := h.authService.OAuthLogin(c.Request().Context(), &v1.OAuthCallbackRequest{
+		Provider: "github",
+		Code:     code,
+		State:    state,
+	})
+
+	if err != nil {
+		return pkg.Error(c, http.StatusInternalServerError, "internal server error", nil)
+	}
+
+	pkg.SetAuthCookies(c, res.AccessToken, res.RefreshToken, true)
+
+	return pkg.Success(c, http.StatusOK, "Successfully Login", nil)
+}

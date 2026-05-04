@@ -3,6 +3,7 @@ module github.com/wafi11/workspaces/core/api-gateway
 go 1.26.2
 
 require (
+	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo/v4 v4.15.1
 	google.golang.org/grpc v1.80.0

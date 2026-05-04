@@ -18,10 +18,17 @@ type SSOGoogleConfig struct {
 	RedirectURL  string
 }
 
+type RedisConfig struct {
+	RedisUrl      string
+	RedisUsername string
+	RedisPassword string
+}
+
 type Config struct {
 	JWT_SECRET   string
 	DB_URL       string
 	Port         string
+	Redis        *RedisConfig
 	Github       *SSOGithubConfig
 	Google       *SSOGoogleConfig
 	FRONTEND_URL string
@@ -35,6 +42,11 @@ func Load() *Config {
 		JWT_SECRET:   os.Getenv("JWT_SECRET"),
 		Port:         os.Getenv("PORT"),
 		FRONTEND_URL: os.Getenv("FRONTEND_URL"),
+		Redis: &RedisConfig{
+			RedisUrl:      os.Getenv("REDIS_URL"),
+			RedisUsername: os.Getenv("REDIS_USERNAME"),
+			RedisPassword: os.Getenv("REDIS_PASSWORD"),
+		},
 		Github: &SSOGithubConfig{
 			ClientID:     os.Getenv("GITHUB_CLIENT_ID"),
 			ClientSecret: os.Getenv("GITHUB_CLIENT_SECRET"),
